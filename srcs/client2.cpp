@@ -23,7 +23,8 @@ int main()
 
     // sending data
     const char* message = "Hello, server 2eme test!";
-    send(clientSocket, message, strlen(message), 0);
+    // send(clientSocket, message, strlen(message), 0);
+	while(1){};
 
     // closing socket
     close(clientSocket);

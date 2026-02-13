@@ -4,6 +4,7 @@
 
 #define LOCALHOST	"8080"
 #define MAX_CLIENTS	1024
+#define TIMEOUT		(3 * 60 * 1000)
 
 int	initMasterSocket()
 {
@@ -35,6 +36,7 @@ int	initMasterSocket()
 
 	bind(masterSocket, gai->ai_addr, gai->ai_addrlen);
 	listen(masterSocket, MAX_CLIENTS);
+	fcntl(masterSocket, FNDELAY);
 
 	return (masterSocket);
 }
@@ -42,38 +44,57 @@ int	initMasterSocket()
 int main()
 {
 	int masterSocket = initMasterSocket();
-	
+
 	pollfd pollfds[MAX_CLIENTS];
 	t_bzero(pollfds, sizeof(pollfds));
 	pollfds[0].fd = masterSocket;
 	pollfds[0].events = POLLIN;
 
-
-	// std::vector<pollfd> pollfds;
-	// pollfds.reserve(MAX_CLIENTS);
-
-
-	while(POLLIN)
+	int	socketCount = 1;
+	while(1)
 	{
-		poll(pollfds, MAX_CLIENTS, 0);
+		int nfds = socketCount;
+		int err = poll(pollfds, nfds, TIMEOUT); // TODO check err
+		(void)err;
 		std::cout << "OUT OF POLL" << std::endl;
+		std::cout << "nfds -> " << nfds << std::endl;
 
+		for (int i = 0; i < nfds; i++)
+		{
+			pollfd	curr_request = pollfds[i];
+			std::cout <<  "fd is " << curr_request.fd << "\n";
+			if (curr_request.revents == 0)
+				continue ;
+			if (curr_request.revents == POLLIN) // THERE IS AN EVENT HERE
+			{
+				if (curr_request.fd == masterSocket) // <-- REQUEST COMES FROM MASTER SOCKET
+				{
+					std::cout << "Request coming from server\n";
+					while (int fd = accept(masterSocket, 0, 0)) // WHY O and 0 in accept  ??
+					{
+						if (fd == -1) // error ?
+						{
+							std::cout << "accept returned -1\n";
 
-		// poll(pollfds, 10, 0);
-		// for (int i = 0; i < MAX_CLIENTS; i++)
-		// {
-		// 	// check if should accept
-		// 	pollfds[i].events = POLLIN;
-		// 	pollfds[i].fd = accept(masterSocket, 0, 0);
-		// 	if (pollfds[i].revents | POLLIN)
-		// 	{
-		// 		char buffer[2000] = {0};
-				
-		// 		recv(pollfds[i].fd, buffer, sizeof(buffer), 0);
-				
-		// 		std::cout << buffer << "\n";
-		// 	}
-		// }
+							// DEAL ERRORS WITH ERRNO
+							break ;
+						}
+						std::cout << "err2\n";
+
+						pollfds[socketCount].fd = fd;
+						pollfds[socketCount].events = POLLIN;
+						socketCount++;
+					}
+				}
+				else if (curr_request.fd != masterSocket) // <-- REQUEST COMES FROM CLIENT
+				{
+					std::cout << "Request coming from client\n";
+					char buffer[2000] = {0};
+					recv(curr_request.fd, buffer, sizeof(buffer), 0);
+					std::cout << buffer << "\n";
+				}
+			}
+		}
 	}
 	
 	close(masterSocket);
