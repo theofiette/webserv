@@ -1,9 +1,14 @@
 NAME        = webserv
 
+INCLUDES	= includes/
+
 CC          = c++
+FLAGS		= -I $(INCLUDES)
 CFLAGS      = -Wall -Wextra -Werror -std=c++98
 
-SRC         = srcs/main.cpp
+SRC         =	srcs/main.cpp \
+				srcs/exceptions/exceptions.cpp
+
 OBJ         = $(SRC:.cpp=.o)
 
 # === Colors ===
@@ -19,11 +24,11 @@ all: $(NAME)
 
 $(NAME): $(OBJ)
 	@echo "$(GREEN) $(TITLE)🔘 make $(NAME)" "$(END)"
-	@$(CC) $(CFLAGS) $(OBJ) -o $(NAME) > /dev/null && \
+	@$(CC) $(CFLAGS) $(FLAGS) $(OBJ) -o $(NAME) && \
 	echo "   $(GREEN)⤷ $(END)Executable: $(GREEN)$(NAME)$(END)"
 
 %.o: %.cpp
-	@$(CC) $(CFLAGS) -c $< -o $@ > /dev/null && \
+	@$(CC) $(CFLAGS) $(FLAGS) -c $< -o $@ && \
 	printf "   $(GREEN)⤷ $(BROWN)%-25s $(BLUE)→ $(BROWN)%s$(END)\n" "$<" "$@"
 
 c clean:

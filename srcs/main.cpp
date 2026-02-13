@@ -1,35 +1,17 @@
-#include <unistd.h>
-#include <poll.h>
-#include <cstdio>
-#include <iostream>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <netdb.h>
-#include <fcntl.h>
-#include <netinet/in.h>
-#include <cstring>
-
+// #include "../includes/webserv.hpp"
+#include "webserv.hpp"
+#include <vector>
 
 #define LOCALHOST	"8080"
-
-template< typename T>
-void	ft_bzero(T *ptr, const size_t size)
-{
-	char *ptr_ref = reinterpret_cast<char *>(ptr);
-
-	for (size_t i = 0; i < size; i++)
-		ptr_ref[i] = 0;
-}
+#define MAX_CLIENTS	1024
 
 int	initMasterSocket()
 {
 	int 			masterSocket;
 	struct addrinfo *gai;
-    
-	
 	struct addrinfo hints;
 
-	ft_bzero< struct addrinfo >(&hints, sizeof(hints));
+	t_bzero< struct addrinfo >(&hints, sizeof(hints));
     hints.ai_family = AF_INET;    /* Allow IPv4 or IPv6 */
     hints.ai_socktype = SOCK_STREAM; /* Stream socket */
     hints.ai_flags = AI_PASSIVE;    /* For wildcard IP address */
@@ -45,13 +27,14 @@ int	initMasterSocket()
 
 	// we fill a sockaddr structure
 	getaddrinfo(NULL, LOCALHOST, &hints, &gai);
+
 	// sockaddr_in serverAddress;
 	// serverAddress.sin_family = AF_INET;
 	// serverAddress.sin_addr.s_addr = INADDR_ANY;
 	// serverAddress.sin_port = htons(LOCALHOST);
 
 	bind(masterSocket, gai->ai_addr, gai->ai_addrlen);
-	listen(masterSocket, 1024);
+	listen(masterSocket, MAX_CLIENTS);
 
 	return (masterSocket);
 }
@@ -59,24 +42,39 @@ int	initMasterSocket()
 int main()
 {
 	int masterSocket = initMasterSocket();
+	
+	pollfd pollfds[MAX_CLIENTS];
+	t_bzero(pollfds, sizeof(pollfds));
+	pollfds[0].fd = masterSocket;
+	pollfds[0].events = POLLIN;
 
-	pollfd pollfds[10];
-	while(1)
+
+	// std::vector<pollfd> pollfds;
+	// pollfds.reserve(MAX_CLIENTS);
+
+
+	while(POLLIN)
 	{
-		
-		int i = 0;
-		
-		poll(pollfds, 10, 0);
+		poll(pollfds, MAX_CLIENTS, 0);
+		std::cout << "OUT OF POLL" << std::endl;
 
-		pollfds[i].fd = accept(masterSocket, 0, 0);
 
-		char buffer[2000] = {0};
-
-		recv(pollfds[i].fd, buffer, sizeof(buffer), 0);
-
-		std::cout << buffer << "\n";
-		i++;
+		// poll(pollfds, 10, 0);
+		// for (int i = 0; i < MAX_CLIENTS; i++)
+		// {
+		// 	// check if should accept
+		// 	pollfds[i].events = POLLIN;
+		// 	pollfds[i].fd = accept(masterSocket, 0, 0);
+		// 	if (pollfds[i].revents | POLLIN)
+		// 	{
+		// 		char buffer[2000] = {0};
+				
+		// 		recv(pollfds[i].fd, buffer, sizeof(buffer), 0);
+				
+		// 		std::cout << buffer << "\n";
+		// 	}
+		// }
 	}
 	
 	close(masterSocket);
-}	
+}
