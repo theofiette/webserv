@@ -25,7 +25,11 @@ int	initMasterSocket()
 
 	// socket gives us the masterSocket FD
 	masterSocket = socket(AF_INET, SOCK_STREAM, 0);
-
+	// int on = 1;
+	// setsockopt(masterSocket, SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on));
+	int val = fcntl(masterSocket, F_SETFL, O_NONBLOCK);
+	if (val == -1)
+		std::cout << "ERROR ON FCNTL \n\n";
 	// we fill a sockaddr structure
 	getaddrinfo(NULL, LOCALHOST, &hints, &gai);
 
@@ -49,53 +53,68 @@ int main()
 	t_bzero(pollfds, sizeof(pollfds));
 	pollfds[0].fd = masterSocket;
 	pollfds[0].events = POLLIN;
+	int nfds = 1;
+	int newSocket = 0;
+	int errCheck = 0;
+	int factoArray = 0;
 
-	int	socketCount = 1;
-	while(1)
+	while(!errCheck)
 	{
-		int nfds = socketCount;
-		int err = poll(pollfds, nfds, TIMEOUT); // TODO check err
-		(void)err;
-		std::cout << "OUT OF POLL" << std::endl;
-		std::cout << "nfds -> " << nfds << std::endl;
+		// std::cout << "NFDS = " << nfds << "\n\n";
+		// std::cout << "POLLFDS[0] == MASTERSOCKET " << (pollfds[0].fd == masterSocket ? "TRUE" : "FALSE") << "\n";
+		poll(pollfds, nfds, 3 * 60 * 1000);
+		// std::cout << "OUT OF POLL" << std::endl;
 
-		for (int i = 0; i < nfds; i++)
+		
+		int currentSize = nfds;
+		factoArray = 0;
+		for (int i = 0; i < currentSize; i++)
 		{
-			pollfd	curr_request = pollfds[i];
-			std::cout <<  "fd is " << curr_request.fd << "\n";
-			if (curr_request.revents == 0)
-				continue ;
-			if (curr_request.revents == POLLIN) // THERE IS AN EVENT HERE
-			{
-				if (curr_request.fd == masterSocket) // <-- REQUEST COMES FROM MASTER SOCKET
-				{
-					std::cout << "Request coming from server\n";
-					while (int fd = accept(masterSocket, 0, 0)) // WHY O and 0 in accept  ??
-					{
-						if (fd == -1) // error ?
-						{
-							std::cout << "accept returned -1\n";
+			if (!pollfds[i].revents)
+				continue;
 
-							// DEAL ERRORS WITH ERRNO
-							break ;
-						}
-						std::cout << "err2\n";
+			if (pollfds[i].revents != POLLIN)
+				break;
 
-						pollfds[socketCount].fd = fd;
-						pollfds[socketCount].events = POLLIN;
-						socketCount++;
+			if (pollfds[i].fd == masterSocket){
+
+				while(1){
+					newSocket = accept(masterSocket, 0, 0);
+					if (newSocket < 0){
+						break ;
 					}
+					pollfds[nfds].fd = newSocket; 
+					pollfds[nfds].events = POLLIN;
 				}
-				else if (curr_request.fd != masterSocket) // <-- REQUEST COMES FROM CLIENT
-				{
-					std::cout << "Request coming from client\n";
-					char buffer[2000] = {0};
-					recv(curr_request.fd, buffer, sizeof(buffer), 0);
-					std::cout << buffer << "\n";
+				nfds++;
+			}
+			else{
+				char buffer[2000] = {0};
+				std::string buf;
+				std::cout << pollfds[i].fd << "\n";
+				while (int rc = recv(pollfds[i].fd, buffer, sizeof(buffer) - 1, 0) > 0){
+					buf += buffer;
+					t_bzero(&buffer, sizeof(buffer));
+					std::cout << "BYTES READ : " << rc << "\n";
+				}
+				std::cout << "MESSAGE IS : " << buf << "\n";
+				close(pollfds[i].fd);
+				pollfds[i].fd = -1;
+				factoArray = 1;
+
+			}
+		}
+		if (factoArray){
+			for (int i = 0; i < nfds; i++){
+				if (pollfds[i].fd == -1){
+					for (int j = i; j < nfds - 1; j++){
+						pollfds[j] = pollfds[j + 1];
+					}
+					i--;
+					nfds--;
 				}
 			}
 		}
 	}
-	
 	close(masterSocket);
 }
