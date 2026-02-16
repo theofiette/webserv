@@ -9,13 +9,12 @@ int main()
 {
 	RequestPool	requests;
 
-	pollfd pollfds[MAX_CLIENTS];
-		
-	int newSocket = 0;
-	int errCheck = 0;
-
-	while(!errCheck)
+	try
 	{
 		requests.loop();
+	}
+	catch (std::exception &e)
+	{
+		std::cerr << e.what() << std::endl;
 	}
 }

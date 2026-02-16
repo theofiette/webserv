@@ -75,8 +75,10 @@ void	RequestPool::_loopUpdate()
 void	RequestPool::loop()
 {
 	pollfd currRequest;
+
+	while (1) // TODO deal with error
+	{
 	_awaitRequests();
-	
 	for (int i = 0; i < _temp_size; i++)
 	{
 		currRequest = _pollfds[i];
@@ -93,6 +95,7 @@ void	RequestPool::loop()
 			_processRequest(currRequest);
 	}
 	_loopUpdate();
+	}
 }
 
 void	RequestPool::_processRequest(pollfd &request)
