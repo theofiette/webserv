@@ -13,7 +13,7 @@
 #include <netinet/in.h>
 #include <cstring>
 
-#include "RequestPool.hpp"
+#include "WebServer.hpp"
 
 #include "parser.hpp"
 

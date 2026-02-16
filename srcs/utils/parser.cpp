@@ -84,6 +84,7 @@ Request::Request(int &socketFd) : _requestType(INVALID), _target("")
 			char msg[500] = "HTTP/1.1 200 OK\nContent-Type:text/html\nContent-Length: 2000\n\n<style> h1{text-align: center} <style/><h1> ILIES IL EST BO DES FOIS <h1/> <br> <h2> JE SUIS UN SOUS TITRE A LA LIGNE <h2/> <br> <p> <bold>ET JE SUIS UN PARAGRAPHE EN GRAS<p/>\n";
 			send(socketFd, msg, sizeof(msg), 0);
 		}
+		// fflush(NULL);
 		close(socketFd);
 		socketFd = -1;
 	// 	exit(0);
@@ -91,4 +92,8 @@ Request::Request(int &socketFd) : _requestType(INVALID), _target("")
 
 }
 
-Request::~Request(){std::cout << "request ended\n";};
+Request::~Request()
+{
+	std::cout << "request ended" << "\n" ;
+	
+};

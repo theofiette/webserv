@@ -1,12 +1,9 @@
 // #include "../includes/webserv.hpp"
-#include "RequestPool.hpp"
+#include "WebServer.hpp"
 #include "webserv.hpp"
 #include <vector>
 #include <csignal>
 #include <cstdlib>
-
-//TODO delete
-int	g_masterSocket = 0;
 
 void sigHandler(int sig)
 {
@@ -24,12 +21,12 @@ void exceptionManager(std::exception *e)
 }
 
 int main()
-{
-	RequestPool	requests;
-
-	signal(SIGINT, sigHandler);
+{	
 	try
 	{
+		WebServer	requests;
+
+		signal(SIGINT, sigHandler);
 		requests.loop();
 	}
 	catch (std::exception &e)

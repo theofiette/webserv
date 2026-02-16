@@ -1,35 +1,34 @@
 
-#include "RequestPool.hpp"
-extern int g_masterSocket;
+#include "WebServer.hpp"
 
-void	RequestPool::_initMasterSocket()
+# include "errno.h"
+
+void	WebServer::_initMasterSocket()
 {
 	struct addrinfo *gai;
 	struct addrinfo hints;
+	int				tmp = 1;
 
 	t_bzero< struct addrinfo >(&hints, sizeof(hints));
-    hints.ai_family = AF_INET;    /* Allow IPv4 or IPv6 */
-    hints.ai_socktype = SOCK_STREAM; /* Stream socket */
-    hints.ai_flags = AI_PASSIVE;    /* For wildcard IP address */
-    //    hints.ai_protocol = 0;          /* Any protocol */
-    //    hints.ai_canonname = NULL;
-    //    hints.ai_addr = NULL;
-    //    hints.ai_next = NULL;
-	_masterSocket = socket(AF_INET, SOCK_STREAM, 0);
-	fcntl(_masterSocket, F_SETFL, O_NONBLOCK);
-	getaddrinfo(NULL, LOCALHOST, &hints, &gai);
-	// sockaddr_in serverAddress;
-	// serverAddress.sin_family = AF_INET;
-	// serverAddress.sin_addr.s_addr = INADDR_ANY;
-	// serverAddress.sin_port = htons(LOCALHOST);
-	bind(_masterSocket, gai->ai_addr, gai->ai_addrlen);
-	listen(_masterSocket, MAX_CLIENTS);
-
-	//TODO delete
-	g_masterSocket = _masterSocket;
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_PASSIVE;
+	_masterSocket = socket(AF_INET, SOCK_STREAM, 0); // TODO check protocol
+	//TODO gai_error
+	if (
+		_masterSocket == -1														||
+		fcntl(_masterSocket, F_SETFL, O_NONBLOCK) == - 1 						||
+		getaddrinfo(NULL, LOCALHOST, &hints, &gai) == -1 						||
+		setsockopt(_masterSocket, SOL_SOCKET, SO_REUSEADDR, &tmp, sizeof(int))	||
+		bind(_masterSocket, gai->ai_addr, gai->ai_addrlen) == -1				||
+		listen(_masterSocket, MAX_CLIENTS) == -1)
+		{
+			std::cerr << strerror(errno) << std::endl;
+			throw( ExceptionBadInit() );
+		}
 }
 
-void	RequestPool::_initPollFds()
+void	WebServer::_initPollFds()
 {
 	t_bzero(_pollfds, sizeof(_pollfds));
 	_pollfds[0].fd = _masterSocket;
@@ -38,7 +37,7 @@ void	RequestPool::_initPollFds()
 	_temp_size++;
 }
 
-void	RequestPool::_processConnections()
+void	WebServer::_processConnections()
 {
 	int	socketFd;
 
@@ -57,7 +56,7 @@ void	RequestPool::_processConnections()
 	}
 }
 
-void	RequestPool::_loopUpdate()
+void	WebServer::_loopUpdate()
 {
 	if (_size != _temp_size) // not finished + don't like
 	{
@@ -77,7 +76,7 @@ void	RequestPool::_loopUpdate()
 	_size = _temp_size;
 }
 
-void	RequestPool::loop()
+void	WebServer::loop()
 {
 	pollfd currRequest;
 
@@ -104,7 +103,7 @@ void	RequestPool::loop()
 	}
 }
 
-void	RequestPool::_processRequest(pollfd &request)
+void	WebServer::_processRequest(pollfd &request)
 {
 	// TODO : send fd (int) to Ilyes
 	Request r(request.fd);
@@ -128,7 +127,7 @@ void	RequestPool::_processRequest(pollfd &request)
 	request.fd = -1;
 }
 
-void	RequestPool::_awaitRequests()
+void	WebServer::_awaitRequests()
 {
 	std::cout << "AWAIT\n";
 	std::cout << _temp_size << "\n";
@@ -138,22 +137,22 @@ void	RequestPool::_awaitRequests()
 
 // CONSTRUCTORS
 
-RequestPool::RequestPool() : 
+WebServer::WebServer() : 
 _masterSocket(0), _temp_size(0), _size(0)
 {
 	_initMasterSocket();
 	_initPollFds();
 	std::cout
-		<< "Default constructor called for class RequestPool" << std::endl;
+		<< "Default constructor called for class WebServer" << std::endl;
 }
 
 
 // DESTRUCTOR
 
-RequestPool::~RequestPool()
+WebServer::~WebServer()
 {
 	if (_masterSocket)
 		close(_masterSocket);
 	std::cout
-		<< "Destructor called for class RequestPool" << std::endl;
+		<< "Destructor called for class WebServer" << std::endl;
 }

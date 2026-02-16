@@ -2,7 +2,7 @@
 
 # include "webserv.hpp"
 
-class RequestPool
+class WebServer
 {
 private:
 
@@ -23,9 +23,9 @@ public:
 
 	void loop();
 
-	RequestPool();
-	~RequestPool();
+	WebServer();
+	~WebServer();
 
-	// RequestPool(const RequestPool &other);	//Copy constructor
-	// RequestPool	&operator=(const RequestPool &other); //Assignement operator
+	// WebServer(const WebServer &other);	//Copy constructor
+	// WebServer	&operator=(const WebServer &other); //Assignement operator
 };

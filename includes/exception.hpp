@@ -8,6 +8,13 @@ class	ExceptionNull : public std::exception
 		const char*  what() const throw();
 };
 
+
+class	ExceptionBadInit : public std::exception
+{
+	private:
+		const char*  what() const throw();
+};
+
 class	ExceptionSignal : public std::exception
 {
 	private:
