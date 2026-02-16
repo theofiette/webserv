@@ -10,32 +10,80 @@ static std::string recvRequest(int socketFd)
 		request += buffer;
 		t_bzero(&buffer, sizeof(buffer));
 	}
-	std::cout << request << std::endl;
 	return (request);
 }
-static int parseRequest(std::string request)
+
+void Request::setRequestType(int type)
 {
-	// int i = 0;
-	// while (request[i] && request[i] != '\n')
-	// {
-		std::cout << request << '\n';
-	// 	i++;
-	// }
+	if (type == GET)
+		_requestType = GET;
+	else if (type == DELETE)
+		_requestType = DELETE;
+	else if (type == POST)
+		_requestType = POST;
+	else 
+		_requestType = INVALID;
+}
+
+void Request::setTarget(std::string target)
+{
+	if (!target.empty())
+		_target = target;
+}
+
+void Request::setProtocole(std::string protocole)
+{
+	std::string("HTTP/1.1");
+
+	// if ()
+	_protocole = protocole;
+}
+
+static int checkType(std::string request)
+{
+	std::string type[3] = {"GET", "DELETE", "POST"};
+
+	for (int i = 0; i < 3; i++)
+	{
+		if (request.find(type[i]) != std::string::npos)
+			return (i);
+	}
+	return (INVALID);
+}
+
+static int parseRequest(Request &r, std::string request)
+{
+	std::string tmp;
+
+	tmp = request.substr(0, request.find(' '));
+	std::cout << tmp << std::endl;
+
+	int type = checkType(tmp);
+	r.setRequestType(type);
+	
+	std::cout << type << std::endl;
+
+	tmp = request.substr(tmp.size() + 1, request.find(' ') - 1);
+	r.setTarget(tmp);
+	
+	tmp = request.substr(tmp.size() + 1, request.find('\n'));
+	r.setProtocole(tmp);
+	std::cout << tmp << std::endl;
+
 	return (1);
 }
 
-Request::Request(int &socketFd) : _requestType(""), _target("")
+Request::Request(int &socketFd) : _requestType(INVALID), _target("")
 {
 	// pid_t fd = fork();
 	// if (fd == 0)
 	// {
-	std::string request = recvRequest(socketFd);
-	// std::cout << request << '\n';
-
-	parseRequest(request);
-	close(socketFd);
-	socketFd = -1;
-	exit(0);
+		std::string request = recvRequest(socketFd);
+		// std::cout << request << '\n';
+		parseRequest(*this, request);
+		close(socketFd);
+		socketFd = -1;
+	// 	exit(0);
 	// }
 
 }

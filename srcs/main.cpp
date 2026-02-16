@@ -77,20 +77,21 @@ int main()
 				}
 				nfds++;
 			}
-			else{
-				char buffer[2000] = {0};
-				std::string buf;
-				std::cout << pollfds[i].fd << "\n";
-				while (int rc = recv(pollfds[i].fd, buffer, sizeof(buffer) - 1, 0) > 0){
-					buf += buffer;
-					t_bzero(&buffer, sizeof(buffer));
-					std::cout << "BYTES READ : " << rc << "\n";
-				}
-				std::cout << "MESSAGE IS : " << buf << "\n";
-				close(pollfds[i].fd);
-				pollfds[i].fd = -1;
-				factoArray = 1;
-
+			else
+			{
+				// char buffer[2000] = {0};
+				// std::string buf;
+				// std::cout << pollfds[i].fd << "\n";
+				// while (int rc = recv(pollfds[i].fd, buffer, sizeof(buffer) - 1, 0) > 0){
+				// 	buf += buffer;
+				// 	t_bzero(&buffer, sizeof(buffer));
+				// 	std::cout << "BYTES READ : " << rc << "\n";
+				// }
+				// std::cout << "MESSAGE IS : " << buf << "\n";
+				// close(pollfds[i].fd);
+				// pollfds[i].fd = -1;
+				// factoArray = 1;
+				Request r(pollfds[i].fd);
 			}
 		}
 		if (factoArray){
