@@ -1,5 +1,6 @@
 
 #include "RequestPool.hpp"
+extern int g_masterSocket;
 
 void	RequestPool::_initMasterSocket()
 {
@@ -23,6 +24,9 @@ void	RequestPool::_initMasterSocket()
 	// serverAddress.sin_port = htons(LOCALHOST);
 	bind(_masterSocket, gai->ai_addr, gai->ai_addrlen);
 	listen(_masterSocket, MAX_CLIENTS);
+
+	//TODO delete
+	g_masterSocket = _masterSocket;
 }
 
 void	RequestPool::_initPollFds()
@@ -31,12 +35,14 @@ void	RequestPool::_initPollFds()
 	_pollfds[0].fd = _masterSocket;
 	_pollfds[0].events = POLLIN;
 	_size++; // (set size at 1);
+	_temp_size++;
 }
 
 void	RequestPool::_processConnections()
 {
 	int	socketFd;
 
+	std::cout << "IN REQUEST CONNECTION \n\n";
 	while(1)
 	{
 		socketFd = accept(_masterSocket, 0, 0); // TODO check args
@@ -47,9 +53,8 @@ void	RequestPool::_processConnections()
 		}
 		_pollfds[_size].fd = socketFd; 
 		_pollfds[_size].events = POLLIN;
+		_size++;
 	}
-	_size++;
-	_temp_size++;
 }
 
 void	RequestPool::_loopUpdate()
@@ -64,12 +69,12 @@ void	RequestPool::_loopUpdate()
 				{
 					_pollfds[j] = _pollfds[j + 1];
 				}
+				_temp_size--;
 				i--;
-				_size--;
 			}
 		}
 	}
-	_temp_size = _size;
+	_size = _temp_size;
 }
 
 void	RequestPool::loop()
@@ -79,17 +84,17 @@ void	RequestPool::loop()
 	while (1) // TODO deal with error
 	{
 		_awaitRequests();
-		std::cout << "OUT OF POLL";
-		for (int i = 0; i < _temp_size; i++)
+		std::cout << "OUT OF POLL\n";
+		for (int i = 0; i < _size; i++)
 		{
 			currRequest = _pollfds[i];
-			if (currRequest.revents)
-				continue ;
-			if (currRequest.revents != POLLIN)
-			{
-				// TODO error here ?
-				break;
-			}
+			// if (!currRequest.revents)
+			// 	continue ;
+			// if (currRequest.revents != POLLIN)
+			// {
+			// 	// TODO error here ?
+			// 	break;
+			// }
 			if (currRequest.fd == _masterSocket)
 				_processConnections();
 			else
@@ -105,13 +110,19 @@ void	RequestPool::_processRequest(pollfd &request)
 
 	char buffer[2000] = {0};
 	std::string buf;
-
-	while (recv(request.fd, buffer, sizeof(buffer) - 1, 0) > 0)\
+	while (recv(request.fd, buffer, sizeof(buffer) - 1, 0))
 	{
+		// TODO : check error recv
 		buf += buffer;
 		t_bzero(&buffer, sizeof(buffer));
+		if (buf.find("\r\n\r\n") == std::string::npos)
+			continue ;
+		else
+			break ;
 	}
-	std::cout << buf << "\n";
+	char msg[500] = "HTTP/1.1 200 OK\nContent-Type:text/html\nContent-Length: 2000\n\n<img src=\"image_lion.png\"/>\n";
+	send(request.fd, msg, sizeof(msg), 0);
+	std::cout << "MESSAGE IS: " << buf << "\n";
 	close(request.fd);
 	request.fd = -1;
 }
@@ -119,7 +130,9 @@ void	RequestPool::_processRequest(pollfd &request)
 void	RequestPool::_awaitRequests()
 {
 	std::cout << "AWAIT\n";
-	poll(_pollfds, _temp_size, TIMEOUT);
+	std::cout << _temp_size << "\n";
+	std::cout << _size << "\n";
+	poll(_pollfds, _size, TIMEOUT);
 }
 
 // CONSTRUCTORS
