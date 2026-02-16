@@ -1,11 +1,6 @@
 # pragma once
 
-# include <iostream>
-# include <stack>
-
 # include "webserv.hpp"
-
-class ARequest;
 
 class RequestPool
 {
@@ -16,17 +11,17 @@ private:
 	int		_size;
 	pollfd _pollfds[MAX_CLIENTS];
 
-	void	RequestPool::_initMasterSocket();
-	void	RequestPool::_initPollFds();
+	void	_initMasterSocket();
+	void	_initPollFds();
 
-	void	RequestPool::_awaitRequests();
-	void	RequestPool::_processConnections();
-	void	RequestPool::_processRequest(pollfd &request);
-	void	RequestPool::_loopUpdate();
+	void	_awaitRequests();
+	void	_processConnections();
+	void	_processRequest(pollfd &request);
+	void	_loopUpdate();
 
 public:
 
-	void RequestPool::loop();
+	void loop();
 
 	RequestPool();
 	~RequestPool();

@@ -1,9 +1,7 @@
 // #include "../includes/webserv.hpp"
+#include "RequestPool.hpp"
 #include "webserv.hpp"
 #include <vector>
-
-
-
 
 int main()
 {
