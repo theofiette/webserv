@@ -10,19 +10,17 @@ int	g_masterSocket = 0;
 
 void sigHandler(int sig)
 {
-	if (g_masterSocket)
-		close(g_masterSocket);
-	exit(sig + 128);
+	throw (ExceptionSignal(128 + sig));
 }
 
-void exceptionManager(std::exception &e)
+void exceptionManager(std::exception *e)
 {
 	int	errorCode = 1;
 
-	// if (dynamic_cast<ExceptionSignal>(e))
-	// 	errorCode = e.sig();
-
-	std::cerr << e.what() << std::endl;
+	if (dynamic_cast<ExceptionSignal *>(e))
+		errorCode = dynamic_cast<ExceptionSignal *>(e)->getSig();
+	std::cerr << e->what() << std::endl;
+	exit(errorCode);
 }
 
 int main()
@@ -36,7 +34,7 @@ int main()
 	}
 	catch (std::exception &e)
 	{
-		exceptionManager(e);
+		exceptionManager(&e);
 	}
 	return (0);
 }
