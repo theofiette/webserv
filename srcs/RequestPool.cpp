@@ -16,8 +16,12 @@ void	RequestPool::_initMasterSocket()
     //    hints.ai_addr = NULL;
     //    hints.ai_next = NULL;
 	_masterSocket = socket(AF_INET, SOCK_STREAM, 0);
+	int opt = 1;
+	setsockopt(_masterSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 	fcntl(_masterSocket, F_SETFL, O_NONBLOCK);
 	getaddrinfo(NULL, LOCALHOST, &hints, &gai);
+
+
 	// sockaddr_in serverAddress;
 	// serverAddress.sin_family = AF_INET;
 	// serverAddress.sin_addr.s_addr = INADDR_ANY;
@@ -108,31 +112,13 @@ void	RequestPool::_processRequest(pollfd &request)
 {
 	// TODO : send fd (int) to Ilyes
 	Request r(request.fd);
-
-	// char buffer[2000] = {0};
-	// std::string buf;
-	// while (recv(request.fd, buffer, sizeof(buffer) - 1, 0))
-	// {
-	// 	// TODO : check error recv
-	// 	buf += buffer;
-	// 	t_bzero(&buffer, sizeof(buffer));
-	// 	if (buf.find("\r\n\r\n") == std::string::npos)
-	// 		continue ;
-	// 	else
-	// 		break ;
-	// }
-	// char msg[500] = "HTTP/1.1 200 OK\nContent-Type:text/html\nContent-Length: 2000\n\n<img src=\"image_lion.png\"/>\n";
-	// send(request.fd, msg, sizeof(msg), 0);
-	// std::cout << "MESSAGE IS: " << buf << "\n";
-	close(request.fd);
-	request.fd = -1;
 }
 
 void	RequestPool::_awaitRequests()
 {
 	std::cout << "AWAIT\n";
-	std::cout << _temp_size << "\n";
-	std::cout << _size << "\n";
+	// std::cout << _temp_size << "\n";
+	// std::cout << _size << "\n";
 	poll(_pollfds, _size, TIMEOUT);
 }
 
@@ -143,8 +129,8 @@ _masterSocket(0), _temp_size(0), _size(0)
 {
 	_initMasterSocket();
 	_initPollFds();
-	std::cout
-		<< "Default constructor called for class RequestPool" << std::endl;
+	// std::cout
+		// << "Default constructor called for class RequestPool" << std::endl;
 }
 
 
@@ -154,6 +140,6 @@ RequestPool::~RequestPool()
 {
 	if (_masterSocket)
 		close(_masterSocket);
-	std::cout
-		<< "Destructor called for class RequestPool" << std::endl;
+	// std::cout
+		// << "Destructor called for class RequestPool" << std::endl;
 }

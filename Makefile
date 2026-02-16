@@ -9,7 +9,7 @@ CFLAGS      = -Wall -Wextra -Werror -std=c++98
 SRC         =	srcs/main.cpp \
 				srcs/exceptions/exceptions.cpp \
 				srcs/RequestPool.cpp \
-				srcs/utils/parser.cpp
+				srcs/utils/request.cpp
 
 OBJ         = $(SRC:.cpp=.o)
 

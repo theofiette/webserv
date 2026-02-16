@@ -8,11 +8,6 @@
 //TODO delete
 int	g_masterSocket = 0;
 
-void sigHandler(int sig)
-{
-	throw (ExceptionSignal(128 + sig));
-}
-
 void exceptionManager(std::exception *e)
 {
 	int	errorCode = 1;
@@ -27,7 +22,6 @@ int main()
 {
 	RequestPool	requests;
 
-	signal(SIGINT, sigHandler);
 	try
 	{
 		requests.loop();
