@@ -15,4 +15,6 @@
 
 #include "RequestPool.hpp"
 
+#include "parser.hpp"
+
 #include "../srcs/utils/memory.tpp"

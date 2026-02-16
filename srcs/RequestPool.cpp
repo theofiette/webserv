@@ -107,22 +107,23 @@ void	RequestPool::loop()
 void	RequestPool::_processRequest(pollfd &request)
 {
 	// TODO : send fd (int) to Ilyes
+	Request r(request.fd);
 
-	char buffer[2000] = {0};
-	std::string buf;
-	while (recv(request.fd, buffer, sizeof(buffer) - 1, 0))
-	{
-		// TODO : check error recv
-		buf += buffer;
-		t_bzero(&buffer, sizeof(buffer));
-		if (buf.find("\r\n\r\n") == std::string::npos)
-			continue ;
-		else
-			break ;
-	}
-	char msg[500] = "HTTP/1.1 200 OK\nContent-Type:text/html\nContent-Length: 2000\n\n<img src=\"image_lion.png\"/>\n";
-	send(request.fd, msg, sizeof(msg), 0);
-	std::cout << "MESSAGE IS: " << buf << "\n";
+	// char buffer[2000] = {0};
+	// std::string buf;
+	// while (recv(request.fd, buffer, sizeof(buffer) - 1, 0))
+	// {
+	// 	// TODO : check error recv
+	// 	buf += buffer;
+	// 	t_bzero(&buffer, sizeof(buffer));
+	// 	if (buf.find("\r\n\r\n") == std::string::npos)
+	// 		continue ;
+	// 	else
+	// 		break ;
+	// }
+	// char msg[500] = "HTTP/1.1 200 OK\nContent-Type:text/html\nContent-Length: 2000\n\n<img src=\"image_lion.png\"/>\n";
+	// send(request.fd, msg, sizeof(msg), 0);
+	// std::cout << "MESSAGE IS: " << buf << "\n";
 	close(request.fd);
 	request.fd = -1;
 }

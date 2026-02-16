@@ -15,6 +15,16 @@ void sigHandler(int sig)
 	exit(sig + 128);
 }
 
+void exceptionManager(std::exception &e)
+{
+	int	errorCode = 1;
+
+	// if (dynamic_cast<ExceptionSignal>(e))
+	// 	errorCode = e.sig();
+
+	std::cerr << e.what() << std::endl;
+}
+
 int main()
 {
 	RequestPool	requests;
@@ -26,6 +36,7 @@ int main()
 	}
 	catch (std::exception &e)
 	{
-		std::cerr << e.what() << std::endl;
+		exceptionManager(e);
 	}
+	return (0);
 }
