@@ -1,5 +1,7 @@
 #pragma once
 
+# include "macros.hpp"
+
 #include <unistd.h>
 #include <poll.h>
 #include <cstdio>
@@ -10,5 +12,7 @@
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <cstring>
+
+#include "RequestPool.hpp"
 
 #include "../srcs/utils/memory.tpp"
