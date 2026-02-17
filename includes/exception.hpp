@@ -20,3 +20,9 @@ class	ExceptionSignal : public std::exception
 		ExceptionSignal(int sig);
 		int	getSig() const throw();
 };
+
+class ExceptionParsingError : public std::exception
+{
+	private:
+		const char*	what() const throw();
+};

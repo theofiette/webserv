@@ -1,5 +1,6 @@
 #include "exception.hpp"
 
+// Signal
 const char* ExceptionNull::what() const throw()
 {
 	return ("Can't dereference a null pointer.");
@@ -17,3 +18,9 @@ int ExceptionSignal::getSig() const throw()
 
 ExceptionSignal::ExceptionSignal(int sig) : _sig(sig)
 {}
+
+// Parsing
+const char*	ExceptionParsingError::what() const throw()
+{
+	return ("Parsing error found.\n"); // A approfondir 
+}

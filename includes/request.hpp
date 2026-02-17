@@ -12,6 +12,9 @@ class Request
 		int _requestType;
 		std::string _target;
 		std::string _protocole;
+		std::string _host;
+		std::string _port;
+		std::string _connectionType;
 
 	public:
 
@@ -31,5 +34,15 @@ class Request
 		void setRequestType(int);
 		void setTarget(std::string target);
 		void setProtocole(std::string protocole);
+		void setHostPort(std::string port);
+		void setConnectionType(std::string connectionType);
+
+		void pickRequestType();
+		void createReponse();
+		void displayInfos();
+
+		void rGet();
+		void rDelete();
+		void rPost();
 
 };

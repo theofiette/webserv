@@ -91,6 +91,7 @@ void	RequestPool::loop()
 		std::cout << "OUT OF POLL\n";
 		for (int i = 0; i < _size; i++)
 		{
+			std::cout << _size << "\n";
 			currRequest = _pollfds[i];
 			// if (!currRequest.revents)
 			// 	continue ;
@@ -116,9 +117,6 @@ void	RequestPool::_processRequest(pollfd &request)
 
 void	RequestPool::_awaitRequests()
 {
-	std::cout << "AWAIT\n";
-	// std::cout << _temp_size << "\n";
-	// std::cout << _size << "\n";
 	poll(_pollfds, _size, TIMEOUT);
 }
 
