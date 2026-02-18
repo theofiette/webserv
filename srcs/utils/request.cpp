@@ -101,7 +101,8 @@ int Request::parseRequest(std::string request)
 	try {
 		std::getline(reqF, tmp, '\n');
 		setFirstLine(tmp);
-		while (std::getline(reqF, tmp, '\n')){
+		while (std::getline(reqF, tmp, '\n'))
+		{
 			if (tmp.empty() || tmp[0] == '\r')
 				break;
 			std::pair<std::string, std::string> map;
