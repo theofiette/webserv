@@ -4,17 +4,14 @@
 #include <sys/socket.h>
 #include <cstdlib>
 #include <string>
+#include <map>
 #include "webserv.hpp"
 
 class Request
 {
 	private:
 		int _requestType;
-		std::string _target;
-		std::string _protocole;
-		std::string _host;
-		std::string _port;
-		std::string _connectionType;
+		std::map<std::string, std::string> _reqMap;
 
 	public:
 
@@ -36,6 +33,8 @@ class Request
 		void setProtocole(std::string protocole);
 		void setHostPort(std::string port);
 		void setConnectionType(std::string connectionType);
+		int parseRequest(Request &r, std::string request);
+		void setFirstLine(std::string tmp);
 
 		void pickRequestType();
 		void createReponse();

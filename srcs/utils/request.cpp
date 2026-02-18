@@ -1,4 +1,6 @@
 #include "request.hpp"
+#include <map>
+#include <sstream>
 
 static std::string recvRequest(int socketFd)
 {
@@ -21,95 +23,106 @@ static std::string recvRequest(int socketFd)
 }
 
 void Request::displayInfos(){
-	std::cout << "\n--------\nMethod : " << _requestType << "\n"
-		<< "Path :" << _target << "\n" << "Protocol : " << _protocole << "\nHost : " << _host << "\nPort : " << _port
-		<< "\nConnectionType : " << _connectionType << "\n--------\n";   
+	std::map<std::string, std::string>::iterator it = _reqMap.begin();
+	for (; it != _reqMap.end(); it++)
+		std::cout << it->first << " : " << it->second << "\n";
 }
 
-void Request::setRequestType(int type)
-{
-	if (type == -1)
-		throw ExceptionParsingError();
-	_requestType = type;
+// void Request::setRequestType(int type)
+// {
+// 	// if (type == -1)
+// 	// 	throw ExceptionParsingError();
+// 	// _requestType = type;
+// }
+
+// void Request::setConnectionType(std::string connectionType)
+// {
+// 	// _connectionType = connectionType;
+// }
+
+// // void Request::setTarget(std::string target)
+// // {
+// // 	if (target.find('/') == std::string::npos)
+// // 		throw ExceptionParsingError();
+// // 	if (!target.empty())
+// // 		_target = target;
+// // }
+
+// void Request::setProtocole(std::string protocole)
+// {
+// 	// if (protocole == "HTTP/1.0\r" || protocole == "HTTP/1.1\r")
+// 	// {
+// 	// 	protocole[protocole.size() - 1] = 0;
+// 	// 	_protocole = protocole;
+// 	// }
+// 	// else
+// 	// 	throw ExceptionParsingError();
+// }
+
+// void Request::setHostPort(std::string host)
+// {
+// 	// if ((host.find(':') == std::string::npos))
+// 	// 	throw ExceptionParsingError();
+// 	// std::string port = host.substr(host.find(':') + 1, host.size() - 1);
+// 	// if (port.find_first_not_of("0123456789") != std::string::npos)
+// 	// 	throw ExceptionParsingError();
+// 	// _host = host.substr(0, host.find(':'));
+// 	// _port = port; // TODO: to end
+// }
+
+// static int checkType(std::string request)
+// {
+// 	const std::string type[3] = {"GET", "DELETE", "POST"}; // recree a chaque fois ?
+
+// 	for (int i = 0; i < 3; i++)
+// 		if (request.find(type[i]) != std::string::npos)
+// 			return (i);
+// 	return (Request::INVALID);
+// }
+
+void Request::setFirstLine(std::string tmp){
+	size_t offset = 0;
+	std::pair<std::string, std::string> p;
+	p.first = "Method";
+	p.second = tmp.substr(0, tmp.find(' '));
+	_reqMap.insert(p);
+	offset = p.second.size();
+
+	p.first = "Path";
+	p.second = tmp.substr(offset, tmp.find(' ', offset));
+	_reqMap.insert(p);
+	offset += p.second.size() + 1;
+		
+	p.first = "Protocol";
+	p.second = tmp.substr(offset, tmp.find(' '));
+	_reqMap.insert(p);
 }
 
-void Request::setConnectionType(std::string connectionType)
-{
-	_connectionType = connectionType;
-}
-
-void Request::setTarget(std::string target)
-{
-	if (target.find('/') == std::string::npos)
-		throw ExceptionParsingError();
-	if (!target.empty())
-		_target = target;
-}
-
-void Request::setProtocole(std::string protocole)
-{
-	if (protocole == "HTTP/1.0\r" || protocole == "HTTP/1.1\r")
-	{
-		protocole[protocole.size() - 1] = 0;
-		_protocole = protocole;
-	}
-	else
-		throw ExceptionParsingError();
-}
-
-void Request::setHostPort(std::string host)
-{
-	if ((host.find(':') == std::string::npos))
-		throw ExceptionParsingError();
-	std::string port = host.substr(host.find(':') + 1, host.size() - 1);
-	if (port.find_first_not_of("0123456789") != std::string::npos)
-		throw ExceptionParsingError();
-	_host = host.substr(0, host.find(':'));
-	_port = port; // TODO: to end
-}
-
-static int checkType(std::string request)
-{
-	const std::string type[3] = {"GET", "DELETE", "POST"}; // recree a chaque fois ?
-
-	for (int i = 0; i < 3; i++)
-		if (request.find(type[i]) != std::string::npos)
-			return (i);
-	return (Request::INVALID);
-}
-
-static int parseRequest(Request &r, std::string request)
+int Request::parseRequest(Request &r, std::string request)
 {
 	std::string tmp;
-	size_t offset = 0;
+	(void)r;
+	std::stringstream reqF(request, std::ios_base::in);
 
 	try {
-		tmp = request.substr(0, request.find(' '));
-		offset = tmp.size() + 1;
-		int type = checkType(tmp);
-		r.setRequestType(type);
-
-		tmp = request.substr(offset, request.find(' ', offset) - offset);
-		r.setTarget(tmp);
-
-		offset += tmp.size() + 1;
-
-		tmp = request.substr(offset, request.find('\n') - offset);
-		r.setProtocole(tmp);
-		
-		size_t hostPos = request.find("Host: ");
-		if (hostPos == std::string::npos)
-			throw ExceptionParsingError();
-		hostPos += 6;		
-		tmp = request.substr(hostPos, request.find("\r\n", hostPos) - hostPos);
-		r.setHostPort(tmp);
-
-		size_t connectionPos = request.find("Connection: ");
-		if (connectionPos == std::string::npos)
-			throw ExceptionParsingError();
-		connectionPos += 12;
-		tmp = request.substr(connectionPos , request.find('\n', connectionPos) - connectionPos - 1);
-		r.setConnectionType(tmp);
+		std::getline(reqF, tmp, '\n');
+		setFirstLine(tmp);
+		while (std::getline(reqF, tmp, '\n')){
+			if (tmp[0] == '\r')
+				break;
+			std::pair<std::string, std::string> map;
+			size_t sep = tmp.find(": ");
+			if (sep == std::string::npos)
+				throw ExceptionParsingError();
+			map.first = tmp.substr(0, sep);
+			size_t end = tmp.find('\r');
+			if (end == std::string::npos)
+				throw ExceptionParsingError();
+			sep += 2; // SKIP ": " 
+			map.second = tmp.substr(sep, end - sep);
+			_reqMap.insert(map);
+		}
+		displayInfos();
 	}
 	catch (std::exception &e){
 		std::cout << "EXCEPTION IS: " <<  e.what() << "\n";
@@ -157,12 +170,12 @@ void Request::pickRequestType()
 	}
 }
 
-Request::Request(int &socketFd) : _requestType(INVALID), _target("")
+Request::Request(int &socketFd) : _requestType(INVALID)
 {
 	std::string request = recvRequest(socketFd);
 	// std::cout << request << '\n';
 	parseRequest(*this, request);
-	displayInfos();
+	// displayInfos();
 	// if (this->_requestType == GET)
 	// {
 		char msg[500] = "HTTP/1.0 404 Not found\nContent-Type:text/html\nContent-Length: 2000\n\n<h1> ILIES IL EST BO DES FOIS <h1/> <br> <h2> JE SUIS UN SOUS TITRE A LA LIGNE <h2/> <br> <p>ET JE SUIS UN PARAGRAPHE EN GRAS<p/>\n";
