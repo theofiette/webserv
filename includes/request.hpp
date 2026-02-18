@@ -12,7 +12,6 @@ class Request
 	private:
 		int _requestType;
 		std::map<std::string, std::string> _reqMap;
-		std::string _responseCode = "200";
 
 	public:
 
@@ -38,7 +37,6 @@ class Request
 		void setFirstLine(std::string tmp);
 
 		void pickRequestType();
-		std::string buildReponse();
 		void displayInfos();
 
 		void rGet();

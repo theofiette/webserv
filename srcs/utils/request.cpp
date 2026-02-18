@@ -80,12 +80,12 @@ void Request::displayInfos(){
 // 	return (Request::INVALID);
 // }
 
-void Request::setFirstLine(std::string tmp){
+void Request::setFirstLine(std::string tmp)
+{
     std::istringstream iss(tmp);
     std::string method, path, protocol;
-	if (!(iss >> method >> path >> protocol)) {
+	if (!(iss >> method >> path >> protocol)) 
 		throw ExceptionParsingError();
-	}
 	if (!protocol.empty() && protocol[protocol.size() - 1] == '\r')
 		protocol[protocol.size() - 1] = 0;
     _reqMap["Method"] = method;
@@ -124,19 +124,19 @@ int Request::parseRequest(std::string request)
 	return (1);
 }
 
-std::string Request::buildReponse()
-{
-	std::stringstream response; 
+// std::string Request::buildReponse()
+// {
+// 	std::stringstream response; 
 
-	response << _reqMap.at("Protocol") + " " + _responseCode + " OK\r\n";
-	response << "Server: ";
-	response << "Date: ";
-	response << "Content-type: ";
-	response << "Content-Length: ";
-	response << "Connection: " << _reqMap.at("Connection") << "\r\n";
+// 	response << _reqMap.at("Protocol") + " " + _responseCode + " OK\r\n";
+// 	response << "Server: ";
+// 	response << "Date: ";
+// 	response << "Content-type: ";
+// 	response << "Content-Length: ";
+// 	response << "Connection: " << _reqMap.at("Connection") << "\r\n";
 
-	return (response.str());
-}
+// 	return (response.str());
+// }
 
 void Request::rGet()
 {
