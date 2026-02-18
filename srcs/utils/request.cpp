@@ -81,34 +81,28 @@ void Request::displayInfos(){
 // }
 
 void Request::setFirstLine(std::string tmp){
-	size_t offset = 0;
-	std::pair<std::string, std::string> p;
-	p.first = "Method";
-	p.second = tmp.substr(0, tmp.find(' '));
-	_reqMap.insert(p);
-	offset = p.second.size();
-
-	p.first = "Path";
-	p.second = tmp.substr(offset, tmp.find(' ', offset));
-	_reqMap.insert(p);
-	offset += p.second.size() + 1;
-		
-	p.first = "Protocol";
-	p.second = tmp.substr(offset, tmp.find(' '));
-	_reqMap.insert(p);
+    std::istringstream iss(tmp);
+    std::string method, path, protocol;
+	if (!(iss >> method >> path >> protocol)) {
+		throw ExceptionParsingError();
+	}
+	if (!protocol.empty() && protocol[protocol.size() - 1] == '\r')
+		protocol[protocol.size() - 1] = 0;
+    _reqMap["Method"] = method;
+    _reqMap["Path"] = path;
+    _reqMap["Protocol"] = protocol;
 }
 
-int Request::parseRequest(Request &r, std::string request)
+int Request::parseRequest(std::string request)
 {
 	std::string tmp;
-	(void)r;
 	std::stringstream reqF(request, std::ios_base::in);
 
 	try {
 		std::getline(reqF, tmp, '\n');
 		setFirstLine(tmp);
 		while (std::getline(reqF, tmp, '\n')){
-			if (tmp[0] == '\r')
+			if (tmp.empty() || tmp[0] == '\r')
 				break;
 			std::pair<std::string, std::string> map;
 			size_t sep = tmp.find(": ");
@@ -130,9 +124,18 @@ int Request::parseRequest(Request &r, std::string request)
 	return (1);
 }
 
-void Request::createReponse()
+std::string Request::buildReponse()
 {
-	;
+	std::stringstream response; 
+
+	response << _reqMap.at("Protocol") + " " + _responseCode + " OK\r\n";
+	response << "Server: ";
+	response << "Date: ";
+	response << "Content-type: ";
+	response << "Content-Length: ";
+	response << "Connection: " << _reqMap.at("Connection") << "\r\n";
+
+	return (response.str());
 }
 
 void Request::rGet()
@@ -174,7 +177,7 @@ Request::Request(int &socketFd) : _requestType(INVALID)
 {
 	std::string request = recvRequest(socketFd);
 	// std::cout << request << '\n';
-	parseRequest(*this, request);
+	parseRequest(request);
 	// displayInfos();
 	// if (this->_requestType == GET)
 	// {
