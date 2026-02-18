@@ -84,6 +84,7 @@ void Request::setFirstLine(std::string tmp)
 {
     std::istringstream iss(tmp);
     std::string method, path, protocol;
+
 	if (!(iss >> method >> path >> protocol)) 
 		throw ExceptionParsingError();
 	if (!protocol.empty() && protocol[protocol.size() - 1] == '\r')
