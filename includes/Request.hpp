@@ -2,10 +2,17 @@
 
 #include <iostream>
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <cstdlib>
 #include <string>
 #include <map>
-#include "webserv.hpp"
+
+enum requestType
+{
+	GET,
+	DELETE,
+	POST
+};
 
 class Request
 {
@@ -14,15 +21,6 @@ class Request
 		std::map<std::string, std::string> _reqMap;
 
 	public:
-
-		enum requestType
-		{
-			INVALID = -1,
-			GET,
-			DELETE,
-			POST
-		};
-
 		pid_t _pid;
 	// Request();
 		Request(int &);
@@ -35,6 +33,8 @@ class Request
 		void setConnectionType(std::string connectionType);
 		int	parseRequest(std::string request);
 		void setFirstLine(std::string tmp);
+
+		std::map<std::string, std::string>& getMap();
 
 		void pickRequestType();
 		void displayInfos();

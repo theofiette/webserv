@@ -1,5 +1,4 @@
 // #include "../includes/webserv.hpp"
-#include "RequestPool.hpp"
 #include "webserv.hpp"
 #include <vector>
 #include <csignal>

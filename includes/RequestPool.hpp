@@ -1,6 +1,10 @@
 # pragma once
 
-# include "webserv.hpp"
+# include "macros.hpp"
+# include <poll.h>
+
+class Request;
+class Response;
 
 class RequestPool
 {

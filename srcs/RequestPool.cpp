@@ -1,4 +1,5 @@
 
+#include "webserv.hpp"
 #include "RequestPool.hpp"
 extern int g_masterSocket;
 
@@ -109,10 +110,13 @@ void	RequestPool::loop()
 	}
 }
 
-void	RequestPool::_processRequest(pollfd &request)
+void	RequestPool::_processRequest(pollfd &currRequest)
 {
 	// TODO : send fd (int) to Ilyes
-	Request r(request.fd);
+	Request request(currRequest.fd);
+	Response response(request);
+	// response.getResponse();
+
 }
 
 void	RequestPool::_awaitRequests()

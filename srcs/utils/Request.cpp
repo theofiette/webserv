@@ -1,4 +1,5 @@
-#include "request.hpp"
+#include "webserv.hpp"
+#include "Request.hpp"
 #include <map>
 #include <sstream>
 
@@ -28,57 +29,6 @@ void Request::displayInfos(){
 		std::cout << it->first << " : " << it->second << "\n";
 }
 
-// void Request::setRequestType(int type)
-// {
-// 	// if (type == -1)
-// 	// 	throw ExceptionParsingError();
-// 	// _requestType = type;
-// }
-
-// void Request::setConnectionType(std::string connectionType)
-// {
-// 	// _connectionType = connectionType;
-// }
-
-// // void Request::setTarget(std::string target)
-// // {
-// // 	if (target.find('/') == std::string::npos)
-// // 		throw ExceptionParsingError();
-// // 	if (!target.empty())
-// // 		_target = target;
-// // }
-
-// void Request::setProtocole(std::string protocole)
-// {
-// 	// if (protocole == "HTTP/1.0\r" || protocole == "HTTP/1.1\r")
-// 	// {
-// 	// 	protocole[protocole.size() - 1] = 0;
-// 	// 	_protocole = protocole;
-// 	// }
-// 	// else
-// 	// 	throw ExceptionParsingError();
-// }
-
-// void Request::setHostPort(std::string host)
-// {
-// 	// if ((host.find(':') == std::string::npos))
-// 	// 	throw ExceptionParsingError();
-// 	// std::string port = host.substr(host.find(':') + 1, host.size() - 1);
-// 	// if (port.find_first_not_of("0123456789") != std::string::npos)
-// 	// 	throw ExceptionParsingError();
-// 	// _host = host.substr(0, host.find(':'));
-// 	// _port = port; // TODO: to end
-// }
-
-// static int checkType(std::string request)
-// {
-// 	const std::string type[3] = {"GET", "DELETE", "POST"}; // recree a chaque fois ?
-
-// 	for (int i = 0; i < 3; i++)
-// 		if (request.find(type[i]) != std::string::npos)
-// 			return (i);
-// 	return (Request::INVALID);
-// }
 
 void Request::setFirstLine(std::string tmp)
 {
@@ -140,6 +90,10 @@ int Request::parseRequest(std::string request)
 // 	return (response.str());
 // }
 
+std::map<std::string, std::string>& Request::getMap(){
+	return (_reqMap);
+}
+
 void Request::rGet()
 {
 	;
@@ -175,7 +129,7 @@ void Request::pickRequestType()
 	}
 }
 
-Request::Request(int &socketFd) : _requestType(INVALID)
+Request::Request(int &socketFd) : _requestType(-1)
 {
 	std::string request = recvRequest(socketFd);
 	// std::cout << request << '\n';

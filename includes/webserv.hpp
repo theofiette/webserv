@@ -13,8 +13,8 @@
 #include <netinet/in.h>
 #include <cstring>
 
+#include "Request.hpp"
+#include "Response.hpp"
 #include "RequestPool.hpp"
-
-#include "request.hpp"
 
 #include "../srcs/utils/memory.tpp"
