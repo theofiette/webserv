@@ -2,30 +2,43 @@
 
 # include "webserv.hpp"
 
+# include <vector>
+
+# include "Server.hpp"
+
 class WebServer
 {
 private:
 
-	int		_masterSocket;
-	int		_temp_size;
-	int		_size;
-	pollfd _pollfds[MAX_CLIENTS];
+	int					_clientsMax;
+	std::vector<Server>	_servers;
 
+	int					_masterSocket;	
+	int					_tempSize;
+	int					_size;
+	pollfd 				_pollfds[MAX_CLIENTS];
+
+	// void	_initConfig(const string &configFilePath);
 	void	_initMasterSocket();
 	void	_initPollFds();
-
 	void	_awaitRequests();
 	void	_processConnections();
 	void	_processRequest(pollfd &request);
 	void	_loopUpdate();
 
+	WebServer();
+	
 public:
+
+	//TEMPORARY //TODO delete
+	void	_temp_config(); // This function gives a default configurated webserv
 
 	void loop();
 
-	WebServer();
+	WebServer(const string &configFilePath);
 	~WebServer();
 
 	// WebServer(const WebServer &other);	//Copy constructor
 	// WebServer	&operator=(const WebServer &other); //Assignement operator
 };
+

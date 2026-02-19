@@ -7,6 +7,7 @@
 
 void sigHandler(int sig)
 {
+	std::cerr << "\n";
 	throw (ExceptionSignal(128 + sig));
 }
 
@@ -20,14 +21,17 @@ void exceptionManager(std::exception *e)
 	exit(errorCode);
 }
 
-int main()
+#define CONFIG_PATH "./config"
+
+int main(int argc, char *argv[])
 {	
+	signal(SIGINT, sigHandler);
 	try
 	{
-		WebServer	requests;
+		std::string	configFilePath = (argc > 1 ? argv[1] : CONFIG_PATH);
+		WebServer	webServer(configFilePath);
 
-		signal(SIGINT, sigHandler);
-		requests.loop();
+		webServer.loop();
 	}
 	catch (std::exception &e)
 	{

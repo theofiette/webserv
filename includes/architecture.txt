@@ -1,0 +1,44 @@
+
+// Il y aura differents sites (ports), mais je gere ca de mon cote et je vous transmet
+// direct le server correspondant au port sollicite
+Webserv::{
+	int					_clientsMax;
+	std::vector<Server>	_servers;
+}
+
+Webserv::Server
+{
+	int		_listen;						#port
+	string	_serverName;
+	bool	_sendFile;
+	int		_clientBodyMax
+
+	std::maps<int code, string file>	_errors;	#si error pas enregistree, utiliser 0;
+	std::maps<string path, Location>	_locations;	#map de classes locations (see below)
+}
+
+Webserv::Server::Location
+{
+	std::vector<bool>	_methods;			#on se deplace grace a enum E_METHODS defini en dessous
+	std::string			_root;
+	std::string			_index;
+	bool				_autoIndex;			#si path existe pas, on liste contenue de _path (besoin _path ici ?)
+	Redir				_redir;
+}
+
+Webserv::Server::Redir
+{
+	bool	_valid;
+	int		_errorCode;		# 301 ou 302
+	string	_redirPath;		# /!\ peut etre relatif ou absolu
+}
+
+Webserv::E_METHODS
+{
+	GET,
+	POST,
+	DELETE
+}
+
+//ERROR AS A CLASS ??
+//REMPLACER DEFINE PAR STATIC asap

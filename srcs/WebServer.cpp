@@ -34,7 +34,7 @@ void	WebServer::_initPollFds()
 	_pollfds[0].fd = _masterSocket;
 	_pollfds[0].events = POLLIN;
 	_size++; // (set size at 1);
-	_temp_size++;
+	_tempSize++;
 }
 
 void	WebServer::_processConnections()
@@ -58,7 +58,7 @@ void	WebServer::_processConnections()
 
 void	WebServer::_loopUpdate()
 {
-	if (_size != _temp_size) // not finished + don't like
+	if (_size != _tempSize) // not finished + don't like
 	{
 		for (int i = 0; i < _size; i++)
 		{
@@ -68,12 +68,12 @@ void	WebServer::_loopUpdate()
 				{
 					_pollfds[j] = _pollfds[j + 1];
 				}
-				_temp_size--;
+				_tempSize--;
 				i--;
 			}
 		}
 	}
-	_size = _temp_size;
+	_size = _tempSize;
 }
 
 void	WebServer::loop()
@@ -105,24 +105,8 @@ void	WebServer::loop()
 
 void	WebServer::_processRequest(pollfd &request)
 {
-	// TODO : send fd (int) to Ilyes
 	Request r(request.fd);
 
-	// char buffer[2000] = {0};
-	// std::string buf;
-	// while (recv(request.fd, buffer, sizeof(buffer) - 1, 0))
-	// {
-	// 	// TODO : check error recv
-	// 	buf += buffer;
-	// 	t_bzero(&buffer, sizeof(buffer));
-	// 	if (buf.find("\r\n\r\n") == std::string::npos)
-	// 		continue ;
-	// 	else
-	// 		break ;
-	// }
-	// char msg[500] = "HTTP/1.1 200 OK\nContent-Type:text/html\nContent-Length: 2000\n\n<img src=\"image_lion.png\"/>\n";
-	// send(request.fd, msg, sizeof(msg), 0);
-	// std::cout << "MESSAGE IS: " << buf << "\n";
 	close(request.fd);
 	request.fd = -1;
 }
@@ -130,29 +114,133 @@ void	WebServer::_processRequest(pollfd &request)
 void	WebServer::_awaitRequests()
 {
 	std::cout << "AWAIT\n";
-	std::cout << _temp_size << "\n";
+	std::cout << _tempSize << "\n";
 	std::cout << _size << "\n";
 	poll(_pollfds, _size, TIMEOUT);
 }
 
+typedef std::string::const_iterator cstr_ite;
+
+// void	WebServer::Config::_registerListened(const string &param)
+// {
+// 	cstr_ite			it 	= param.begin();
+// 	cstr_ite			ite = param.begin();
+// 	int					offset;
+// 	std::pair<int, int>	listened;
+
+// 	while (it != ite)
+// 	{
+// 		offset = param.find(':');
+// 	}
+// }
+
+// void	WebServer::Config::_registerClientMax(const string &param)
+// {
+	
+// }
+
+// void	WebServer::Config::_registerErrorPage(const string &param)
+// {
+	
+// }
+
+// void	WebServer::Config::_registerBodyMax(const string &param)
+// {
+
+// }
+
+// void	WebServer::Config::_registerParam(int type, const string &param)
+// {
+// 	switch (type)
+// 	{
+// 		case LISTENED:
+// 			_registerListened(param);
+// 			break ;
+// 		case CLIENT_MAX:
+// 			_registerClientsMax(param);
+// 			break ;
+// 		case ERROR_PAGE:
+// 			_registerErrorPage(param);
+// 			break ;
+// 		case BODY_MAX:
+// 			_registerBodyMax(param);
+// 			break ;
+// 		default:
+// 			std::cerr << "TEMP MESSAGE: config not processed : " << param;
+// 	}
+// }
+
+// void	WebServer::_initConfig(const string &configFilePath)
+// {
+// 	std::ifstream		file(configFilePath.c_str(), std::ifstream::in);
+// 	string				buffer;
+// 	std::vector <std::pair <string, bool> >	rules;
+	
+// 	//TODO : automation
+// 	rules.push_back(std::pair<string, int> ("port:",	false));
+// 	rules.push_back(std::pair<string, int> ("connec:",	false));
+// 	rules.push_back(std::pair<string, int> ("error:",	false));
+// 	rules.push_back(std::pair<string, int> ("reqbody:", false));
+
+// 	if (file.fail())
+// 		throw (ExceptionBadInit()); //TODO
+// 	while (!std::getline(file, buffer).eof())
+// 	{
+// 		std::vector< std::pair<string, bool> >::iterator	ite = rules.begin();
+
+// 		for (int i = 0; i < CONFIG_RULE; i++)
+// 		{
+// 			string rhs = ite->first;
+// 			if (buffer.find(rhs) == 0)
+// 			{
+// 				_config._registerParam(i, buffer.substr(rhs.size(), string::npos));
+// 				ite->second = true;
+// 				break ;
+// 			}
+// 			ite++;
+// 		}
+// 	}
+// }
+
+
+void	WebServer::_temp_config()
+{
+	Server		temp_S;
+	Location 	temp_L;
+	string		L_name("/");
+
+	temp_S.registerLocation(L_name, temp_L);
+	temp_S.display();
+	_servers.push_back(temp_S);
+}
+
 // CONSTRUCTORS
 
-WebServer::WebServer() : 
-_masterSocket(0), _temp_size(0), _size(0)
+WebServer::WebServer(const std::string &configFilePath) : 
+_masterSocket(0), _tempSize(0), _size(0)
 {
+	(void)configFilePath;
+	_temp_config();
+	// _initConfig(configFilePath);
 	_initMasterSocket();
 	_initPollFds();
 	std::cout
 		<< "Default constructor called for class WebServer" << std::endl;
 }
 
-
 // DESTRUCTOR
+
+typedef std::vector<int>::iterator v_ite;
 
 WebServer::~WebServer()
 {
-	if (_masterSocket)
-		close(_masterSocket);
-	std::cout
-		<< "Destructor called for class WebServer" << std::endl;
+	close(_masterSocket);
+	// v_ite b = _masterSockets.begin();
+	// v_ite e = _masterSockets.end();
+
+	// for (; b != e; b++)
+	// 	close(*b);
+	std::cout << "Destructor called for class WebServer" << std::endl;
 }
+
+// WEBSERVERCONFIG
