@@ -19,7 +19,7 @@ static std::string recvRequest(int socketFd)
 		else
 			break ;
 	}
-	std::cout << str << "\n";
+	// std::cout << str << "\n";
 	return (str);
 }
 
@@ -68,7 +68,7 @@ int Request::parseRequest(std::string request)
 			map.second = tmp.substr(sep, end - sep);
 			_reqMap.insert(map);
 		}
-		displayInfos();
+		// displayInfos();
 	}
 	catch (std::exception &e){
 		std::cout << "EXCEPTION IS: " <<  e.what() << "\n";
@@ -94,42 +94,42 @@ std::map<std::string, std::string>& Request::getMap(){
 	return (_reqMap);
 }
 
-void Request::rGet()
-{
-	;
-}
+// void Request::rGet()
+// {
+// 	;
+// }
 
-void Request::rDelete()
-{
-	;
-}
+// void Request::rDelete()
+// {
+// 	;
+// }
 
-void Request::rPost()
-{
-	;
-}
+// void Request::rPost()
+// {
+// 	;
+// }
 
 
-void Request::pickRequestType()
-{
-	switch (_requestType)
-	{
-		case GET:
-			rGet();
-			break;
-		case DELETE:
-			rDelete();
-			break;
-		case POST:
-			rPost();
-			break;
-		default:
-			std::cout << "INVALID REQUEST TYPE\n";
-			break;
-	}
-}
+// void Request::pickRequestType()
+// {
+// 	switch (_requestType)
+// 	{
+// 		case GET:
+// 			rGet();
+// 			break;
+// 		case DELETE:
+// 			rDelete();
+// 			break;
+// 		case POST:
+// 			rPost();
+// 			break;
+// 		default:
+// 			std::cout << "INVALID REQUEST TYPE\n";
+// 			break;
+// 	}
+// }
 
-Request::Request(int &socketFd) : _requestType(-1)
+Request::Request(int &socketFd)
 {
 	std::string request = recvRequest(socketFd);
 	// std::cout << request << '\n';

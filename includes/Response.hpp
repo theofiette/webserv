@@ -15,23 +15,22 @@ class Response
 		std::string _body;
 		std::map<std::string, std::string> _statusMap;
 
-		static void (*_methods[])();
-		static std::string method[3]; // TODO: pas tres scalable si on a dautres methodes a check, vector? 
+		std::string method[MAX_METHODS]; // TODO: pas tres scalable si on a dautres methodes a check, vector? 
 
 	public:
-		Response(Request &request);
+		Response(Request &);
 		~Response();
 		void setStatusCode();
 		void setBody();
-		void addHeader(std::string &key, std::string &value);
+		void addHeader(std::string &, std::string &);
 
-		void setErrorResponse(int statusCode);
+		void setErrorResponse(int);
 
-		void pickMethod(std::string method);
+		void pickMethod(Request &);
 
-		void handleGet();
-		void handlePost();
-		void handleDelete();
+		void handleGet(Request &);
+		void handlePost(Request &);
+		void handleDelete(Request &);
 
 		std::string const getResponse();
 };

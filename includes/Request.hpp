@@ -17,31 +17,21 @@ enum requestType
 class Request
 {
 	private:
-		int _requestType;
+		// int _requestType; //USED ??
 		std::map<std::string, std::string> _reqMap;
 
 	public:
-		pid_t _pid;
-	// Request();
 		Request(int &);
 		~Request();
 
-		void setRequestType(int);
-		void setTarget(std::string target);
-		void setProtocole(std::string protocole);
-		void setHostPort(std::string port);
-		void setConnectionType(std::string connectionType);
-		int	parseRequest(std::string request);
-		void setFirstLine(std::string tmp);
+		int	parseRequest(std::string);
+		void setFirstLine(std::string);
 
 		std::map<std::string, std::string>& getMap();
 
-		void pickRequestType();
+		//TEMP
 		void displayInfos();
 
-		void rGet();
-		void rDelete();
-		void rPost();
 
 		
 };

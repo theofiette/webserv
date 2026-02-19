@@ -104,7 +104,7 @@ void	RequestPool::loop()
 			if (currRequest.fd == _masterSocket)
 				_processConnections();
 			else
-				_processRequest(currRequest);
+				_processRequest(currRequest); //TODO : Add server config
 		}
 		_loopUpdate();
 	}

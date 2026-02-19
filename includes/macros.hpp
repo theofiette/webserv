@@ -3,3 +3,4 @@
 #define LOCALHOST	"8080"
 #define MAX_CLIENTS	1024
 #define TIMEOUT		(60 * 1000)
+#define MAX_METHODS 3
