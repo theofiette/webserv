@@ -24,5 +24,4 @@ class Request
 
 		// TEMPORAIRE
 		void displayInfos();
-
 };
