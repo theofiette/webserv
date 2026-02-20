@@ -7,13 +7,6 @@
 #include <string>
 #include <map>
 
-enum requestType
-{
-	GET,
-	DELETE,
-	POST
-};
-
 class Request
 {
 	private:
@@ -29,9 +22,7 @@ class Request
 
 		std::map<std::string, std::string>& getMap();
 
-		//TEMP
+		// TEMPORAIRE
 		void displayInfos();
 
-
-		
 };

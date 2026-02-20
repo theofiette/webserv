@@ -1,11 +1,16 @@
 // #include "../includes/webserv.hpp"
 #include "webserv.hpp"
+#include "WebServer.hpp"
 #include <vector>
 #include <csignal>
 #include <cstdlib>
 
 //TODO delete
-int	g_masterSocket = 0;
+void sigHandler(int sig)
+{
+	std::cerr << "\n";
+	throw (ExceptionSignal(128 + sig));
+}
 
 void exceptionManager(std::exception *e)
 {
@@ -17,13 +22,17 @@ void exceptionManager(std::exception *e)
 	exit(errorCode);
 }
 
-int main()
-{
-	RequestPool	requests;
+#define CONFIG_PATH "./config"
 
+int main(int argc, char *argv[])
+{	
+	signal(SIGINT, sigHandler);
 	try
 	{
-		requests.loop();
+		std::string	configFilePath = (argc > 1 ? argv[1] : CONFIG_PATH);
+		WebServer	webServer(configFilePath);
+
+		webServer.loop();
 	}
 	catch (std::exception &e)
 	{

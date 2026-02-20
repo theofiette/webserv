@@ -15,7 +15,7 @@ class Response
 		std::string _body;
 		std::map<std::string, std::string> _statusMap;
 
-		std::string method[MAX_METHODS]; // TODO: pas tres scalable si on a dautres methodes a check, vector? 
+		std::string method[METHODS_COUNT]; // TODO: pas tres scalable si on a dautres methodes a check, vector? 
 
 	public:
 		Response(Request &);

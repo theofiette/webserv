@@ -6,6 +6,11 @@ const char* ExceptionNull::what() const throw()
 	return ("Can't dereference a null pointer.");
 }
 
+const char* ExceptionBadInit::what() const throw()
+{
+	return ("Encountered an error during init.");
+}
+
 const char* ExceptionSignal::what() const throw()
 {
 	return ("Catched a signal.");

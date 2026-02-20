@@ -144,4 +144,7 @@ Request::Request(int &socketFd)
 	socketFd = -1;
 }
 
-Request::~Request(){std::cout << "request ended" << std::endl;};
+Request::~Request()
+{
+	std::cout << "request ended" << std::endl;
+};

@@ -25,7 +25,7 @@ void Response::pickMethod(Request &request)
 		&Response::handleDelete
 	};
 
-	for (int i = 0; i < MAX_METHODS; i++)
+	for (int i = 0; i < METHODS_COUNT; i++)
 		if (request.getMap().at("Method") == method[i])
 			toCall = i;
 	
