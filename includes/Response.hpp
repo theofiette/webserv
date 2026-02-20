@@ -6,6 +6,7 @@
 #include "exception.hpp"
 
 class Request;
+class Server;
 
 class Response
 {
@@ -14,11 +15,14 @@ class Response
 		std::map<std::string, std::string> _header;
 		std::string _body;
 		std::map<std::string, std::string> _statusMap;
+		Server &_currServ; // stock &request aussi ?
 
-		std::string method[METHODS_COUNT];
+		static const std::string method[METHODS_COUNT];
+
+		std::string buildFullPath(Request &request);
 
 	public:
-		Response(Request &);
+		Response(Request &, Server &);
 		~Response();
 		void setStatusCode();
 		void setBody();

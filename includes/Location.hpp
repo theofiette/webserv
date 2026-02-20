@@ -21,7 +21,12 @@ class Location
 		void	display() const;
 
 		// Orthodox Canonical Form
-			Location(); 						//Default constructor
-			~Location();						//Destructor
+		Location(); 						//Default constructor
+		~Location();						//Destructor
+
+		std::string 			getRoot() const;
+		std::string 			getIndex() const;
+		const std::vector<bool>&	getMethods() const;
+		Redir					getRedir() const;
 };
 		

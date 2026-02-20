@@ -32,14 +32,36 @@ _root(LOC_DEF_ROOT), _index(LOC_DEF_IDX), _autoIndex(LOC_DEF_AIDX)
 	(void)_autoIndex; //TODO delete
 	for (int i = 0; i < METHODS_COUNT; i++)
 		_methods.push_back(LOC_DEF_METHOD);
-	std::cout
-		<< "Default constructor called for class Location" << std::endl;
+	// std::cout
+		// << "Default constructor called for class Location" << std::endl;
 }
 
 // DESTRUCTOR
 
 Location::~Location()
 {
-	std::cout
-		<< "Destructor called for class Location" << std::endl;
+	// std::cout
+		// << "Destructor called for class Location" << std::endl;
+}
+
+// GETTER
+
+std::string Location::getRoot() const
+{
+	return (_root);
+}
+
+const std::vector<bool>&	Location::getMethods() const
+{
+	return (_methods);
+}
+
+std::string 		Location::getIndex() const
+{
+	return (_index);
+}
+
+Redir				Location::getRedir() const
+{
+	return (_redir);
 }

@@ -1,5 +1,6 @@
 
 #include "Server.hpp"
+#include "Location.hpp"
 
 # define SERVER_DEF_PORT	8080
 # define SERVER_DEF_NAME	"localhost"
@@ -53,14 +54,21 @@ _sendFile(SERVER_DEF_SEND), _clientBodyMax(SERVER_DEF_BODY)
 {
 	(void)_listen, (void)_sendFile, (void)_clientBodyMax; //TODO delete
 	_errors.insert(std::pair<int, string>(0, SERVER_DEF_ERROR));
-	std::cout
-		<< "Default constructor called for class Server" << std::endl;
+	// std::cout
+	// 	<< "Default constructor called for class Server" << std::endl;
 }
 
 // DESTRUCTOR
 
 Server::~Server()
 {
-	std::cout
-		<< "Destructor called for class Server" << std::endl;
+	// std::cout
+	// 	<< "Destructor called for class Server" << std::endl;
+}
+
+// GETTERS
+
+std::map<string, Location>& Server::getLocations()
+{
+	return (_locations);
 }

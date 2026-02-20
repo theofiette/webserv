@@ -106,14 +106,13 @@ void	WebServer::loop()
 void	WebServer::_processRequest(pollfd &request)
 {
 	Request req(request.fd);
-	Response resp(req);
+	Response resp(req, _servers.back());
 	// close(request.fd);
 	// request.fd = -1;
 }
 
 void	WebServer::_awaitRequests()
 {
-	std::cout << "AWAIT\n";
 	std::cout << _tempSize << "\n";
 	std::cout << _size << "\n";
 	poll(_pollfds, _size, TIMEOUT);
@@ -224,8 +223,8 @@ _masterSocket(0), _tempSize(0), _size(0)
 	// _initConfig(configFilePath);
 	_initMasterSocket();
 	_initPollFds();
-	std::cout
-		<< "Default constructor called for class WebServer" << std::endl;
+	// std::cout
+	// 	<< "Default constructor called for class WebServer" << std::endl;
 }
 
 // DESTRUCTOR
@@ -240,7 +239,7 @@ WebServer::~WebServer()
 
 	// for (; b != e; b++)
 	// 	close(*b);
-	std::cout << "Destructor called for class WebServer" << std::endl;
+	// std::cout << "Destructor called for class WebServer" << std::endl;
 }
 
 // WEBSERVERCONFIG

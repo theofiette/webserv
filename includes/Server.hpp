@@ -2,7 +2,6 @@
 
 # include "webserv.hpp"
 # include <map>
-
 # include "Location.hpp"
 
 typedef	std::map<int, string>::const_iterator		mc_is_ite;
@@ -27,5 +26,6 @@ class Server
 
 		Server(); 						//Default constructor
 		~Server();						//Destructor
+
+		std::map<string, Location>& getLocations();
 };
-		
