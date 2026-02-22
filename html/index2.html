@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Webserv - Accueil</title>
+	<style>
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+		}
+		
+		body {
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+			min-height: 100vh;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+		
+		.container {
+			text-align: center;
+			background: white;
+			padding: 50px;
+			border-radius: 10px;
+			box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+			max-width: 600px;
+		}
+		
+		h1 {
+			color: #333;
+			font-size: 2.5em;
+			margin-bottom: 20px;
+			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			background-clip: text;
+		}
+		
+		p {
+			color: #666;
+			font-size: 1.1em;
+			margin-bottom: 30px;
+			line-height: 1.6;
+		}
+		
+		.button {
+			display: inline-block;
+			padding: 12px 30px;
+			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+			color: white;
+			text-decoration: none;
+			border-radius: 5px;
+			transition: transform 0.3s, box-shadow 0.3s;
+			margin: 10px;
+		}
+		
+		.button:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+		}
+	</style>
+</head>
+<body>
+	<div class="container">
+		<h1>🚀 Webserv</h1>
+		<p>Bienvenue sur ce serveur web créé par <strong>Théo, Ilies et Tfiette</strong></p>
+		<p>Un petit serveur HTTP fait en C++ pour apprendre les bases du développement serveur.</p>
+		
+		<a href="/" class="button">Accueil</a>
+		<a href="/html/" class="button">Errors</a>
+	</div>
+</body>
+</html>

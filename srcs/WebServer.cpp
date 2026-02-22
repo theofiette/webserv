@@ -1,4 +1,3 @@
-
 #include "WebServer.hpp"
 
 # include "errno.h"
@@ -34,14 +33,14 @@ void	WebServer::_initPollFds()
 	_pollfds[0].fd = _masterSocket;
 	_pollfds[0].events = POLLIN;
 	_size++; // (set size at 1);
-	_tempSize++;
+	_tempSize++; // a incrementer aussi ? 
 }
 
 void	WebServer::_processConnections()
 {
 	int	socketFd;
 
-	std::cout << "IN REQUEST CONNECTION \n\n";
+	// std::cout << "IN REQUEST CONNECTION \n\n";
 	while(1)
 	{
 		socketFd = accept(_masterSocket, 0, 0); // TODO check args
@@ -50,9 +49,11 @@ void	WebServer::_processConnections()
 			// TODO error here ?
 			break ;
 		}
+		fcntl(socketFd, F_SETFL, O_NONBLOCK); // set les clients aussi en non-bloquant
 		_pollfds[_size].fd = socketFd; 
 		_pollfds[_size].events = POLLIN;
 		_size++;
+		_tempSize++;
 	}
 }
 
@@ -78,26 +79,19 @@ void	WebServer::_loopUpdate()
 
 void	WebServer::loop()
 {
-	pollfd currRequest;
-
-	while (1) // TODO deal with error
+	while(1) // TODO deal with error
 	{
 		_awaitRequests();
-		std::cout << "OUT OF POLL\n";
+		// std::cout << "OUT OF POLL\n";
 		for (int i = 0; i < _size; i++)
 		{
-			currRequest = _pollfds[i];
-			// if (!currRequest.revents)
-			// 	continue ;
-			// if (currRequest.revents != POLLIN)
-			// {
-			// 	// TODO error here ?
-			// 	break;
-			// }
+			pollfd &currRequest = _pollfds[i];
 			if (currRequest.fd == _masterSocket)
 				_processConnections();
-			else
+			else if (currRequest.revents & POLLIN)
 				_processRequest(currRequest);
+			else if (currRequest.revents & POLLOUT)
+				_sendResponse(currRequest);	
 		}
 		_loopUpdate();
 	}
@@ -107,14 +101,29 @@ void	WebServer::_processRequest(pollfd &request)
 {
 	Request req(request.fd);
 	Response resp(req, _servers.back());
-	// close(request.fd);
-	// request.fd = -1;
+
+	std::string response = resp.getResponse();
+	std::pair<int, std::string> r = std::make_pair(request.fd, response);
+	_responses.insert(r);
+
+	request.events = POLLOUT; // on set le fd ready to send
+}
+
+void	WebServer::_sendResponse(pollfd &request)
+{
+	const char *res = _responses[request.fd].c_str();
+	ssize_t sent = send(request.fd, res, _responses[request.fd].size(), 0);
+	if (sent > 0)
+	{
+		close(request.fd);
+		request.fd = -1;
+	}
 }
 
 void	WebServer::_awaitRequests()
 {
-	std::cout << _tempSize << "\n";
-	std::cout << _size << "\n";
+	// std::cout << _tempSize << "\n";
+	// std::cout << _size << "\n";
 	poll(_pollfds, _size, TIMEOUT);
 }
 
@@ -206,10 +215,19 @@ void	WebServer::_temp_config()
 {
 	Server		temp_S;
 	Location 	temp_L;
+	Location 	temp_L2;
+
 	string		L_name("/");
+	string		L_name2("/html/");
 
 	temp_S.registerLocation(L_name, temp_L);
-	temp_S.display();
+	
+	// Configure location /html/ pour les tests
+	temp_L2.setRoot("html/errors");
+	temp_L2.setIndex("default_error.html");
+	temp_S.registerLocation(L_name2, temp_L2);
+
+	// temp_S.display();
 	_servers.push_back(temp_S);
 }
 

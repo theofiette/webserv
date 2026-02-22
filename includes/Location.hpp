@@ -24,9 +24,12 @@ class Location
 		Location(); 						//Default constructor
 		~Location();						//Destructor
 
-		std::string 			getRoot() const;
-		std::string 			getIndex() const;
+		std::string 				getRoot() const;
+		std::string 				getIndex() const;
 		const std::vector<bool>&	getMethods() const;
-		Redir					getRedir() const;
-};
+		Redir						getRedir() const;
 		
+		void setRoot(const std::string &root);
+		void setIndex(const std::string &index);
+};
+

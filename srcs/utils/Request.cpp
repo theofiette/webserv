@@ -5,7 +5,7 @@
 
 static std::string recvRequest(int socketFd)
 {
-	std::cout << "init request...\n";
+	// std::cout << "init request...\n";
 	char buffer[2000] = {0};
 	std::string str;
 
@@ -68,7 +68,7 @@ int Request::parseRequest(std::string request)
 			map.second = tmp.substr(sep, end - sep);
 			_reqMap.insert(map);
 		}
-		// displayInfos();
+		displayInfos();
 	}
 	catch (std::exception &e){
 		std::cout << "EXCEPTION IS: " <<  e.what() << "\n";
@@ -132,19 +132,10 @@ std::map<std::string, std::string>& Request::getMap(){
 Request::Request(int &socketFd)
 {
 	std::string request = recvRequest(socketFd);
-	// std::cout << request << '\n';
 	parseRequest(request);
-	// displayInfos();
-	// if (this->_requestType == GET)
-	// {
-		char msg[500] = "HTTP/1.0 404 Not found\nContent-Type:text/html\nContent-Length: 2000\n\n<h1> ILIES IL EST BO DES FOIS <h1/> <br> <h2> JE SUIS UN SOUS TITRE A LA LIGNE <h2/> <br> <p>ET JE SUIS UN PARAGRAPHE EN GRAS<p/>\n";
-		send(socketFd, msg, sizeof(msg), 0);
-	// }
-	close(socketFd);
-	socketFd = -1;
 }
 
 Request::~Request()
 {
-	std::cout << "request ended" << std::endl;
+	// std::cout << "request ended" << std::endl;
 };

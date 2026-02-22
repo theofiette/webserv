@@ -15,26 +15,29 @@ class Response
 		std::map<std::string, std::string> _header;
 		std::string _body;
 		std::map<std::string, std::string> _statusMap;
-		Server &_currServ; // stock &request aussi ?
 
-		static const std::string method[METHODS_COUNT];
+		Server &_currServ;
+		Request &_request;
 
-		std::string buildFullPath(Request &request);
+		static const std::string methods[METHODS_COUNT];
+
+		std::string intToString(int);
+		std::string MIMEtable(std::string);
+		std::string buildFullPath();
 
 	public:
 		Response(Request &, Server &);
 		~Response();
-		void setStatusCode();
-		void setBody();
-		void addHeader(std::string &, std::string &);
 
+		void setStatusCode();
+		void addHeader(std::string, std::string);
 		void setErrorResponse(int);
 
-		void pickMethod(Request &);
+		void pickMethod();
 
-		void handleGet(Request &);
-		void handlePost(Request &);
-		void handleDelete(Request &);
+		void handleGet();
+		void handlePost();
+		void handleDelete();
 
 		std::string const getResponse();
 };

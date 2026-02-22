@@ -3,23 +3,39 @@
 #include "Server.hpp"
 
 #include <fstream>
+#include <sstream>
 
 #include <sys/stat.h>
 
-const std::string Response::method[METHODS_COUNT] = {"GET", "POST", "DELETE"};
+const std::string Response::methods[METHODS_COUNT] = {"GET", "POST", "DELETE"};
 
-Response::Response(Request &request, Server &server) : _currServ(server) // TODO: check if we have to check server validity
+//*********************************************************************************************/
+/*										CONSTRUCTORS										  */
+//*********************************************************************************************/
+Response::Response(Request &request, Server &server) : _currServ(server), _request(request)
 {
-	_statusCode = 404;
-	pickMethod(request);
+	_statusCode = 200;
+	pickMethod();
 }
 
 Response::~Response(){}
 
-void Response::pickMethod(Request &request)
+//*********************************************************************************************/
+/*										METHODS											  	  */
+//*********************************************************************************************/
+
+std::string Response::intToString(int num)
+{
+    std::stringstream ss;
+    ss << num;
+    return (ss.str());
+}
+
+void Response::pickMethod()
 {
 	int toCall = -1;
-	static void (Response::*methods[])(Request &request) = 
+
+	static void (Response::*methods[])() = 
 	{
 		&Response::handleGet,
 		&Response::handlePost,
@@ -27,20 +43,20 @@ void Response::pickMethod(Request &request)
 	};
 
 	for (int i = 0; i < METHODS_COUNT; i++)
-		if (request.getMap().at("Method") == Response::method[i])
+		if (_request.getMap().at("Method") == Response::methods[i])
 			toCall = i;
-	
+
 	//TODO : Check if method is valid in server config (tfiette) 
 	switch (toCall)
 	{
 		case GET:
-			(this->*methods[toCall])(request);
+			(this->*methods[toCall])();
 			break;
 		case POST:
-			(this->*methods[toCall])(request);
+			(this->*methods[toCall])();
 			break;
 		case DELETE:
-			(this->*methods[toCall])(request);
+			(this->*methods[toCall])();
 			break;
 		default:
 		{
@@ -49,73 +65,46 @@ void Response::pickMethod(Request &request)
 	}
 }
 
-void Response::setStatusCode(){
+std::string Response::MIMEtable(std::string fullPath)
+{
+	if (fullPath.find(".html") != std::string::npos)
+		return ("text/html");
+	if (fullPath.find(".css") != std::string::npos) // si requete HTML contenant du CSS, y a une deuxieme requete qui suit avec .css
+		return ("text/css");
+	if (fullPath.find(".png") != std::string::npos)
+		return ("image/png");
+	if (fullPath.find(".ico") != std::string::npos)
+		return ("image/x-icon");
+	if (fullPath.find(".gif") != std::string::npos) //pour afficher un gif de con
+		return ("image/gif");		
+	return ("text/plain"); //default type
 }
 
-void Response::setBody(){}
-
-void Response::addHeader(std::string &key, std::string &value)
+//*********************************************************************************************/
+/*										SETTERS											  	  */
+//*********************************************************************************************/
+void Response::setStatusCode()
 {
-	(void)key;
-	(void)value;
+	;
+}
+
+void Response::addHeader(std::string key, std::string value)
+{
+	_header[key] = value;
 }
 
 void Response::setErrorResponse(int statusCode)
 {
+	// Regarder la gestion du bloc LOCATION
+	// Si pas preciser rediriger vers ERROR PAGE par defaut
 	(void)statusCode;
 }
-
-// void Response::handleGet(Request &request)
-// {
-// 	// struct stat s;
-// 	std::string path = request.getMap().at("Path");
-// 	// Get location with tfiette's map 
-// 	std::cout << "Path: " << path << std::endl;
-
-// 	// if (stat(path.c_str(), &s) == -1)
-// 	// 	throw ExceptionParsingError(); // to change
-// 	// concatenate our path with root of location if match
-// 	// try{
-// 	// int accessRet = access(path.c_str(), F_OK);
-// 	// if (accessRet == 0)
-// 	// {
-// 		// try{
-// 			// accessRet = access(path.c_str(), R_OK);
-// 			// if (!accessRet){
-// 				std::cout << "IM HERE\n";
-// 				std::ifstream infile("fileteocon");
-// 				char buf[2000];
-// 				infile.rdbuf()->sgetn(buf, 2000);
-// 				std::cout << buf << std::endl;
-// 			// }
-// 		// }
-// 		// catch (ExceptionParsingError &e){
-// 		// 	;
-// 		// }
-// 	// }
-// 	//Get file, read and fill the body of the response and fill the header
-// 	// else if (!accessRet)
-// 	// 	throw ExceptionParsingError();
-// 	// }
-// 	// catch(ExceptionParsingError &e)
-// 	// {
-// 		// ;// concatenate with correct redirectio
-// 	// }
-	
-
-// 	// if (s.st_mode == S_IFDIR)
-// 	// {
-// 	// 		;
-// 	// }
-
-// 	// else if (s.st_mode == S_IF){;}
-	
-
-
-// // }
-std::string Response::buildFullPath(Request &request)
+//*********************************************************************************************/
+/*										BUILDERS											  */
+//*********************************************************************************************/
+std::string Response::buildFullPath()
 {
-    std::string	reqPath = request.getMap().at("Path");
+    std::string	reqPath = _request.getMap().at("Path");
 	std::map<std::string, Location>& loc = _currServ.getLocations();
 	mc_sL_ite 	bestMatch = loc.end();
 	size_t		maxSize = 0;
@@ -123,10 +112,6 @@ std::string Response::buildFullPath(Request &request)
 
 	for (mc_sL_ite it = loc.begin(); it != loc.end(); it++)
 	{
-		std::cout << "LOCATION BLOC is : " << it->first << "<---" << std::endl;
-		std::cout << "LOCATION ROOT is : " << it->second.getRoot() << std::endl;
-		std::cout << "REQ PATH  is : " << reqPath << "<---" << std::endl;
-
 		if (reqPath.find(it->first) == 0) //commence bien par la location
 		{
 			if (it->first.size() > maxSize) // si je trouve un match plus grand 
@@ -136,70 +121,111 @@ std::string Response::buildFullPath(Request &request)
 			}
 		}
 	}
-	// TODO: check si bloc location / {} est au moins present pour etre sur de matcher sur un truc
-	// pour savoir si on garde ce check
+	// TODO: check si bloc location / {} est au moins present pour etre sur de matcher sur un truc, pour savoir si on garde ce check
+	
 	if (bestMatch == loc.end())
 	{
+		std::cout << "No matchs found\n";
 		throw ExceptionParsingError();
 	}
 	
 	const std::vector<bool>& acceptedMethods = bestMatch->second.getMethods();
-	if (!acceptedMethods[GET]) 
+	if (!acceptedMethods[GET]) // TODO: on fait quoi ici? 
 	{
+		std::cout << "Method not accepted\n";
 		throw ExceptionParsingError();
 	}
+	// std::string remainingPath = reqPath.substr(bestMatch->first.length());
+	// if (remainingPath.empty())
+	// 	remainingPath = "/";
 
 	fullPath = bestMatch->second.getRoot() + reqPath;
 	
-	struct stat s;
-	if (stat(fullPath.c_str(), &s) != -1 && S_ISDIR(s.st_mode))
+	struct stat s; // TODO: stat doublon dans le handler ensuite
+	if (stat(fullPath.c_str(), &s) != -1 && S_ISDIR(s.st_mode)) // Je find l'index par defaut du bloc location ou le global
 	{
-		std::string index = bestMatch->second.getIndex();
+		std::string index = bestMatch->second.getIndex(); // TODO: si pas d'index, recup le global
 		if (fullPath[fullPath.size() - 1] != '/')
 			fullPath += "/";
 		fullPath += index;
 	}
-	
-	std::cout << "fullPath: " << fullPath << std::endl;
-	// TODO: check si d'autre choses sont a verifier dans le bloc location
+	std::cout << "FULL PATH ---------> " << fullPath << std::endl;
+	// TODO: check si d'autres choses sont a verifier dans le bloc location
 	return (fullPath);
 }
 
-
-
-void Response::handleGet(Request &request)
+//*********************************************************************************************/
+/*										HANDLERS											  */
+//*********************************************************************************************/
+void Response::handleGet()
 {
-	struct stat s;
-	// std::string reqPath = request.getMap().at("Path");
-
-    // std::string path = "fileteocon";
-	// (void)request;
-	std::string fullPath = buildFullPath(request);
-
+    struct stat s;
+    std::string fullPath = buildFullPath();
+    
     if (stat(fullPath.c_str(), &s) == -1)
+    {
+        _statusCode = 404;  // Not Found
         throw ExceptionParsingError();
+    }
+    
+    if (!S_ISREG(s.st_mode)) // normalement ici on est pas un dossier
+    {
+        _statusCode = 403;  // Forbidden
+        throw ExceptionParsingError();
+    }
+    
+    if (access(fullPath.c_str(), R_OK) == -1)
+    {
+        _statusCode = 403;  // Forbidden
+        throw ExceptionParsingError();
+    }
     
     std::string body;
     body.resize(s.st_size);
-    
     std::ifstream infile(fullPath.c_str(), std::ios::binary);
-	
     infile.read(&body[0], s.st_size);
+	_body = body;
 
-	std::cout << body << std::endl;
-
-    
-    // body contient tout le fichier
+	addHeader("Content-Type", MIMEtable(fullPath));
+	addHeader("Content-Length", intToString(_body.length()));
+	// std::cout << body << std::endl;
 }
 
-void Response::handlePost(Request &request){
-	(void)request;
+void Response::handlePost(){
 }
 
-void Response::handleDelete(Request &request){
-	(void)request;
+void Response::handleDelete(){
 }
 
-std::string const Response::getResponse(){
-	return ("LECACA");
+//*********************************************************************************************/
+/*										GETTERS											  	  */
+//*********************************************************************************************/
+std::string const Response::getResponse()
+{
+	std::string response;	
+
+	if (_statusCode >= 200 && _statusCode < 300)
+	{
+		response += _request.getMap().at("Protocol") + " ";
+		response += intToString(_statusCode) + " OK\r\n";
+	}
+	else
+	{
+		response += _request.getMap().at("Protocol") + " ";
+		response += intToString(_statusCode) + " KO\r\n";
+	}
+
+	for (std::map<std::string, std::string>::iterator it = _header.begin(); it != _header.end(); it++)
+	{
+		// std::cout << it->first + ": " + it->second + "\r\n";
+		response += it->first + ": " + it->second + "\r\n";
+	}
+	response += "\r\n";
+	response += _body;
+
+	std::cout << "-----------------------\n";
+	std::cout << response << std::endl;
+	std::cout << "-----------------------\n";
+
+	return (response);
 }

@@ -3,6 +3,8 @@
 # include "webserv.hpp"
 
 # include <vector>
+# include <map>
+
 
 # include "Server.hpp"
 
@@ -18,12 +20,16 @@ private:
 	int					_size;
 	pollfd 				_pollfds[MAX_CLIENTS];
 
+	std::map<int, std::string> _responses;
+
 	// void	_initConfig(const string &configFilePath);
 	void	_initMasterSocket();
 	void	_initPollFds();
 	void	_awaitRequests();
 	void	_processConnections();
-	void	_processRequest(pollfd &request);
+	void	_processRequest(pollfd &);
+	void	_sendResponse(pollfd &);	
+
 	void	_loopUpdate();
 
 	WebServer();
