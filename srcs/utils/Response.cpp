@@ -46,7 +46,6 @@ void Response::pickMethod()
 		if (_request.getMap().at("Method") == Response::methods[i])
 			toCall = i;
 
-	//TODO : Check if method is valid in server config (tfiette) 
 	switch (toCall)
 	{
 		case GET:
@@ -130,7 +129,7 @@ std::string Response::buildFullPath()
 	}
 	
 	const std::vector<bool>& acceptedMethods = bestMatch->second.getMethods();
-	if (!acceptedMethods[GET]) // TODO: on fait quoi ici? 
+	if (!acceptedMethods[GET]) // TODO: on fait quoi dans ce cas la? 
 	{
 		std::cout << "Method not accepted\n";
 		throw ExceptionParsingError();
@@ -145,7 +144,7 @@ std::string Response::buildFullPath()
 	if (stat(fullPath.c_str(), &s) != -1 && S_ISDIR(s.st_mode)) // Je find l'index par defaut du bloc location ou le global
 	{
 		std::string index = bestMatch->second.getIndex(); // TODO: si pas d'index, recup le global
-		if (fullPath[fullPath.size() - 1] != '/')
+		if (fullPath[fullPath.size() - 1] != '/') // TODO: regarder aussi si fullpath commence par / je crois
 			fullPath += "/";
 		fullPath += index;
 	}
@@ -164,19 +163,19 @@ void Response::handleGet()
     
     if (stat(fullPath.c_str(), &s) == -1)
     {
-        _statusCode = 404;  // Not Found
+        _statusCode = 404;  // not Found
         throw ExceptionParsingError();
     }
     
     if (!S_ISREG(s.st_mode)) // normalement ici on est pas un dossier
     {
-        _statusCode = 403;  // Forbidden
+        _statusCode = 403;  // forbidden
         throw ExceptionParsingError();
     }
     
     if (access(fullPath.c_str(), R_OK) == -1)
     {
-        _statusCode = 403;  // Forbidden
+        _statusCode = 403;  // forbidden
         throw ExceptionParsingError();
     }
     

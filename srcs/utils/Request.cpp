@@ -5,7 +5,6 @@
 
 static std::string recvRequest(int socketFd)
 {
-	// std::cout << "init request...\n";
 	char buffer[2000] = {0};
 	std::string str;
 
@@ -19,7 +18,6 @@ static std::string recvRequest(int socketFd)
 		else
 			break ;
 	}
-	// std::cout << str << "\n";
 	return (str);
 }
 
@@ -76,58 +74,10 @@ int Request::parseRequest(std::string request)
 	return (1);
 }
 
-// std::string Request::buildReponse()
-// {
-// 	std::stringstream response; 
-
-// 	response << _reqMap.at("Protocol") + " " + _responseCode + " OK\r\n";
-// 	response << "Server: ";
-// 	response << "Date: ";
-// 	response << "Content-type: ";
-// 	response << "Content-Length: ";
-// 	response << "Connection: " << _reqMap.at("Connection") << "\r\n";
-
-// 	return (response.str());
-// }
-
-std::map<std::string, std::string>& Request::getMap(){
+std::map<std::string, std::string>& Request::getMap()
+{
 	return (_reqMap);
 }
-
-// void Request::rGet()
-// {
-// 	;
-// }
-
-// void Request::rDelete()
-// {
-// 	;
-// }
-
-// void Request::rPost()
-// {
-// 	;
-// }
-
-
-// void Request::pickRequestType()
-// {
-// 	switch (_requestType)
-// 	{
-// 		case GET:
-// 			rGet();
-// 			break;
-// 		case DELETE:
-// 			rDelete();
-// 			break;
-// 		case POST:
-// 			rPost();
-// 			break;
-// 		default:
-// 			std::cout << "INVALID REQUEST TYPE\n";
-// 			break;
-// 	}
-// }
 
 Request::Request(int &socketFd)
 {
@@ -135,7 +85,4 @@ Request::Request(int &socketFd)
 	parseRequest(request);
 }
 
-Request::~Request()
-{
-	// std::cout << "request ended" << std::endl;
-};
+Request::~Request(){};
