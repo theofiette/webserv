@@ -33,3 +33,16 @@ class ExceptionParsingError : public std::exception
 	private:
 		const char*	what() const throw();
 };
+
+
+class ExceptionPathError : public std::exception
+{
+	private:
+		const char*	what() const throw();
+};
+
+class ExceptionMethodError : public std::exception
+{
+	private:
+		const char*	what() const throw();
+};

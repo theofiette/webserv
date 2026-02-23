@@ -29,3 +29,13 @@ const char*	ExceptionParsingError::what() const throw()
 {
 	return ("Parsing error found.\n"); // A approfondir 
 }
+
+const char*	ExceptionPathError::what() const throw()
+{
+	return ("Path error found.\n"); // A approfondir 
+}
+
+const char*	ExceptionMethodError::what() const throw()
+{
+	return ("Method not recognized.\n"); // A approfondir 
+}

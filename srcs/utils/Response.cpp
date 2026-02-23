@@ -8,12 +8,15 @@
 #include <sys/stat.h>
 
 const std::string Response::methods[METHODS_COUNT] = {"GET", "POST", "DELETE"};
+const std::string mimeTable[MIME_SIZE] = {"html", "css", "png", "ico", "gif", "plain"};
+
 
 //*********************************************************************************************/
 /*										CONSTRUCTORS										  */
 //*********************************************************************************************/
 Response::Response(Request &request, Server &server) : _currServ(server), _request(request)
 {
+	setStatusMap();
 	_statusCode = 200;
 	pickMethod();
 }
@@ -33,8 +36,6 @@ std::string Response::intToString(int num)
 
 void Response::pickMethod()
 {
-	int toCall = -1;
-
 	static void (Response::*methods[])() = 
 	{
 		&Response::handleGet,
@@ -44,39 +45,25 @@ void Response::pickMethod()
 
 	for (int i = 0; i < METHODS_COUNT; i++)
 		if (_request.getMap().at("Method") == Response::methods[i])
-			toCall = i;
-
-	switch (toCall)
-	{
-		case GET:
-			(this->*methods[toCall])();
-			break;
-		case POST:
-			(this->*methods[toCall])();
-			break;
-		case DELETE:
-			(this->*methods[toCall])();
-			break;
-		default:
 		{
-			// throw ExceptionParsingError(); // nouvelle class exception ? 
+			try {
+				(this->*methods[i])();
+				return ;
+			}
+			catch (ExceptionPathError &e){
+				return ;
+			}
 		}
-	}
+	throw ExceptionParsingError(); // nouvelle class exception ? 
 }
 
 std::string Response::MIMEtable(std::string fullPath)
 {
-	if (fullPath.find(".html") != std::string::npos)
-		return ("text/html");
-	if (fullPath.find(".css") != std::string::npos) // si requete HTML contenant du CSS, y a une deuxieme requete qui suit avec .css
-		return ("text/css");
-	if (fullPath.find(".png") != std::string::npos)
-		return ("image/png");
-	if (fullPath.find(".ico") != std::string::npos)
-		return ("image/x-icon");
-	if (fullPath.find(".gif") != std::string::npos) //pour afficher un gif de con
-		return ("image/gif");		
-	return ("text/plain"); //default type
+	int i = 0;
+	for (; i < 5; i++)
+		if (fullPath.find("." + mimeTable[i]) != std::string::npos)
+			break ;
+	return ("text/" + mimeTable[i]);
 }
 
 //*********************************************************************************************/
@@ -92,12 +79,18 @@ void Response::addHeader(std::string key, std::string value)
 	_header[key] = value;
 }
 
-void Response::setErrorResponse(int statusCode)
-{
-	// Regarder la gestion du bloc LOCATION
-	// Si pas preciser rediriger vers ERROR PAGE par defaut
-	(void)statusCode;
-}
+// void Response::setErrorResponse(std::string &fullPath, Location& loc, int statusCode)
+// {
+// 	// Regarder la gestion du bloc LOCATION
+// 	// Si pas preciser rediriger vers ERROR PAGE par defaut
+// 	try{
+// 		fullPath = loc.;
+// 	}
+// 	catch (std::exception &e){
+// 		fullPath = _.
+// 	}
+// 	(void)statusCode;
+// }
 //*********************************************************************************************/
 /*										BUILDERS											  */
 //*********************************************************************************************/
@@ -105,38 +98,32 @@ std::string Response::buildFullPath()
 {
     std::string	reqPath = _request.getMap().at("Path");
 	std::map<std::string, Location>& loc = _currServ.getLocations();
-	mc_sL_ite 	bestMatch = loc.end();
-	size_t		maxSize = 0;
+	std::map<string, Location>::const_reverse_iterator 	bestMatch = loc.rend();
 	std::string fullPath;
 
-	for (mc_sL_ite it = loc.begin(); it != loc.end(); it++)
+	for (std::map<string, Location>::const_reverse_iterator it = loc.rbegin(); it != loc.rend(); it++)
 	{
 		if (reqPath.find(it->first) == 0) //commence bien par la location
 		{
-			if (it->first.size() > maxSize) // si je trouve un match plus grand 
-			{
-				bestMatch = it;
-				maxSize = it->first.size();
-			}
+			bestMatch = it;
+			break ;
 		}
 	}
+	std::cout << "LOCATION ROOT IS : " << bestMatch->second.getRoot() << "\n";
 	// TODO: check si bloc location / {} est au moins present pour etre sur de matcher sur un truc, pour savoir si on garde ce check
 	
-	if (bestMatch == loc.end())
+	if (bestMatch == loc.rend())
 	{
 		std::cout << "No matchs found\n";
-		throw ExceptionParsingError();
+		throw ExceptionPathError();
 	}
 	
 	const std::vector<bool>& acceptedMethods = bestMatch->second.getMethods();
 	if (!acceptedMethods[GET]) // TODO: on fait quoi dans ce cas la? 
 	{
 		std::cout << "Method not accepted\n";
-		throw ExceptionParsingError();
+		throw ExceptionPathError();
 	}
-	// std::string remainingPath = reqPath.substr(bestMatch->first.length());
-	// if (remainingPath.empty())
-	// 	remainingPath = "/";
 
 	fullPath = bestMatch->second.getRoot() + reqPath;
 	
@@ -148,6 +135,12 @@ std::string Response::buildFullPath()
 			fullPath += "/";
 		fullPath += index;
 	}
+	// if (stat(fullPath.c_str(), &s) == -1)
+    // {
+    //     _statusCode = NOT_FOUND;
+	// 	setErrorResponse(fullPath, bestMatch, _statusCode);
+	// 	// return ;
+    // }
 	std::cout << "FULL PATH ---------> " << fullPath << std::endl;
 	// TODO: check si d'autres choses sont a verifier dans le bloc location
 	return (fullPath);
@@ -159,31 +152,29 @@ std::string Response::buildFullPath()
 void Response::handleGet()
 {
     struct stat s;
-    std::string fullPath = buildFullPath();
+	std::string fullPath;
+	// try{
+    	fullPath = buildFullPath();
+	// }
+	// catch (ExceptionPathError &e)
+	// {
+	// 	return ;
+	// };
+    // if (stat(fullPath.c_str(), &s) == -1)
+    // {
+    //     _statusCode = NOT_FOUND;
+	// 	setErrorResponse(fullPath, _statusCode);
+	// 	// return ;
+    // }
+  
     
-    if (stat(fullPath.c_str(), &s) == -1)
+    if (!S_ISREG(s.st_mode) || access(fullPath.c_str(), R_OK) == -1) // normalement ici on est pas un dossier
     {
-        _statusCode = 404;  // not Found
-        throw ExceptionParsingError();
+        _statusCode = FORBIDDEN;
+        throw ExceptionPathError();
     }
-    
-    if (!S_ISREG(s.st_mode)) // normalement ici on est pas un dossier
-    {
-        _statusCode = 403;  // forbidden
-        throw ExceptionParsingError();
-    }
-    
-    if (access(fullPath.c_str(), R_OK) == -1)
-    {
-        _statusCode = 403;  // forbidden
-        throw ExceptionParsingError();
-    }
-    
-    std::string body;
-    body.resize(s.st_size);
-    std::ifstream infile(fullPath.c_str(), std::ios::binary);
-    infile.read(&body[0], s.st_size);
-	_body = body;
+    std::ifstream infile(fullPath.c_str());
+    infile.read(&_body[0], s.st_size);
 
 	addHeader("Content-Type", MIMEtable(fullPath));
 	addHeader("Content-Length", intToString(_body.length()));
@@ -211,7 +202,7 @@ std::string const Response::getResponse()
 	else
 	{
 		response += _request.getMap().at("Protocol") + " ";
-		response += intToString(_statusCode) + " KO\r\n";
+		response += intToString(_statusCode) + " " + _statusMap.at(intToString(_statusCode)) + "\r\n";
 	}
 
 	for (std::map<std::string, std::string>::iterator it = _header.begin(); it != _header.end(); it++)
@@ -227,4 +218,20 @@ std::string const Response::getResponse()
 	std::cout << "-----------------------\n";
 
 	return (response);
+}
+
+
+void Response::setStatusMap(){
+	/*VALID CODES*/
+	_statusMap["200"] = "OK";
+
+	_statusMap["201"] = "Created";
+
+	/*REDIR CODES*/
+	_statusMap["301"] = "Move permanently";
+
+	
+	/*ERROR CODES*/
+	_statusMap["403"] = "Forbidden";
+	_statusMap["404"] = "Not found";
 }
