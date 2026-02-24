@@ -52,6 +52,9 @@ void	WebServer::_processConnections()
 		// fcntl(socketFd, F_SETFL, O_NONBLOCK); // set les clients aussi en non-bloquant
 		_pollfds[_size].fd = socketFd; 
 		_pollfds[_size].events = POLLIN;
+		Request req(socketFd);
+		std::pair<int, Request> p = std::make_pair(socketFd, req);
+		_requestsMap.insert(p);
 		_size++;
 		_tempSize++;
 	}
@@ -99,8 +102,15 @@ void	WebServer::loop()
 
 void	WebServer::_processRequest(pollfd &request)
 {
-	Request req(request.fd);
-	Response resp(req, _servers.back()); // TODO: passer le bon server
+	Request currRequest = _requestsMap.at(request.fd);
+
+	currRequest.getRawRequest() += recvRequest(request.fd);
+	if (currRequest.isRequestComplete() == false)
+		return ;
+	//si pas fini de read la request return ;
+	currRequest.parseRequest(currRequest.getRawRequest());
+	
+	Response resp(currRequest, _servers.back()); // TODO: passer le bon server
 
 	std::string response = resp.getResponse();
 	std::pair<int, std::string> r = std::make_pair(request.fd, response); // TODO: choose an other way or keep 
@@ -231,22 +241,22 @@ void	WebServer::_temp_config()
 	// temp_S.display();
 	_servers.push_back(temp_S);}
 
-		{Server		temp_S;
-	Location 	temp_L;
-	Location 	temp_L2;
+	// 	{Server		temp_S;
+	// Location 	temp_L;
+	// Location 	temp_L2;
 
-	string		L_name("/");
-	string		L_name2("/images");
+	// string		L_name("/");
+	// string		L_name2("/images");
 
-	temp_S.registerLocation(L_name, temp_L);
+	// temp_S.registerLocation(L_name, temp_L);
 	
-	// Configure location /html/ pour les tests
-	temp_L2.setRoot("html/medias");
-	temp_L2.setIndex("default_error.html");
-	temp_S.registerLocation(L_name2, temp_L2);
+	// // Configure location /html/ pour les tests
+	// temp_L2.setRoot("html/medias");
+	// temp_L2.setIndex("default_error.html");
+	// temp_S.registerLocation(L_name2, temp_L2);
 
-	temp_S.display();
-	_servers.push_back(temp_S);}
+	// temp_S.display();
+	// _servers.push_back(temp_S);}
 }
 
 

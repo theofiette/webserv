@@ -10,18 +10,22 @@
 class Request
 {
 	private:
-		// int _requestType; //USED ??
-		std::map<std::string, std::string> _reqMap;
-		// bool	_requestComplet;
+		std::map<std::string, std::string>	_reqMap;
+		std::string 						_rawRequest;
+		bool								_requestComplete;
 	public:
 		Request(int &);
 		~Request();
 
 		int	parseRequest(std::string);
 		void setFirstLine(std::string);
-
+		
+		std::string &getRawRequest();
+		bool &isRequestComplete();
 		std::map<std::string, std::string>& getMap();
 
 		// TEMPORAIRE
 		void displayInfos();
 };
+
+std::string recvRequest(int socketFd);

@@ -20,6 +20,7 @@ private:
 	int					_size;
 	pollfd 				_pollfds[MAX_CLIENTS];
 
+	std::map<int, Request> _requestsMap;
 	std::map<int, std::string> _responses;
 
 	// void	_initConfig(const string &configFilePath);

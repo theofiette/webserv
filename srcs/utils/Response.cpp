@@ -10,14 +10,12 @@
 const std::string Response::methods[METHODS_COUNT] = {"GET", "POST", "DELETE"};
 const std::string mimeTable[MIME_SIZE] = {"html", "css", "png", "ico", "gif", "plain"};
 
-
 //*********************************************************************************************/
 /*										CONSTRUCTORS										  */
 //*********************************************************************************************/
-Response::Response(Request &request, Server &server) : _currServ(server), _request(request)
+Response::Response(Request &request, Server &server) : _statusCode(200), _currServ(server), _request(request)
 {
 	setStatusMap();
-	_statusCode = 200;
 	pickMethod();
 }
 
@@ -173,6 +171,7 @@ void Response::handleGet()
         _statusCode = FORBIDDEN;
         throw ExceptionPathError();
     }
+	fullPath.resize(s.st_size);
     std::ifstream infile(fullPath.c_str());
     infile.read(&_body[0], s.st_size);
 
@@ -214,12 +213,11 @@ std::string const Response::getResponse()
 	response += _body;
 
 	std::cout << "-----------------------\n";
-	std::cout << response << std::endl;
+	// std::cout << response << std::endl;
 	std::cout << "-----------------------\n";
 
 	return (response);
 }
-
 
 void Response::setStatusMap(){
 	/*VALID CODES*/

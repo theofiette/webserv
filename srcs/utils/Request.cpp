@@ -22,19 +22,51 @@
 // 	return (str);
 // }
 
-static std::string recvRequest(int socketFd)
+int stringToInt(std::string num)
 {
-	char buffer[4096] = {0};
+    std::stringstream ss(num);
+    int value;
+	ss >> value;
+    return (value);
+}
+
+// static std::string extractContentLength(std::string buffer)
+// {
+// 	std::string contentLength;
+// 	size_t pos = buffer.find("Content-length: ");
+// 	if (pos != std::string::npos)
+// 	{
+// 		size_t end = buffer.find('\r');
+// 		if (end != std::string::npos)
+// 			contentLength = buffer.substr(pos, end - pos);
+// 		else
+// 			throw ExceptionParsingError();
+// 	}
+// 	else
+// 	{
+// 		// case sans content length, error ou alors gerer avec le timeout
+// 		;
+// 	}
+// 	return (contentLength);
+// }
+
+std::string recvRequest(int socketFd)
+{
+	char buffer[2000] = {0};
 	std::string str;
 	static ssize_t totalBytes = 0;
 
 	ssize_t bytesRead = recv(socketFd, buffer, sizeof(buffer) - 1, 0);
+	std::cout << "Total bytes = " << totalBytes << std::endl;
 	totalBytes += bytesRead;
 	str += buffer;
+	std::cout << "Buffer: " << str << std::endl;
 	t_bzero(&buffer, sizeof(buffer));
-	// if (str.find("\r\n\r\n") == std::string::npos)
-	// 	continue ;
-
+	// if (str.find("\r\n\r\n") != std::string::npos)
+	// {
+	// 	// int contentLength = stringToInt(extractContentLength(str));
+	// 	// std::cout << "********************" << extractContentLength(str) << "<--------" << std::endl;
+	// }
 	return (str);
 }
 
@@ -83,7 +115,7 @@ int Request::parseRequest(std::string request)
 			map.second = tmp.substr(sep, end - sep);
 			_reqMap.insert(map);
 		}
-		displayInfos();
+		// displayInfos();
 	}
 	catch (std::exception &e){
 		std::cout << "EXCEPTION IS: " <<  e.what() << "\n";
@@ -96,10 +128,19 @@ std::map<std::string, std::string>& Request::getMap()
 	return (_reqMap);
 }
 
-Request::Request(int &socketFd) // : _requestComplet(false)
+std::string &Request::getRawRequest(){
+	return (_rawRequest);
+}
+
+bool &Request::isRequestComplete(){
+	return (_requestComplete);
+}
+
+Request::Request(int &socketFd) : _requestComplete(false)
 {
-	std::string request = recvRequest(socketFd);
-	parseRequest(request);
+	(void)socketFd;
+	// std::string request = recvRequest(socketFd);
+	// parseRequest(request);
 }
 
 Request::~Request(){};
