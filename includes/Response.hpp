@@ -7,6 +7,12 @@
 
 class Request;
 class Server;
+class Location;
+
+enum ErrorCode{
+	FORBIDDEN = 403,
+	NOT_FOUND = 404
+};
 
 class Response
 {
@@ -30,8 +36,9 @@ class Response
 		~Response();
 
 		void setStatusCode();
+		void setStatusMap();
 		void addHeader(std::string, std::string);
-		void setErrorResponse(int);
+		void setErrorResponse(std::string&, std::map<std::string, Location>::reverse_iterator,int);
 
 		void pickMethod();
 

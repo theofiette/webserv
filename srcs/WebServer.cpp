@@ -214,7 +214,7 @@ typedef std::string::const_iterator cstr_ite;
 
 void	WebServer::_temp_config()
 {
-	Server		temp_S;
+	{Server		temp_S;
 	Location 	temp_L;
 	Location 	temp_L2;
 
@@ -229,8 +229,26 @@ void	WebServer::_temp_config()
 	temp_S.registerLocation(L_name2, temp_L2);
 
 	// temp_S.display();
-	_servers.push_back(temp_S);
+	_servers.push_back(temp_S);}
+
+		{Server		temp_S;
+	Location 	temp_L;
+	Location 	temp_L2;
+
+	string		L_name("/");
+	string		L_name2("/images");
+
+	temp_S.registerLocation(L_name, temp_L);
+	
+	// Configure location /html/ pour les tests
+	temp_L2.setRoot("html/medias");
+	temp_L2.setIndex("default_error.html");
+	temp_S.registerLocation(L_name2, temp_L2);
+
+	temp_S.display();
+	_servers.push_back(temp_S);}
 }
+
 
 // CONSTRUCTORS
 

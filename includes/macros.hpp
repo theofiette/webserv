@@ -11,6 +11,7 @@ typedef std::string string;
 #define CONFIG_RULE	4
 
 #define	METHODS_COUNT	3
+#define MIME_SIZE 6
 enum	E_METHODS
 {
 	GET,
