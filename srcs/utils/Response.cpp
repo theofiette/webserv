@@ -1,5 +1,5 @@
 #include "webserv.hpp"
-#include "Response.hpp"
+// #include "Response.hpp"
 #include "Server.hpp"
 
 #include <fstream>
@@ -79,18 +79,25 @@ void Response::addHeader(std::string key, std::string value)
 	_header[key] = value;
 }
 
-// void Response::setErrorResponse(std::string &fullPath, Location& loc, int statusCode)
-// {
-// 	// Regarder la gestion du bloc LOCATION
-// 	// Si pas preciser rediriger vers ERROR PAGE par defaut
-// 	try{
-// 		fullPath = loc.;
-// 	}
-// 	catch (std::exception &e){
-// 		fullPath = _.
-// 	}
-// 	(void)statusCode;
-// }
+void Response::setErrorResponse(std::string &fullPath, std::map<int, std::string> const& errMapLocation, std::string const& root)
+{
+	// Regarder la gestion du bloc LOCATION
+	// Si pas preciser rediriger vers ERROR PAGE par defaut
+	try{
+		fullPath = root + "/" + errMapLocation.at(_statusCode);
+		_statusCode = MOVED_PERMANENTLY;
+	}
+	catch (std::exception &e)
+	{
+		try{
+			fullPath = _currServ.getErrMapServer().at(_statusCode);
+			_statusCode = OK;
+		}
+		catch (std::exception &e){
+			fullPath = "html/errors/defaultErrorPage.html";
+		}
+	}
+}
 //*********************************************************************************************/
 /*										BUILDERS											  */
 //*********************************************************************************************/
@@ -98,14 +105,15 @@ std::string Response::buildFullPath()
 {
     std::string	reqPath = _request.getMap().at("Path");
 	std::map<std::string, Location>& loc = _currServ.getLocations();
-	std::map<string, Location>::const_reverse_iterator 	bestMatch = loc.rend();
+	std::map<string, Location>::reverse_iterator 	bestMatch = loc.rend();
 	std::string fullPath;
 
-	for (std::map<string, Location>::const_reverse_iterator it = loc.rbegin(); it != loc.rend(); it++)
+	for (std::map<string, Location>::reverse_iterator it = loc.rbegin(); it != loc.rend(); it++)
 	{
 		if (reqPath.find(it->first) == 0) //commence bien par la location
 		{
 			bestMatch = it;
+			setCurrLocation(bestMatch->second);
 			break ;
 		}
 	}
@@ -135,13 +143,6 @@ std::string Response::buildFullPath()
 			fullPath += "/";
 		fullPath += index;
 	}
-	// if (stat(fullPath.c_str(), &s) == -1)
-    // {
-    //     _statusCode = NOT_FOUND;
-	// 	setErrorResponse(fullPath, bestMatch, _statusCode);
-	// 	// return ;
-    // }
-	std::cout << "FULL PATH ---------> " << fullPath << std::endl;
 	// TODO: check si d'autres choses sont a verifier dans le bloc location
 	return (fullPath);
 }
@@ -151,34 +152,24 @@ std::string Response::buildFullPath()
 //*********************************************************************************************/
 void Response::handleGet()
 {
-    struct stat s;
+	struct stat s;
 	std::string fullPath;
-	// try{
-    	fullPath = buildFullPath();
-	// }
-	// catch (ExceptionPathError &e)
-	// {
-	// 	return ;
-	// };
-    // if (stat(fullPath.c_str(), &s) == -1)
-    // {
-    //     _statusCode = NOT_FOUND;
-	// 	setErrorResponse(fullPath, _statusCode);
-	// 	// return ;
-    // }
-  
-    
+    fullPath = buildFullPath();
+	if (stat(fullPath.c_str(), &s) == -1){
+		_statusCode = NOT_FOUND;
+		setErrorResponse(fullPath, _currLocation.getErrMap(), _currLocation.getRoot());
+	}
+	stat(fullPath.c_str(), &s);
     if (!S_ISREG(s.st_mode) || access(fullPath.c_str(), R_OK) == -1) // normalement ici on est pas un dossier
     {
         _statusCode = FORBIDDEN;
-        throw ExceptionPathError();
+        setErrorResponse(fullPath, _currLocation.getErrMap(), _currLocation.getRoot());
     }
-    std::ifstream infile(fullPath.c_str());
+    _body.resize(s.st_size);
+    std::ifstream infile(fullPath.c_str(), std::ios::binary);
     infile.read(&_body[0], s.st_size);
-
 	addHeader("Content-Type", MIMEtable(fullPath));
 	addHeader("Content-Length", intToString(_body.length()));
-	// std::cout << body << std::endl;
 }
 
 void Response::handlePost(){
@@ -192,24 +183,11 @@ void Response::handleDelete(){
 //*********************************************************************************************/
 std::string const Response::getResponse()
 {
-	std::string response;	
-
-	if (_statusCode >= 200 && _statusCode < 300)
-	{
-		response += _request.getMap().at("Protocol") + " ";
-		response += intToString(_statusCode) + " OK\r\n";
-	}
-	else
-	{
-		response += _request.getMap().at("Protocol") + " ";
-		response += intToString(_statusCode) + " " + _statusMap.at(intToString(_statusCode)) + "\r\n";
-	}
-
+	std::string response;
+	response += _request.getMap().at("Protocol") + " ";
+	response += intToString(_statusCode) + " " + _statusMap.at(_statusCode) + "\r\n";
 	for (std::map<std::string, std::string>::iterator it = _header.begin(); it != _header.end(); it++)
-	{
-		// std::cout << it->first + ": " + it->second + "\r\n";
 		response += it->first + ": " + it->second + "\r\n";
-	}
 	response += "\r\n";
 	response += _body;
 
@@ -221,17 +199,22 @@ std::string const Response::getResponse()
 }
 
 
+void Response::setCurrLocation(Location &loc){
+	_currLocation = loc;
+}
+
 void Response::setStatusMap(){
 	/*VALID CODES*/
-	_statusMap["200"] = "OK";
+	_statusMap[200] = "OK";
 
-	_statusMap["201"] = "Created";
+	_statusMap[201] = "Created";
 
 	/*REDIR CODES*/
-	_statusMap["301"] = "Move permanently";
+	_statusMap[301] = "Move permanently";
+	_statusMap[302] = "Found";
 
 	
 	/*ERROR CODES*/
-	_statusMap["403"] = "Forbidden";
-	_statusMap["404"] = "Not found";
+	_statusMap[403] = "Forbidden";
+	_statusMap[404] = "Not found";
 }

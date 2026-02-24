@@ -101,7 +101,6 @@ void	WebServer::_processRequest(pollfd &request)
 {
 	Request req(request.fd);
 	Response resp(req, _servers.back());
-
 	std::string response = resp.getResponse();
 	std::pair<int, std::string> r = std::make_pair(request.fd, response);
 	_responses.insert(r);
@@ -111,10 +110,12 @@ void	WebServer::_processRequest(pollfd &request)
 
 void	WebServer::_sendResponse(pollfd &request)
 {
+	std::cout << request.fd << "\n";
 	const char *res = _responses[request.fd].c_str();
 	ssize_t sent = send(request.fd, res, _responses[request.fd].size(), 0);
 	if (sent > 0)
 	{
+		_responses.erase(request.fd);
 		close(request.fd);
 		request.fd = -1;
 	}
@@ -225,27 +226,11 @@ void	WebServer::_temp_config()
 	// Configure location /html/ pour les tests
 	temp_L2.setRoot("html/errors");
 	temp_L2.setIndex("default_error.html");
+	temp_L2.setErrMap();
 	temp_S.registerLocation(L_name2, temp_L2);
 
-	// temp_S.display();
 	_servers.push_back(temp_S);}
 
-		{Server		temp_S;
-	Location 	temp_L;
-	Location 	temp_L2;
-
-	string		L_name("/");
-	string		L_name2("/images");
-
-	temp_S.registerLocation(L_name, temp_L);
-	
-	// Configure location /html/ pour les tests
-	temp_L2.setRoot("html/medias");
-	temp_L2.setIndex("default_error.html");
-	temp_S.registerLocation(L_name2, temp_L2);
-
-	temp_S.display();
-	_servers.push_back(temp_S);}
 }
 
 
