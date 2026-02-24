@@ -3,21 +3,38 @@
 #include <map>
 #include <sstream>
 
+// static std::string recvRequest(int socketFd)
+// {
+// 	char buffer[4096] = {0};
+// 	std::string str;
+
+// 	while (recv(socketFd, buffer, sizeof(buffer) - 1, 0))
+// 	{
+// 		// TODO : check error recv
+// 		str += buffer;
+// 		t_bzero(&buffer, sizeof(buffer));
+// 		if (str.find("\r\n\r\n") == std::string::npos)
+// 			continue ;
+// 		else
+// 			break ;
+// 	}
+// 	std::cout << str << std::endl;
+// 	return (str);
+// }
+
 static std::string recvRequest(int socketFd)
 {
-	char buffer[2000] = {0};
+	char buffer[4096] = {0};
 	std::string str;
+	static ssize_t totalBytes = 0;
 
-	while (recv(socketFd, buffer, sizeof(buffer) - 1, 0))
-	{
-		// TODO : check error recv
-		str += buffer;
-		t_bzero(&buffer, sizeof(buffer));
-		if (str.find("\r\n\r\n") == std::string::npos)
-			continue ;
-		else
-			break ;
-	}
+	ssize_t bytesRead = recv(socketFd, buffer, sizeof(buffer) - 1, 0);
+	totalBytes += bytesRead;
+	str += buffer;
+	t_bzero(&buffer, sizeof(buffer));
+	// if (str.find("\r\n\r\n") == std::string::npos)
+	// 	continue ;
+
 	return (str);
 }
 
@@ -79,7 +96,7 @@ std::map<std::string, std::string>& Request::getMap()
 	return (_reqMap);
 }
 
-Request::Request(int &socketFd)
+Request::Request(int &socketFd) // : _requestComplet(false)
 {
 	std::string request = recvRequest(socketFd);
 	parseRequest(request);

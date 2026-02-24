@@ -12,7 +12,7 @@ class Request
 	private:
 		// int _requestType; //USED ??
 		std::map<std::string, std::string> _reqMap;
-
+		// bool	_requestComplet;
 	public:
 		Request(int &);
 		~Request();

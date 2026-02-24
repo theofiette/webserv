@@ -101,7 +101,7 @@ void Response::setErrorResponse(int statusCode)
 //*********************************************************************************************/
 /*										BUILDERS											  */
 //*********************************************************************************************/
-std::string Response::buildFullPath()
+std::string Response::buildFullPath() // passer un int pour la method 
 {
     std::string	reqPath = _request.getMap().at("Path");
 	std::map<std::string, Location>& loc = _currServ.getLocations();
@@ -129,7 +129,7 @@ std::string Response::buildFullPath()
 	}
 	
 	const std::vector<bool>& acceptedMethods = bestMatch->second.getMethods();
-	if (!acceptedMethods[GET]) // TODO: on fait quoi dans ce cas la? 
+	if (!acceptedMethods[GET]) // TODO: error 503 -> rediriger vers error page 503 du bloc location OU error 503 general
 	{
 		std::cout << "Method not accepted\n";
 		throw ExceptionParsingError();
@@ -170,6 +170,7 @@ void Response::handleGet()
     if (!S_ISREG(s.st_mode)) // normalement ici on est pas un dossier
     {
         _statusCode = 403;  // forbidden
+		setErrorResponse(403);
         throw ExceptionParsingError();
     }
     
@@ -179,11 +180,9 @@ void Response::handleGet()
         throw ExceptionParsingError();
     }
     
-    std::string body;
-    body.resize(s.st_size);
-    std::ifstream infile(fullPath.c_str(), std::ios::binary);
-    infile.read(&body[0], s.st_size);
-	_body = body;
+    _body.resize(s.st_size);
+    std::ifstream infile(fullPath.c_str()); //iosbinary
+    infile.read(&_body[0], s.st_size);
 
 	addHeader("Content-Type", MIMEtable(fullPath));
 	addHeader("Content-Length", intToString(_body.length()));
@@ -211,7 +210,7 @@ std::string const Response::getResponse()
 	else
 	{
 		response += _request.getMap().at("Protocol") + " ";
-		response += intToString(_statusCode) + " KO\r\n";
+		response += intToString(_statusCode) + " KO\r\n"; 	
 	}
 
 	for (std::map<std::string, std::string>::iterator it = _header.begin(); it != _header.end(); it++)

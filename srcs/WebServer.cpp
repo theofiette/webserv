@@ -49,7 +49,7 @@ void	WebServer::_processConnections()
 			// TODO error here ?
 			break ;
 		}
-		fcntl(socketFd, F_SETFL, O_NONBLOCK); // set les clients aussi en non-bloquant
+		// fcntl(socketFd, F_SETFL, O_NONBLOCK); // set les clients aussi en non-bloquant
 		_pollfds[_size].fd = socketFd; 
 		_pollfds[_size].events = POLLIN;
 		_size++;
@@ -79,7 +79,7 @@ void	WebServer::_loopUpdate()
 
 void	WebServer::loop()
 {
-	while(1) // TODO deal with error
+	while (1) // TODO deal with error
 	{
 		_awaitRequests();
 		// std::cout << "OUT OF POLL\n";
@@ -91,7 +91,7 @@ void	WebServer::loop()
 			else if (currRequest.revents & POLLIN)
 				_processRequest(currRequest);
 			else if (currRequest.revents & POLLOUT)
-				_sendResponse(currRequest);	
+				_sendResponse(currRequest);
 		}
 		_loopUpdate();
 	}
@@ -100,10 +100,10 @@ void	WebServer::loop()
 void	WebServer::_processRequest(pollfd &request)
 {
 	Request req(request.fd);
-	Response resp(req, _servers.back());
+	Response resp(req, _servers.back()); // TODO: passer le bon server
 
 	std::string response = resp.getResponse();
-	std::pair<int, std::string> r = std::make_pair(request.fd, response);
+	std::pair<int, std::string> r = std::make_pair(request.fd, response); // TODO: choose an other way or keep 
 	_responses.insert(r);
 
 	request.events = POLLOUT; // on set le fd ready to send
@@ -111,13 +111,14 @@ void	WebServer::_processRequest(pollfd &request)
 
 void	WebServer::_sendResponse(pollfd &request)
 {
-	const char *res = _responses[request.fd].c_str();
+	const char *res = _responses.at(request.fd).c_str(); // TODO: dynamic
 	ssize_t sent = send(request.fd, res, _responses[request.fd].size(), 0);
-	if (sent > 0)
+	if (sent > 0) // TODO: garder un compteur de ce qu.on a envoyer et envoyer qu une petite partie a chaque fois du body jusqua total puis on close
 	{
 		close(request.fd);
 		request.fd = -1;
 	}
+	// TODO: erase " _responses.at(request.fd) " 
 }
 
 void	WebServer::_awaitRequests()
