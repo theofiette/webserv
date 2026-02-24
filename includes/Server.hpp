@@ -28,4 +28,5 @@ class Server
 		~Server();						//Destructor
 
 		std::map<string, Location>& getLocations();
+		std::map<int, std::string>& getErrMapServer();
 };

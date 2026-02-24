@@ -72,3 +72,7 @@ std::map<string, Location>& Server::getLocations()
 {
 	return (_locations);
 }
+
+std::map<int, std::string>&  Server::getErrMapServer(){
+	return (_errors);
+}

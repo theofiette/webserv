@@ -1,14 +1,14 @@
 # pragma once
 
-# include "webserv.hpp"
+# include <string>
 
 class Redir
 {
 	private:
 
-		bool	_valid;
-		int		_errorCode;
-		string	_redirPath;
+		bool			_valid;
+		int				_errorCode;
+		std::string		_redirPath;
 
 	public:
 
@@ -18,4 +18,4 @@ class Redir
 		Redir(); 						//Default constructor
 		~Redir();						//Destructor
 };
-		
+

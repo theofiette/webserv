@@ -115,7 +115,7 @@ int Request::parseRequest(std::string request)
 			map.second = tmp.substr(sep, end - sep);
 			_reqMap.insert(map);
 		}
-		// displayInfos();
+		displayInfos();
 	}
 	catch (std::exception &e){
 		std::cout << "EXCEPTION IS: " <<  e.what() << "\n";

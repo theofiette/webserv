@@ -1,5 +1,5 @@
-
 #include "Redir.hpp"
+#include <iostream>
 
 # define	REDIR_DF_VALID	false
 # define	REDIR_DF_ERR	301

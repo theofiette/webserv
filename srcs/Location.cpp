@@ -61,6 +61,12 @@ std::string Location::getRoot() const
 	return (_root);
 }
 
+std::map<int, std::string>& Location::getErrMap()
+{
+	return (_errMap);
+}
+
+
 const std::vector<bool>&	Location::getMethods() const
 {
 	return (_methods);
@@ -75,7 +81,6 @@ Redir				Location::getRedir() const
 {
 	return (_redir);
 }
-
 // SETTERS
 
 void Location::setRoot(const std::string &root)
@@ -88,3 +93,6 @@ void Location::setIndex(const std::string &index)
 	_index = index;
 }
 
+void Location::setErrMap(){
+	_errMap[404] = "ErrorPage.html";
+}

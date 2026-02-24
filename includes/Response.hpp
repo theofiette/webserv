@@ -4,12 +4,16 @@
 #include <iostream>
 #include <string>
 #include "exception.hpp"
+#include "Location.hpp"
 
 class Request;
 class Server;
-class Location;
+class Location; // Add this forward declaration before the Response class
 
 enum ErrorCode{
+	OK = 200,
+	MOVED_PERMANENTLY = 301,
+	FOUND = 302,
 	FORBIDDEN = 403,
 	NOT_FOUND = 404
 };
@@ -20,8 +24,9 @@ class Response
 		int _statusCode;
 		std::map<std::string, std::string> _header;
 		std::string _body;
-		std::map<std::string, std::string> _statusMap;
-
+		std::map<int, std::string> _statusMap;
+		
+		Location _currLocation;
 		Server &_currServ;
 		Request &_request;
 
@@ -36,9 +41,10 @@ class Response
 		~Response();
 
 		void setStatusCode();
+		void setCurrLocation(Location &l);
 		void setStatusMap();
 		void addHeader(std::string, std::string);
-		void setErrorResponse(std::string&, std::map<std::string, Location>::reverse_iterator,int);
+		void setErrorResponse(std::string&, std::map<int, std::string> const&, std::string const&);
 
 		void pickMethod();
 
