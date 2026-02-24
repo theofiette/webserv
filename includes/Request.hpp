@@ -10,6 +10,7 @@
 class Request
 {
 	private:
+		size_t								_totalBytes;
 		std::map<std::string, std::string>	_reqMap;
 		std::string 						_rawRequest;
 		bool								_requestComplete;
@@ -21,6 +22,7 @@ class Request
 		void setFirstLine(std::string);
 		
 		std::string &getRawRequest();
+		void recvRequest(int);
 		bool &isRequestComplete();
 		std::map<std::string, std::string>& getMap();
 

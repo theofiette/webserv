@@ -30,44 +30,51 @@ int stringToInt(std::string num)
     return (value);
 }
 
-// static std::string extractContentLength(std::string buffer)
-// {
-// 	std::string contentLength;
-// 	size_t pos = buffer.find("Content-length: ");
-// 	if (pos != std::string::npos)
-// 	{
-// 		size_t end = buffer.find('\r');
-// 		if (end != std::string::npos)
-// 			contentLength = buffer.substr(pos, end - pos);
-// 		else
-// 			throw ExceptionParsingError();
-// 	}
-// 	else
-// 	{
-// 		// case sans content length, error ou alors gerer avec le timeout
-// 		;
-// 	}
-// 	return (contentLength);
-// }
+static std::string extractContentLength(std::string buffer)
+{
+	std::string contentLength;
+	size_t pos = buffer.find("Content-length: ");
+	if (pos != std::string::npos)
+	{
+		size_t end = buffer.find('\r');
+		if (end != std::string::npos)
+			contentLength = buffer.substr(pos, end - pos);
+		else
+			throw ExceptionParsingError();
+	}
+	else
+	{
+		return ("-1");
+	}
+	return (contentLength);
+}
 
-std::string recvRequest(int socketFd)
+void Request::recvRequest(int socketFd)
 {
 	char buffer[2000] = {0};
-	std::string str;
-	static ssize_t totalBytes = 0;
 
 	ssize_t bytesRead = recv(socketFd, buffer, sizeof(buffer) - 1, 0);
-	std::cout << "Total bytes = " << totalBytes << std::endl;
-	totalBytes += bytesRead;
-	str += buffer;
-	std::cout << "Buffer: " << str << std::endl;
+	std::cout << "Total bytes = " << _totalBytes << std::endl;
+	_totalBytes += bytesRead;
+	_rawRequest += buffer;
+	std::cout << "Buffer: " << _rawRequest << std::endl;
 	t_bzero(&buffer, sizeof(buffer));
-	// if (str.find("\r\n\r\n") != std::string::npos)
-	// {
-	// 	// int contentLength = stringToInt(extractContentLength(str));
-	// 	// std::cout << "********************" << extractContentLength(str) << "<--------" << std::endl;
-	// }
-	return (str);
+	if (_rawRequest.find("\r\n\r\n") != std::string::npos)
+	{
+		int contentLength = stringToInt(extractContentLength(_rawRequest));
+		if (contentLength < 0)
+			_requestComplete = true;
+		else if (contentLength > 0)
+		{
+			// check MAX_BODY_SIZE avec TOTAL BYTES et QUAND END, TOTALBYTES = CONTENT LENGTH + REQUEST LENTGHT SINON ON A TROP LU 
+			;
+		}
+		else if (contentLength == 0)
+		{
+			;
+		}
+		// TODO: get body
+	}
 }
 
 void Request::displayInfos(){
@@ -115,7 +122,7 @@ int Request::parseRequest(std::string request)
 			map.second = tmp.substr(sep, end - sep);
 			_reqMap.insert(map);
 		}
-		displayInfos();
+		// displayInfos();
 	}
 	catch (std::exception &e){
 		std::cout << "EXCEPTION IS: " <<  e.what() << "\n";
@@ -136,7 +143,7 @@ bool &Request::isRequestComplete(){
 	return (_requestComplete);
 }
 
-Request::Request(int &socketFd) : _requestComplete(false)
+Request::Request(int &socketFd) :  _totalBytes(0), _requestComplete(false)
 {
 	(void)socketFd;
 	// std::string request = recvRequest(socketFd);

@@ -104,7 +104,7 @@ void	WebServer::_processRequest(pollfd &request)
 {
 	Request currRequest = _requestsMap.at(request.fd);
 
-	currRequest.getRawRequest() += recvRequest(request.fd);
+	currRequest.recvRequest(request.fd);
 	if (currRequest.isRequestComplete() == false)
 		return ;
 	//si pas fini de read la request return ;
