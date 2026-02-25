@@ -161,6 +161,7 @@ std::string Response::buildFullPath() // passer un int pour la method
 
 	fullPath = bestMatch->second.getRoot() + reqPath;
 	
+	std::cout << "FULL PATH IS : " << fullPath << "\n";
 	struct stat s; // TODO: stat doublon dans le handler ensuite
 	if (stat(fullPath.c_str(), &s) != -1 && S_ISDIR(s.st_mode)) // Je find l'index par defaut du bloc location ou le global
 	{
@@ -192,10 +193,12 @@ void Response::handleGet()
 		}
 	}
     fullPath = buildFullPath();
+	std::cout << (stat(fullPath.c_str(), &s) == -1) << " \n\n";
 	if (stat(fullPath.c_str(), &s) == -1){
 		_statusCode = NOT_FOUND;
 		setErrorResponse(fullPath, _currLocation.getErrMap(), _currLocation.getRoot());
 	}
+	std::cout << "FULL PATH IS : " << fullPath << "\n";
 	stat(fullPath.c_str(), &s);
     if (!S_ISREG(s.st_mode) || access(fullPath.c_str(), R_OK) == -1) // normalement ici on est pas un dossier
     {
@@ -230,7 +233,7 @@ std::string const Response::getResponse()
 	response += _body;
 
 	std::cout << "-----------------------\n";
-	// std::cout << response << std::endl;
+	std::cout << response << std::endl;
 	std::cout << "-----------------------\n";
 
 	return (response);

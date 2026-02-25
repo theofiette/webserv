@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Webserv - Accueil</title>
+	<title>Webserv de la TeamRequette - Accueil</title>
 	<style>
 		* {
 			margin: 0;
@@ -13,7 +13,7 @@
 		
 		body {
 			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+			background: linear-gradient(135deg, #c90000 0%, #764ba2 100%);
 			min-height: 100vh;
 			display: flex;
 			align-items: center;
@@ -49,7 +49,7 @@
 		.button {
 			display: inline-block;
 			padding: 12px 30px;
-			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+			background: linear-gradient(135deg, #764ba2 0%, #c90000 100%);
 			color: white;
 			text-decoration: none;
 			border-radius: 5px;
@@ -59,7 +59,7 @@
 		
 		.button:hover {
 			transform: translateY(-3px);
-			box-shadow: 0 5px 15px red;
+			box-shadow: 0 5px 15px #c90000;
 		}
 	</style>
 </head>
@@ -69,7 +69,8 @@
 		<p>Bienvenue sur ce serveur web créé par <strong>Théo, Ilies et Tfiette</strong></p>
 		<p>Un petit serveur HTTP fait en C++ pour apprendre les bases du développement serveur.</p>
 		
-		<a href="/" class="button">Accueil</a>
+		<a href="/methods.html" class="button">Methods</a>
+		<a href="/" class="button">CGI</a>
 		<a href="/html/" class="button">Errors</a>
 	</div>
 </body>
