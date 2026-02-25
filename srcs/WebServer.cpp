@@ -111,116 +111,55 @@ void	WebServer::_processRequest(pollfd &request)
 	
 	Response resp(currRequest, _servers.back()); // TODO: passer le bon server
 
-	std::string response = resp.getResponse();
-	std::pair<int, std::string> r = std::make_pair(request.fd, response); // TODO: choose an other way or keep 
+	sentResponse sentresp;
+	sentresp.rawResponse = resp.getResponse(sentresp);
+	sentresp.bytesSent = 0;
+	std::pair<int, sentResponse> r = std::make_pair(request.fd, sentresp); // TODO: choose an other way or keep 
 	_responses.insert(r);
 
 	request.events = POLLOUT; // on set le fd ready to send
 }
 
+// void	WebServer::_sendResponse(pollfd &request)
+// {
+// 	const char *res = _responses.at(request.fd).c_str(); // TODO: dynamic
+// 	ssize_t sent = send(request.fd, res, _responses[request.fd].size(), 0);
+// 	if (sent > 0) // TODO: garder un compteur de ce qu.on a envoyer et envoyer qu une petite partie a chaque fois du body jusqua total puis on close
+// 	{
+// 		_responses.erase(request.fd);
+// 		close(request.fd);
+// 		request.fd = -1;
+// 	}
+// 	// TODO: erase " _responses.at(request.fd) " 
+// }
+
 void	WebServer::_sendResponse(pollfd &request)
 {
-	const char *res = _responses.at(request.fd).c_str(); // TODO: dynamic
-	ssize_t sent = send(request.fd, res, _responses[request.fd].size(), 0);
-	if (sent > 0) // TODO: garder un compteur de ce qu.on a envoyer et envoyer qu une petite partie a chaque fois du body jusqua total puis on close
+	sentResponse &currResponse = _responses.at(request.fd);
+	const char *res = currResponse.rawResponse.c_str() + currResponse.bytesSent; // TODO: dynamic
+	int contentLength = stringToInt(extractContentLength(currResponse.rawResponse));
+	std::cout << "total size is   " <<contentLength<< "\n";
+
+	int totalSize = (contentLength + currResponse.headerLength) - currResponse.bytesSent;
+
+	currResponse.bytesSent += send(request.fd, res, (totalSize < SEND_SIZE ? totalSize : SEND_SIZE), 0);
+	std::cout << "SENT " << currResponse.bytesSent << "\n";
+	std::cout << "OVER  " << totalSize << "\n";
+	if (currResponse.bytesSent >= totalSize)
 	{
 		_responses.erase(request.fd);
 		close(request.fd);
 		request.fd = -1;
 	}
-	// TODO: erase " _responses.at(request.fd) " 
+	// TODO: erase " currResponse " 
 }
 
 void	WebServer::_awaitRequests()
 {
-	// std::cout << _tempSize << "\n";
-	// std::cout << _size << "\n";
 	poll(_pollfds, _size, TIMEOUT);
 }
 
 typedef std::string::const_iterator cstr_ite;
-
-// void	WebServer::Config::_registerListened(const string &param)
-// {
-// 	cstr_ite			it 	= param.begin();
-// 	cstr_ite			ite = param.begin();
-// 	int					offset;
-// 	std::pair<int, int>	listened;
-
-// 	while (it != ite)
-// 	{
-// 		offset = param.find(':');
-// 	}
-// }
-
-// void	WebServer::Config::_registerClientMax(const string &param)
-// {
-	
-// }
-
-// void	WebServer::Config::_registerErrorPage(const string &param)
-// {
-	
-// }
-
-// void	WebServer::Config::_registerBodyMax(const string &param)
-// {
-
-// }
-
-// void	WebServer::Config::_registerParam(int type, const string &param)
-// {
-// 	switch (type)
-// 	{
-// 		case LISTENED:
-// 			_registerListened(param);
-// 			break ;
-// 		case CLIENT_MAX:
-// 			_registerClientsMax(param);
-// 			break ;
-// 		case ERROR_PAGE:
-// 			_registerErrorPage(param);
-// 			break ;
-// 		case BODY_MAX:
-// 			_registerBodyMax(param);
-// 			break ;
-// 		default:
-// 			std::cerr << "TEMP MESSAGE: config not processed : " << param;
-// 	}
-// }
-
-// void	WebServer::_initConfig(const string &configFilePath)
-// {
-// 	std::ifstream		file(configFilePath.c_str(), std::ifstream::in);
-// 	string				buffer;
-// 	std::vector <std::pair <string, bool> >	rules;
-	
-// 	//TODO : automation
-// 	rules.push_back(std::pair<string, int> ("port:",	false));
-// 	rules.push_back(std::pair<string, int> ("connec:",	false));
-// 	rules.push_back(std::pair<string, int> ("error:",	false));
-// 	rules.push_back(std::pair<string, int> ("reqbody:", false));
-
-// 	if (file.fail())
-// 		throw (ExceptionBadInit()); //TODO
-// 	while (!std::getline(file, buffer).eof())
-// 	{
-// 		std::vector< std::pair<string, bool> >::iterator	ite = rules.begin();
-
-// 		for (int i = 0; i < CONFIG_RULE; i++)
-// 		{
-// 			string rhs = ite->first;
-// 			if (buffer.find(rhs) == 0)
-// 			{
-// 				_config._registerParam(i, buffer.substr(rhs.size(), string::npos));
-// 				ite->second = true;
-// 				break ;
-// 			}
-// 			ite++;
-// 		}
-// 	}
-// }
-
 
 void	WebServer::_temp_config()
 {
@@ -232,7 +171,7 @@ void	WebServer::_temp_config()
 	string		L_name2("/html/");
 
 	temp_S.registerLocation(L_name, temp_L);
-	
+
 	// Configure location /html/ pour les tests
 	temp_L2.setRoot("");
 	temp_L2.setIndex("default_error.html");
@@ -240,23 +179,6 @@ void	WebServer::_temp_config()
 	temp_S.registerLocation(L_name2, temp_L2);
 
 	_servers.push_back(temp_S);}
-
-	// 	{Server		temp_S;
-	// Location 	temp_L;
-	// Location 	temp_L2;
-
-	// string		L_name("/");
-	// string		L_name2("/images");
-
-	// temp_S.registerLocation(L_name, temp_L);
-	
-	// // Configure location /html/ pour les tests
-	// temp_L2.setRoot("html/medias");
-	// temp_L2.setIndex("default_error.html");
-	// temp_S.registerLocation(L_name2, temp_L2);
-
-	// temp_S.display();
-	// _servers.push_back(temp_S);}
 }
 
 
@@ -267,11 +189,8 @@ _masterSocket(0), _tempSize(0), _size(0)
 {
 	(void)configFilePath;
 	_temp_config();
-	// _initConfig(configFilePath);
 	_initMasterSocket();
 	_initPollFds();
-	// std::cout
-	// 	<< "Default constructor called for class WebServer" << std::endl;
 }
 
 // DESTRUCTOR
@@ -281,12 +200,4 @@ typedef std::vector<int>::iterator v_ite;
 WebServer::~WebServer()
 {
 	close(_masterSocket);
-	// v_ite b = _masterSockets.begin();
-	// v_ite e = _masterSockets.end();
-
-	// for (; b != e; b++)
-	// 	close(*b);
-	// std::cout << "Destructor called for class WebServer" << std::endl;
 }
-
-// WEBSERVERCONFIG

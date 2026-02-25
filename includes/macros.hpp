@@ -2,7 +2,8 @@
 
 typedef std::string string;
 
-# define READ_SIZE	1024
+# define READ_SIZE	4096
+# define SEND_SIZE	4096
 
 #define LOCALHOST	"8080"
 #define MAX_CLIENTS	1024

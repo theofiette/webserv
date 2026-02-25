@@ -9,6 +9,13 @@
 
 class Request;
 
+typedef struct sentResponse 
+{
+	std::string rawResponse;
+	int		bytesSent;
+	int		headerLength;
+}	sentResponse;
+
 class WebServer
 {
 	private:
@@ -22,7 +29,7 @@ class WebServer
 		pollfd 				_pollfds[MAX_CLIENTS];
 
 		std::map<int, Request> _requestsMap;
-		std::map<int, std::string> _responses;
+		std::map<int, sentResponse> _responses;
 
 		// void	_initConfig(const string &configFilePath);
 		void	_initMasterSocket();

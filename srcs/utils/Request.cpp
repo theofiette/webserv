@@ -7,7 +7,7 @@ Request::Request(Server &server) : _totalBytes(0), _requestComplete(false), _cur
 
 Request::~Request(){}
 
-static int stringToInt(std::string num)
+int stringToInt(std::string num)
 {
     std::stringstream ss(num);
     int value;
@@ -15,13 +15,13 @@ static int stringToInt(std::string num)
     return (value);
 }
 
-static std::string extractContentLength(std::string buffer)
+std::string extractContentLength(std::string buffer)
 {
 	std::string contentLength;
-	size_t pos = buffer.find("Content-length : ");
+	size_t pos = buffer.find("Content-length:") + 16;
 	if (pos != std::string::npos)
 	{
-		size_t end = buffer.find('\r');
+		size_t end = buffer.find("\r", pos);
 		if (end != std::string::npos)
 			contentLength = buffer.substr(pos, end - pos);
 		else

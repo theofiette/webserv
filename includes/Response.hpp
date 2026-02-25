@@ -11,6 +11,7 @@ class Request;
 // class Response;
 class Server;
 class Location;
+struct sentResponse;
 
 enum ErrorCode{
 	OK = 200,
@@ -56,5 +57,5 @@ class Response
 		void handlePost();
 		void handleDelete();
 
-		std::string const getResponse();
+		std::string const getResponse(sentResponse&);
 };

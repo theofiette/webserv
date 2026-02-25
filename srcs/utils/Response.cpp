@@ -1,4 +1,5 @@
 #include "webserv.hpp"
+#include "WebServer.hpp"
 #include "Response.hpp"
 #include "Server.hpp"
 #include "Request.hpp"
@@ -186,7 +187,7 @@ void Response::handleGet()
 	if (_statusCode == CONTENT_TOO_LARGE)
 	{
 		try{
-			fullPath = _currServ.getErrMapServer().at(413);
+			fullPath = _currServ.getErrMapServer().at(_statusCode);
 		}
 		catch (std::exception &e){
 			fullPath = "html/errors/defaultErrorPage.html";
@@ -204,12 +205,13 @@ void Response::handleGet()
     {
         _statusCode = FORBIDDEN;
         setErrorResponse(fullPath, _currLocation.getErrMap(), _currLocation.getRoot());
+		stat(fullPath.c_str(), &s);
     }
     _body.resize(s.st_size);
     std::ifstream infile(fullPath.c_str(), std::ios::binary);
     infile.read(&_body[0], s.st_size);
-	addHeader("Content-Type", MIMEtable(fullPath));
-	addHeader("Content-Length", intToString(_body.length()));
+	addHeader("Content-type", MIMEtable(fullPath));
+	addHeader("Content-length", intToString(_body.length()));
 }
 
 void Response::handlePost(){
@@ -222,7 +224,7 @@ void Response::handleDelete(){
 /*										GETTERS											  	  */
 //*********************************************************************************************/
 
-std::string const Response::getResponse()
+std::string const Response::getResponse(sentResponse &sentresp)
 {
 	std::string response;
 	response += _request.getMap().at("Protocol") + " ";
@@ -230,11 +232,12 @@ std::string const Response::getResponse()
 	for (std::map<std::string, std::string>::iterator it = _header.begin(); it != _header.end(); it++)
 		response += it->first + ": " + it->second + "\r\n";
 	response += "\r\n";
+	sentresp.headerLength = response.size();
 	response += _body;
 
-	std::cout << "-----------------------\n";
-	std::cout << response << std::endl;
-	std::cout << "-----------------------\n";
+	// std::cout << "-----------------------\n";
+	// std::cout << response << std::endl;
+	// std::cout << "-----------------------\n";
 
 	return (response);
 }

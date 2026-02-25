@@ -34,4 +34,5 @@ class Request
 		void displayInfos();
 };
 
-std::string recvRequest(int socketFd);
+std::string extractContentLength(std::string buffer);
+int stringToInt(std::string num);
