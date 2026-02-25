@@ -235,7 +235,7 @@ void	WebServer::_temp_config()
 	temp_S.registerLocation(L_name, temp_L);
 	
 	// Configure location /html/ pour les tests
-	temp_L2.setRoot("html/errors");
+	temp_L2.setRoot("");
 	temp_L2.setIndex("default_error.html");
 	temp_L2.setErrMap();
 	temp_S.registerLocation(L_name2, temp_L2);
