@@ -76,3 +76,7 @@ std::map<string, Location>& Server::getLocations()
 std::map<int, std::string>&  Server::getErrMapServer(){
 	return (_errors);
 }
+
+int Server::getMaxBody(){
+	return (_clientBodyMax);
+}

@@ -3,26 +3,11 @@
 #include <map>
 #include <sstream>
 
-// static std::string recvRequest(int socketFd)
-// {
-// 	char buffer[4096] = {0};
-// 	std::string str;
+Request::Request(Server &server) : _totalBytes(0), _requestComplete(false), _currServ(server) {}
 
-// 	while (recv(socketFd, buffer, sizeof(buffer) - 1, 0))
-// 	{
-// 		// TODO : check error recv
-// 		str += buffer;
-// 		t_bzero(&buffer, sizeof(buffer));
-// 		if (str.find("\r\n\r\n") == std::string::npos)
-// 			continue ;
-// 		else
-// 			break ;
-// 	}
-// 	std::cout << str << std::endl;
-// 	return (str);
-// }
+Request::~Request(){}
 
-int stringToInt(std::string num)
+static int stringToInt(std::string num)
 {
     std::stringstream ss(num);
     int value;
@@ -33,7 +18,7 @@ int stringToInt(std::string num)
 static std::string extractContentLength(std::string buffer)
 {
 	std::string contentLength;
-	size_t pos = buffer.find("Content-length: ");
+	size_t pos = buffer.find("Content-length : ");
 	if (pos != std::string::npos)
 	{
 		size_t end = buffer.find('\r');
@@ -66,12 +51,17 @@ void Request::recvRequest(int socketFd)
 			_requestComplete = true;
 		else if (contentLength > 0)
 		{
+			if (contentLength > _currServ.getMaxBody())
+			{
+				_requestComplete = true;
+				return ;
+			}
 			// check MAX_BODY_SIZE avec TOTAL BYTES et QUAND END, TOTALBYTES = CONTENT LENGTH + REQUEST LENTGHT SINON ON A TROP LU 
-			;
+			// ;
 		}
 		else if (contentLength == 0)
 		{
-			;
+			_requestComplete = true;
 		}
 		// TODO: get body
 	}
@@ -82,7 +72,6 @@ void Request::displayInfos(){
 	for (; it != _reqMap.end(); it++)
 		std::cout << it->first << " : " << it->second << "\n";
 }
-
 
 void Request::setFirstLine(std::string tmp)
 {
@@ -142,12 +131,3 @@ std::string &Request::getRawRequest(){
 bool &Request::isRequestComplete(){
 	return (_requestComplete);
 }
-
-Request::Request(int &socketFd) :  _totalBytes(0), _requestComplete(false)
-{
-	(void)socketFd;
-	// std::string request = recvRequest(socketFd);
-	// parseRequest(request);
-}
-
-Request::~Request(){};

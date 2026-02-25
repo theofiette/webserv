@@ -1,4 +1,6 @@
 #include "WebServer.hpp"
+#include "Request.hpp"
+#include "Response.hpp"
 
 # include "errno.h"
 
@@ -32,15 +34,14 @@ void	WebServer::_initPollFds()
 	t_bzero(_pollfds, sizeof(_pollfds));
 	_pollfds[0].fd = _masterSocket;
 	_pollfds[0].events = POLLIN;
-	_size++; // (set size at 1);
-	_tempSize++; // a incrementer aussi ? 
+	_size++;
+	_tempSize++;
 }
 
 void	WebServer::_processConnections()
 {
 	int	socketFd;
 
-	// std::cout << "IN REQUEST CONNECTION \n\n";
 	while(1)
 	{
 		socketFd = accept(_masterSocket, 0, 0); // TODO check args
@@ -49,10 +50,9 @@ void	WebServer::_processConnections()
 			// TODO error here ?
 			break ;
 		}
-		// fcntl(socketFd, F_SETFL, O_NONBLOCK); // set les clients aussi en non-bloquant
 		_pollfds[_size].fd = socketFd; 
 		_pollfds[_size].events = POLLIN;
-		Request req(socketFd);
+		Request req(_servers.back());
 		std::pair<int, Request> p = std::make_pair(socketFd, req);
 		_requestsMap.insert(p);
 		_size++;
@@ -85,7 +85,6 @@ void	WebServer::loop()
 	while (1) // TODO deal with error
 	{
 		_awaitRequests();
-		// std::cout << "OUT OF POLL\n";
 		for (int i = 0; i < _size; i++)
 		{
 			pollfd &currRequest = _pollfds[i];

@@ -1,6 +1,7 @@
 #include "webserv.hpp"
-// #include "Response.hpp"
+#include "Response.hpp"
 #include "Server.hpp"
+#include "Request.hpp"
 
 #include <fstream>
 #include <sstream>
@@ -8,14 +9,39 @@
 #include <sys/stat.h>
 
 const std::string Response::methods[METHODS_COUNT] = {"GET", "POST", "DELETE"};
-const std::string mimeTable[MIME_SIZE] = {"html", "css", "png", "ico", "gif", "plain"};
+const std::string Response::mimeTable[MIME_SIZE] = {"html", "css", "png", "ico", "gif", "plain"};
+
+static std::map<int, std::string> initStatusMap() 
+{
+	std::map<int, std::string> m;
+
+	m[200] = "OK";
+	m[201] = "Created";
+	m[301] = "Move permanently";
+	m[302] = "Found";
+	m[403] = "Forbidden";
+	m[404] = "Not found";
+	m[405] = "Not allowed";
+	m[413] = "Content too large";
+	return (m);
+}
+
+const std::map<int, std::string> Response::_statusMap = initStatusMap();
 
 //*********************************************************************************************/
 /*										CONSTRUCTORS										  */
 //*********************************************************************************************/
+
 Response::Response(Request &request, Server &server) : _statusCode(200), _currServ(server), _request(request)
 {
-	setStatusMap();
+	if (_request.getMap().at("Method") != "GET"){
+		if (_request.getMap().at("content-length:") > intToString(_currServ.getMaxBody()))
+		{
+			_statusCode = CONTENT_TOO_LARGE;
+			handleGet();
+			return ;
+		}
+	}
 	pickMethod();
 }
 
@@ -67,6 +93,7 @@ std::string Response::MIMEtable(std::string fullPath)
 //*********************************************************************************************/
 /*										SETTERS											  	  */
 //*********************************************************************************************/
+
 void Response::setStatusCode()
 {
 	;
@@ -99,6 +126,7 @@ void Response::setErrorResponse(std::string &fullPath, std::map<int, std::string
 //*********************************************************************************************/
 /*										BUILDERS											  */
 //*********************************************************************************************/
+
 std::string Response::buildFullPath() // passer un int pour la method 
 {
     std::string	reqPath = _request.getMap().at("Path");
@@ -148,10 +176,21 @@ std::string Response::buildFullPath() // passer un int pour la method
 //*********************************************************************************************/
 /*										HANDLERS											  */
 //*********************************************************************************************/
+
 void Response::handleGet()
 {
+	
 	struct stat s;
 	std::string fullPath;
+	if (_statusCode == CONTENT_TOO_LARGE)
+	{
+		try{
+			fullPath = _currServ.getErrMapServer().at(413);
+		}
+		catch (std::exception &e){
+			fullPath = "html/errors/defaultErrorPage.html";
+		}
+	}
     fullPath = buildFullPath();
 	if (stat(fullPath.c_str(), &s) == -1){
 		_statusCode = NOT_FOUND;
@@ -179,6 +218,7 @@ void Response::handleDelete(){
 //*********************************************************************************************/
 /*										GETTERS											  	  */
 //*********************************************************************************************/
+
 std::string const Response::getResponse()
 {
 	std::string response;
@@ -199,20 +239,4 @@ std::string const Response::getResponse()
 
 void Response::setCurrLocation(Location &loc){
 	_currLocation = loc;
-}
-
-void Response::setStatusMap(){
-	/*VALID CODES*/
-	_statusMap[200] = "OK";
-
-	_statusMap[201] = "Created";
-
-	/*REDIR CODES*/
-	_statusMap[301] = "Move permanently";
-	_statusMap[302] = "Found";
-
-	
-	/*ERROR CODES*/
-	_statusMap[403] = "Forbidden";
-	_statusMap[404] = "Not found";
 }

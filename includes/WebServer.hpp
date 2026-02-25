@@ -5,47 +5,46 @@
 # include <vector>
 # include <map>
 
-
 # include "Server.hpp"
+
+class Request;
 
 class WebServer
 {
-private:
+	private:
 
-	int					_clientsMax;
-	std::vector<Server>	_servers;
+		int					_clientsMax;
+		std::vector<Server>	_servers;
 
-	int					_masterSocket;	
-	int					_tempSize;
-	int					_size;
-	pollfd 				_pollfds[MAX_CLIENTS];
+		int					_masterSocket;	
+		int					_tempSize;
+		int					_size;
+		pollfd 				_pollfds[MAX_CLIENTS];
 
-	std::map<int, Request> _requestsMap;
-	std::map<int, std::string> _responses;
+		std::map<int, Request> _requestsMap;
+		std::map<int, std::string> _responses;
 
-	// void	_initConfig(const string &configFilePath);
-	void	_initMasterSocket();
-	void	_initPollFds();
-	void	_awaitRequests();
-	void	_processConnections();
-	void	_processRequest(pollfd &);
-	void	_sendResponse(pollfd &);	
+		// void	_initConfig(const string &configFilePath);
+		void	_initMasterSocket();
+		void	_initPollFds();
+		void	_awaitRequests();
+		void	_processConnections();
+		void	_processRequest(pollfd &);
+		void	_sendResponse(pollfd &);	
 
-	void	_loopUpdate();
+		void	_loopUpdate();
 
-	WebServer();
-	
-public:
+		WebServer();
+		
+	public:
 
-	//TEMPORARY //TODO delete
-	void	_temp_config(); // This function gives a default configurated webserv
+		//TEMPORARY //TODO delete
+		void	_temp_config(); // This function gives a default configurated webserv
 
-	void loop();
+		void loop();
 
-	WebServer(const string &configFilePath);
-	~WebServer();
-
-	// WebServer(const WebServer &other);	//Copy constructor
-	// WebServer	&operator=(const WebServer &other); //Assignement operator
+		WebServer(const string &configFilePath);
+		~WebServer();
+		// WebServer(const WebServer &other);	//Copy constructor
+		// WebServer	&operator=(const WebServer &other); //Assignement operator
 };
-

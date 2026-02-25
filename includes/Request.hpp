@@ -7,6 +7,8 @@
 #include <string>
 #include <map>
 
+#include "Server.hpp"
+
 class Request
 {
 	private:
@@ -14,8 +16,10 @@ class Request
 		std::map<std::string, std::string>	_reqMap;
 		std::string 						_rawRequest;
 		bool								_requestComplete;
+
+		Server &_currServ;
 	public:
-		Request(int &);
+		Request(Server &);
 		~Request();
 
 		int	parseRequest(std::string);

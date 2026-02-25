@@ -17,7 +17,7 @@
 
 # include "macros.hpp"
 
-#include "Request.hpp"
-#include "Response.hpp"
+// #include "Request.hpp"
+// #include "Response.hpp"
 
 # include "../srcs/utils/memory.tpp"
