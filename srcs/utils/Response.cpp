@@ -231,13 +231,7 @@ void Response::handlePost(){
 		data.insert(p);
 	}
 	// _statusCode = CREATED; //TODO: maybe a use a un moment 
-	// for(std::map<std::string,std::string>::iterator it =  data.begin(); it != data.end(); it++){
-		// std::cout << "KEY IS : " << it->first << " VALUE IS : " << it->second << "\n";
-	// }
 	_statusCode = SEE_OTHER;
-	// _body.resize(s.st_size);
-    // std::ifstream infile(fullPath.c_str(), std::ios::binary);
-    // infile.read(&_body[0], s.st_size);
 	addHeader("Location", "http://localhost:8080/success.html");
 	addHeader("Content-Type", MIMEtable(fullPath));
 	addHeader("Content-Length", "0");
@@ -261,11 +255,8 @@ void Response::handleDelete(){
         setErrorResponse(fullPath, _currLocation.getErrMap(), _currLocation.getRoot());
 		stat(fullPath.c_str(), &s);
     }
-
 	remove(fullPath.c_str());
-	_body.resize(s.st_size);
-    std::ifstream infile("html/success.html", std::ios::binary);
-    infile.read(&_body[0], s.st_size);
+	_body = "<html><h1>File -> " + fullPath + " has been deleted</h1></html>";
 	addHeader("Content-Type", MIMEtable(fullPath));
 	addHeader("Content-Length", intToString(_body.length()));
 
