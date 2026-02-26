@@ -15,6 +15,7 @@ class Request
 		size_t								_totalBytes;
 		std::map<std::string, std::string>	_reqMap;
 		std::string 						_rawRequest;
+		std::string 						_body;
 		bool								_requestComplete;
 
 		Server &_currServ;
@@ -32,6 +33,7 @@ class Request
 
 		// TEMPORAIRE
 		void displayInfos();
+		std::string const getBody();
 };
 
 std::string extractContentLength(std::string buffer);

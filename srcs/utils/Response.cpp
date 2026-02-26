@@ -35,8 +35,9 @@ const std::map<int, std::string> Response::_statusMap = initStatusMap();
 
 Response::Response(Request &request, Server &server) : _statusCode(200), _currServ(server), _request(request)
 {
-	if (_request.getMap().at("Method") != "GET"){
-		if (_request.getMap().at("content-length:") > intToString(_currServ.getMaxBody()))
+	if (_request.getMap().at("Method") != "GET")
+	{
+		if (stringToInt(_request.getMap().at("Content-Length")) > _currServ.getMaxBody())
 		{
 			_statusCode = CONTENT_TOO_LARGE;
 			handleGet();
@@ -67,11 +68,11 @@ void Response::pickMethod()
 		&Response::handlePost,
 		&Response::handleDelete
 	};
-
 	for (int i = 0; i < METHODS_COUNT; i++)
 		if (_request.getMap().at("Method") == Response::methods[i])
 		{
 			try {
+				std::cout << (i == POST ? "POST\n" : "GET\n");
 				(this->*methods[i])();
 				return ;
 			}
@@ -144,7 +145,6 @@ std::string Response::buildFullPath() // passer un int pour la method
 			break ;
 		}
 	}
-	std::cout << "LOCATION ROOT IS : " << bestMatch->second.getRoot() << "\n";
 	// TODO: check si bloc location / {} est au moins present pour etre sur de matcher sur un truc, pour savoir si on garde ce check
 	
 	if (bestMatch == loc.rend())
@@ -162,7 +162,6 @@ std::string Response::buildFullPath() // passer un int pour la method
 
 	fullPath = bestMatch->second.getRoot() + reqPath;
 	
-	std::cout << "FULL PATH IS : " << fullPath << "\n";
 	struct stat s; // TODO: stat doublon dans le handler ensuite
 	if (stat(fullPath.c_str(), &s) != -1 && S_ISDIR(s.st_mode)) // Je find l'index par defaut du bloc location ou le global
 	{
@@ -186,7 +185,7 @@ void Response::handleGet()
 	std::string fullPath;
 	if (_statusCode == CONTENT_TOO_LARGE)
 	{
-		try{
+		try{	
 			fullPath = _currServ.getErrMapServer().at(_statusCode);
 		}
 		catch (std::exception &e){
@@ -194,12 +193,10 @@ void Response::handleGet()
 		}
 	}
     fullPath = buildFullPath();
-	std::cout << (stat(fullPath.c_str(), &s) == -1) << " \n\n";
 	if (stat(fullPath.c_str(), &s) == -1){
 		_statusCode = NOT_FOUND;
 		setErrorResponse(fullPath, _currLocation.getErrMap(), _currLocation.getRoot());
 	}
-	std::cout << "FULL PATH IS : " << fullPath << "\n";
 	stat(fullPath.c_str(), &s);
     if (!S_ISREG(s.st_mode) || access(fullPath.c_str(), R_OK) == -1) // normalement ici on est pas un dossier
     {
@@ -210,19 +207,41 @@ void Response::handleGet()
     _body.resize(s.st_size);
     std::ifstream infile(fullPath.c_str(), std::ios::binary);
     infile.read(&_body[0], s.st_size);
-	addHeader("Content-type", MIMEtable(fullPath));
-	addHeader("Content-length", intToString(_body.length()));
+	addHeader("Content-Type", MIMEtable(fullPath));
+	addHeader("Content-Length", intToString(_body.length()));
 }
 
 void Response::handlePost(){
+	struct stat s;
+	std::string fullPath = "html/success.html";
+	
+	stat(fullPath.c_str(), &s);
+	std::map<std::string, std::string> data;
+	size_t lastPos = 0;
+	for (size_t i = _request.getBody().find("=", 0); i != std::string::npos; i = _request.getBody().find("=", lastPos))
+	{
+		size_t endPos = _request.getBody().find("&", i);
+		if (endPos == std::string::npos)
+			endPos = _request.getBody().find("\r\n\r\n");
+		std::string key = _request.getBody().substr((lastPos == 0 ? lastPos : lastPos + 1), i - (lastPos + (lastPos != 0)));
+		std::string val = _request.getBody().substr(i + 1, endPos - (i + 1));
+		std::pair<std::string, std::string> p = std::make_pair(key, val);
+		lastPos = endPos;
+		data.insert(p);
+	}
+	for(std::map<std::string,std::string>::iterator it =  data.begin(); it != data.end(); it++){
+		std::cout << "KEY IS : " << it->first << " VALUE IS : " << it->second << "\n";
+	}
+	_body.resize(s.st_size);
+    std::ifstream infile(fullPath.c_str(), std::ios::binary);
+    infile.read(&_body[0], s.st_size);
+	addHeader("Content-Type", MIMEtable(fullPath));
+	addHeader("Content-Length", intToString(_body.length()));
+	_statusCode = MOVED_PERMANENTLY;
 }
 
 void Response::handleDelete(){
 }
-
-//*********************************************************************************************/
-/*										GETTERS											  	  */
-//*********************************************************************************************/
 
 std::string const Response::getResponse(sentResponse &sentresp)
 {
@@ -241,6 +260,11 @@ std::string const Response::getResponse(sentResponse &sentresp)
 
 	return (response);
 }
+
+//*********************************************************************************************/
+/*										GETTERS											  	  */
+//*********************************************************************************************/
+
 
 
 void Response::setCurrLocation(Location &loc){

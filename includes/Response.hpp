@@ -15,6 +15,7 @@ struct sentResponse;
 
 enum ErrorCode{
 	OK = 200,
+	CREATED = 201,
 	MOVED_PERMANENTLY = 301,
 	FOUND = 302,
 	FORBIDDEN = 403,

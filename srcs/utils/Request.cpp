@@ -18,7 +18,7 @@ int stringToInt(std::string num)
 std::string extractContentLength(std::string buffer)
 {
 	std::string contentLength;
-	size_t pos = buffer.find("Content-length:") + 16;
+	size_t pos = buffer.find("Content-Length:") + 16;
 	if (pos != std::string::npos)
 	{
 		size_t end = buffer.find("\r", pos);
@@ -36,34 +36,34 @@ std::string extractContentLength(std::string buffer)
 
 void Request::recvRequest(int socketFd)
 {
-	char buffer[2000] = {0};
+	char buffer[SEND_SIZE] = {0};
 
-	ssize_t bytesRead = recv(socketFd, buffer, sizeof(buffer) - 1, 0);
-	std::cout << "Total bytes = " << _totalBytes << std::endl;
+	ssize_t bytesRead = recv(socketFd, buffer, SEND_SIZE - 1, 0);
 	_totalBytes += bytesRead;
 	_rawRequest += buffer;
-	std::cout << "Buffer: " << _rawRequest << std::endl;
-	t_bzero(&buffer, sizeof(buffer));
-	if (_rawRequest.find("\r\n\r\n") != std::string::npos)
+	size_t headerEnd = _rawRequest.find(CRLF) + CRLF_SIZE;
+	if (headerEnd == std::string::npos)
 	{
-		int contentLength = stringToInt(extractContentLength(_rawRequest));
-		if (contentLength < 0)
-			_requestComplete = true;
-		else if (contentLength > 0)
-		{
-			if (contentLength > _currServ.getMaxBody())
-			{
-				_requestComplete = true;
-				return ;
-			}
-			// check MAX_BODY_SIZE avec TOTAL BYTES et QUAND END, TOTALBYTES = CONTENT LENGTH + REQUEST LENTGHT SINON ON A TROP LU 
-			// ;
-		}
-		else if (contentLength == 0)
+		t_bzero(&buffer, sizeof(buffer));
+		return ;
+	}
+	int contentLength = stringToInt(extractContentLength(_rawRequest));
+	if (contentLength <= 0)
+		_requestComplete = true;
+	else if (contentLength > 0)
+	{
+		if (contentLength > _currServ.getMaxBody())
 		{
 			_requestComplete = true;
+			return ;
 		}
-		// TODO: get body
+		_body += _rawRequest.substr(headerEnd + _body.size());
+		if (_body.size() == static_cast<size_t>(contentLength))
+		{
+			std::cout << "BODY RECEIVED COMPLETE\n\n";
+			_requestComplete = true;
+			return ;
+		}
 	}
 }
 
@@ -111,13 +111,17 @@ int Request::parseRequest(std::string request)
 			map.second = tmp.substr(sep, end - sep);
 			_reqMap.insert(map);
 		}
-		// displayInfos();
 	}
 	catch (std::exception &e){
 		std::cout << "EXCEPTION IS: " <<  e.what() << "\n";
 	}
 	return (1);
 }
+
+std::string const Request::getBody(){
+	return (_body);
+}
+
 
 std::map<std::string, std::string>& Request::getMap()
 {

@@ -104,6 +104,7 @@ void	WebServer::_processRequest(pollfd &request)
 	Request currRequest = _requestsMap.at(request.fd);
 
 	currRequest.recvRequest(request.fd);
+	std::cout << currRequest.getRawRequest() << "\n";
 	if (currRequest.isRequestComplete() == false)
 		return ;
 	//si pas fini de read la request return ;
@@ -120,38 +121,26 @@ void	WebServer::_processRequest(pollfd &request)
 	request.events = POLLOUT; // on set le fd ready to send
 }
 
-// void	WebServer::_sendResponse(pollfd &request)
-// {
-// 	const char *res = _responses.at(request.fd).c_str(); // TODO: dynamic
-// 	ssize_t sent = send(request.fd, res, _responses[request.fd].size(), 0);
-// 	if (sent > 0) // TODO: garder un compteur de ce qu.on a envoyer et envoyer qu une petite partie a chaque fois du body jusqua total puis on close
-// 	{
-// 		_responses.erase(request.fd);
-// 		close(request.fd);
-// 		request.fd = -1;
-// 	}
-// 	// TODO: erase " _responses.at(request.fd) " 
-// }
-
 void	WebServer::_sendResponse(pollfd &request)
 {
 	sentResponse &currResponse = _responses.at(request.fd);
 	const char *res = currResponse.rawResponse.c_str() + currResponse.bytesSent; // TODO: dynamic
+	std::cout << "RESPONSE IS : " << res << "\n";
 	int contentLength = stringToInt(extractContentLength(currResponse.rawResponse));
-	std::cout << "total size is   " <<contentLength<< "\n";
 
-	int totalSize = (contentLength + currResponse.headerLength) - currResponse.bytesSent;
+	int remainingSize = (contentLength + currResponse.headerLength) - currResponse.bytesSent;
 
-	currResponse.bytesSent += send(request.fd, res, (totalSize < SEND_SIZE ? totalSize : SEND_SIZE), 0);
+	currResponse.bytesSent += send(request.fd, res, (remainingSize < SEND_SIZE ? remainingSize : SEND_SIZE), 0);
 	std::cout << "SENT " << currResponse.bytesSent << "\n";
-	std::cout << "OVER  " << totalSize << "\n";
-	if (currResponse.bytesSent >= totalSize)
+	std::cout << "OVER  " << contentLength + currResponse.headerLength << "\n";
+	std::cout << "REMAINING " << currResponse.bytesSent - (contentLength + currResponse.headerLength) << "\n";
+	//WHAT TO DO IF CLIENT DISCONNECT ??? 
+	if (currResponse.bytesSent == contentLength + currResponse.headerLength)
 	{
 		_responses.erase(request.fd);
 		close(request.fd);
 		request.fd = -1;
 	}
-	// TODO: erase " currResponse " 
 }
 
 void	WebServer::_awaitRequests()

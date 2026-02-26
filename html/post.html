@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="fr">
+	<head>
+		<meta charset="UTF-8">
+		<title>TeamRequette's Webserv - Post</title>
+		<style>
+			label, input {
+			display: table-cell;
+			margin-bottom: 10px;
+			}
+			
+		body {
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			background: linear-gradient(135deg, #c90000 0%, #764ba2 100%);
+			min-height: 100vh;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+		</style>
+	</head>
+	<body>
+		<form action="" method="post">
+			<div>
+				<label for="name">Enter your name&nbsp;:</label>
+				<input type="text" name="name" id="name" required/>
+			</div>
+			<div>
+			<label for="password">Enter your password&nbsp;:</label>
+			<input type="password" name="password" id="password" required/>
+			</div>
+			<div>
+				<label for="phone">Enter your phone number&nbsp;:</label>
+			<input
+			type="tel"
+			id="phone"
+			name="phone"
+			pattern="[0-9]{10}"
+			required
+			/>
+
+			</div>
+			<div>
+			<label for="email">Enter your email&nbsp;:</label>
+			<input type="email" name="email" id="email" required/>
+			</div>
+			<div>
+				<input type="submit" name="Register" value="Register">
+			</div>
+		</form>
+	</body>
+</html>
