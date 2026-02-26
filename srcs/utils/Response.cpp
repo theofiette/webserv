@@ -18,8 +18,10 @@ static std::map<int, std::string> initStatusMap()
 
 	m[200] = "OK";
 	m[201] = "Created";
+	m[204] = "No content";
 	m[301] = "Move permanently";
 	m[302] = "Found";
+	m[303] = "See other";
 	m[403] = "Forbidden";
 	m[404] = "Not found";
 	m[405] = "Not allowed";
@@ -35,7 +37,8 @@ const std::map<int, std::string> Response::_statusMap = initStatusMap();
 
 Response::Response(Request &request, Server &server) : _statusCode(200), _currServ(server), _request(request)
 {
-	if (_request.getMap().at("Method") != "GET")
+	_request.displayInfos();
+	if (_request.getMap().at("Method") == "POST")
 	{
 		if (stringToInt(_request.getMap().at("Content-Length")) > _currServ.getMaxBody())
 		{
@@ -72,7 +75,6 @@ void Response::pickMethod()
 		if (_request.getMap().at("Method") == Response::methods[i])
 		{
 			try {
-				std::cout << (i == POST ? "POST\n" : "GET\n");
 				(this->*methods[i])();
 				return ;
 			}
@@ -161,7 +163,6 @@ std::string Response::buildFullPath() // passer un int pour la method
 	}
 
 	fullPath = bestMatch->second.getRoot() + reqPath;
-	
 	struct stat s; // TODO: stat doublon dans le handler ensuite
 	if (stat(fullPath.c_str(), &s) != -1 && S_ISDIR(s.st_mode)) // Je find l'index par defaut du bloc location ou le global
 	{
@@ -180,9 +181,9 @@ std::string Response::buildFullPath() // passer un int pour la method
 
 void Response::handleGet()
 {
-	
 	struct stat s;
 	std::string fullPath;
+
 	if (_statusCode == CONTENT_TOO_LARGE)
 	{
 		try{	
@@ -229,18 +230,45 @@ void Response::handlePost(){
 		lastPos = endPos;
 		data.insert(p);
 	}
-	for(std::map<std::string,std::string>::iterator it =  data.begin(); it != data.end(); it++){
-		std::cout << "KEY IS : " << it->first << " VALUE IS : " << it->second << "\n";
-	}
-	_body.resize(s.st_size);
-    std::ifstream infile(fullPath.c_str(), std::ios::binary);
-    infile.read(&_body[0], s.st_size);
+	// _statusCode = CREATED; //TODO: maybe a use a un moment 
+	// for(std::map<std::string,std::string>::iterator it =  data.begin(); it != data.end(); it++){
+		// std::cout << "KEY IS : " << it->first << " VALUE IS : " << it->second << "\n";
+	// }
+	_statusCode = SEE_OTHER;
+	// _body.resize(s.st_size);
+    // std::ifstream infile(fullPath.c_str(), std::ios::binary);
+    // infile.read(&_body[0], s.st_size);
+	addHeader("Location", "http://localhost:8080/success.html");
 	addHeader("Content-Type", MIMEtable(fullPath));
-	addHeader("Content-Length", intToString(_body.length()));
-	_statusCode = MOVED_PERMANENTLY;
+	addHeader("Content-Length", "0");
 }
 
 void Response::handleDelete(){
+	struct stat s;
+	std::string fullPath;
+
+    fullPath = buildFullPath();
+	// si on trouve pas -> no content (204)  
+	if (stat(fullPath.c_str(), &s) == -1)
+	{
+		_statusCode = NO_CONTENT;
+		return ; // TODO: ERROR PAGE 204
+	}
+	// stat(fullPath.c_str(), &s);
+    if (access(fullPath.c_str(), R_OK) == -1)
+    {
+        _statusCode = FORBIDDEN;
+        setErrorResponse(fullPath, _currLocation.getErrMap(), _currLocation.getRoot());
+		stat(fullPath.c_str(), &s);
+    }
+
+	remove(fullPath.c_str());
+	_body.resize(s.st_size);
+    std::ifstream infile("html/success.html", std::ios::binary);
+    infile.read(&_body[0], s.st_size);
+	addHeader("Content-Type", MIMEtable(fullPath));
+	addHeader("Content-Length", intToString(_body.length()));
+
 }
 
 std::string const Response::getResponse(sentResponse &sentresp)
@@ -252,6 +280,7 @@ std::string const Response::getResponse(sentResponse &sentresp)
 		response += it->first + ": " + it->second + "\r\n";
 	response += "\r\n";
 	sentresp.headerLength = response.size();
+	// if (_request.getMap().at("Method") == "GET")
 	response += _body;
 
 	// std::cout << "-----------------------\n";

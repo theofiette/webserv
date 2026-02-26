@@ -122,7 +122,6 @@ std::string const Request::getBody(){
 	return (_body);
 }
 
-
 std::map<std::string, std::string>& Request::getMap()
 {
 	return (_reqMap);

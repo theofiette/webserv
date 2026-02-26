@@ -18,7 +18,7 @@ void exceptionManager(std::exception *e)
 
 	if (dynamic_cast<ExceptionSignal *>(e))
 		errorCode = dynamic_cast<ExceptionSignal *>(e)->getSig();
-	std::cerr << e->what() << std::endl;
+	std::cerr << BOLD << e->what() << END << std::endl;
 	exit(errorCode);
 }
 

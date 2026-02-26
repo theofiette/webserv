@@ -13,7 +13,7 @@ const char* ExceptionBadInit::what() const throw()
 
 const char* ExceptionSignal::what() const throw()
 {
-	return ("Catched a signal.");
+	return ("Caught a signal.");
 }
 
 int ExceptionSignal::getSig() const throw()

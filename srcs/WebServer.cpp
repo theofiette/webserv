@@ -104,7 +104,7 @@ void	WebServer::_processRequest(pollfd &request)
 	Request currRequest = _requestsMap.at(request.fd);
 
 	currRequest.recvRequest(request.fd);
-	std::cout << currRequest.getRawRequest() << "\n";
+	std::cout << BLUE BOLD <<  currRequest.getRawRequest() << END << "\n";
 	if (currRequest.isRequestComplete() == false)
 		return ;
 	//si pas fini de read la request return ;
@@ -125,15 +125,15 @@ void	WebServer::_sendResponse(pollfd &request)
 {
 	sentResponse &currResponse = _responses.at(request.fd);
 	const char *res = currResponse.rawResponse.c_str() + currResponse.bytesSent; // TODO: dynamic
-	std::cout << "RESPONSE IS : " << res << "\n";
+	std::cout << GREEN BOLD ITALIC << res << END << "\n";
 	int contentLength = stringToInt(extractContentLength(currResponse.rawResponse));
 
 	int remainingSize = (contentLength + currResponse.headerLength) - currResponse.bytesSent;
 
 	currResponse.bytesSent += send(request.fd, res, (remainingSize < SEND_SIZE ? remainingSize : SEND_SIZE), 0);
-	std::cout << "SENT " << currResponse.bytesSent << "\n";
+	std::cout << ORANGE << "SENT " << currResponse.bytesSent << "\n";
 	std::cout << "OVER  " << contentLength + currResponse.headerLength << "\n";
-	std::cout << "REMAINING " << currResponse.bytesSent - (contentLength + currResponse.headerLength) << "\n";
+	std::cout <<  "REMAINING " << currResponse.bytesSent - (contentLength + currResponse.headerLength) << END"\n";
 	//WHAT TO DO IF CLIENT DISCONNECT ??? 
 	if (currResponse.bytesSent == contentLength + currResponse.headerLength)
 	{
