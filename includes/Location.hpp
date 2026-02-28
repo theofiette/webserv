@@ -45,10 +45,10 @@ class Location
 		Location(); 						//Default constructor
 		~Location();						//Destructor
 
-		std::string 				getRoot() const;
-		std::map<int, std::string>&	getErrors();
-		std::string 				getIndex() const;
+		const std::string&					getRoot() const;
+		const std::map<int, std::string>&	getErrors() const;
+		const std::string& 					getIndex() const;
 		const std::vector<bool>&	getMethods() const;
-		Redir						getRedir() const;
+		const Redir&				getRedir() const;
 };
 

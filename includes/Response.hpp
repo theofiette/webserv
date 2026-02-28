@@ -34,8 +34,8 @@ class Response
 		std::string _body;
 		
 		Location _currLocation;
-		Server &_currServ;
-		Request &_request;
+		const Server &_currServ;
+		const Request &_request;
 		
 		static const std::map<int, std::string> _statusMap;
 		static const std::string methods[METHODS_COUNT];
@@ -46,11 +46,11 @@ class Response
 		std::string buildFullPath();
 
 	public:
-		Response(Request &, Server &);
+		Response(const Request &, const Server &);
 		~Response();
 
 		void setStatusCode();
-		void setCurrLocation(Location &);
+		void setCurrLocation(const Location &);
 		void setErrorResponse(std::string&, std::map<int, std::string> const&, std::string const&);
 		void addHeader(std::string, std::string);
 

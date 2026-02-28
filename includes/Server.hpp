@@ -53,8 +53,8 @@ class Server
 		Server(); 						//Default constructor
 		~Server();						//Destructor
 
-		int							getMaxBody();
-		std::map<string, Location>& getLocations();
-		std::map<int, std::string>& getErrorsServer();
+		int							getMaxBody() const;
+		const std::map<string, Location>& getLocations() const;
+		const std::map<int, std::string>& getErrorsServer() const;
 
 };

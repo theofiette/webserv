@@ -35,7 +35,7 @@ const std::map<int, std::string> Response::_statusMap = initStatusMap();
 /*										CONSTRUCTORS										  */
 //*********************************************************************************************/
 
-Response::Response(Request &request, Server &server) : _statusCode(200), _currServ(server), _request(request)
+Response::Response(const Request &request, const Server &server) : _statusCode(200), _currServ(server), _request(request)
 {
 	_request.displayInfos();
 	if (_request.getMap().at("Method") == "POST")
@@ -134,11 +134,11 @@ void Response::setErrorResponse(std::string &fullPath, std::map<int, std::string
 std::string Response::buildFullPath() // passer un int pour la method 
 {
     std::string	reqPath = _request.getMap().at("Path");
-	std::map<std::string, Location>& loc = _currServ.getLocations();
-	std::map<string, Location>::reverse_iterator 	bestMatch = loc.rend();
+	const std::map<std::string, Location>& loc = _currServ.getLocations();
+	std::map<string, Location>::const_reverse_iterator 	bestMatch = loc.rend();
 	std::string fullPath;
 
-	for (std::map<string, Location>::reverse_iterator it = loc.rbegin(); it != loc.rend(); it++)
+	for (std::map<string, Location>::const_reverse_iterator it = loc.rbegin(); it != loc.rend(); it++)
 	{
 		if (reqPath.find(it->first) == 0) //commence bien par la location
 		{
@@ -290,6 +290,6 @@ std::string const Response::getResponse(SentResponse &sentresp)
 /*										GETTERS											  	  */
 //*********************************************************************************************/
 
-void Response::setCurrLocation(Location &loc){
+void Response::setCurrLocation(const Location &loc){
 	_currLocation = loc;
 }

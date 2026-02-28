@@ -26,14 +26,14 @@ class Request
 		int	parseRequest(std::string);
 		void setFirstLine(std::string);
 		
-		std::string &getRawRequest();
-		void recvRequest(int);
-		bool &isRequestComplete();
-		std::map<std::string, std::string>& getMap();
+	const std::string& getRawRequest() const;
+	void recvRequest(int);
+	bool &isRequestComplete();
+	const std::map<std::string, std::string>& getMap() const;
 
-		// TEMPORAIRE
-		void displayInfos();
-		std::string const getBody();
+	// TEMPORAIRE
+	void displayInfos() const;
+	const std::string& getBody() const;
 };
 
 std::string extractContentLength(std::string buffer);

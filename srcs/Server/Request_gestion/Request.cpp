@@ -68,9 +68,9 @@ void Request::recvRequest(int socketFd)
 	}
 }
 
-void Request::displayInfos()
+void Request::displayInfos() const
 {
-	std::map<std::string, std::string>::iterator it = _reqMap.begin();
+	std::map<std::string, std::string>::const_iterator it = _reqMap.begin();
 	for (; it != _reqMap.end(); it++)
 		std::cout << it->first << " : " << it->second << "\n";
 }
@@ -120,17 +120,17 @@ int Request::parseRequest(std::string request)
 	return (1);
 }
 
-std::string const Request::getBody()
+const std::string& Request::getBody() const
 {
 	return (_body);
 }
 
-std::map<std::string, std::string>& Request::getMap()
+const std::map<std::string, std::string>& Request::getMap() const
 {
 	return (_reqMap);
 }
 
-std::string &Request::getRawRequest()
+const std::string& Request::getRawRequest() const
 {
 	return (_rawRequest);
 }

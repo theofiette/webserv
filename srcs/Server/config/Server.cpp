@@ -183,17 +183,17 @@ Server::~Server()
 
 // GETTERS
 
-std::map<string, Location>& Server::getLocations()
+const std::map<string, Location>& Server::getLocations() const
 {
 	return (_locations);
 }
 
-std::map<int, std::string>&  Server::getErrorsServer()
+const std::map<int, std::string>&  Server::getErrorsServer() const
 {
 	return (_errors);
 }
 
-int Server::getMaxBody()
+int Server::getMaxBody() const
 {
 	return (_clientBodyMax);
 }

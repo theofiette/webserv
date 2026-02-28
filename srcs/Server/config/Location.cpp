@@ -127,12 +127,12 @@ Location::~Location()
 
 // GETTER
 
-std::string Location::getRoot() const
+const std::string& Location::getRoot() const
 {
 	return (_root);
 }
 
-std::map<int, std::string>& Location::getErrors()
+const std::map<int, std::string>& Location::getErrors() const
 {
 	return (_errors);
 }
@@ -143,12 +143,12 @@ const std::vector<bool>&	Location::getMethods() const
 	return (_methods);
 }
 
-std::string 		Location::getIndex() const
+const std::string& 		Location::getIndex() const
 {
 	return (_index);
 }
 
-Redir				Location::getRedir() const
+const Redir&				Location::getRedir() const
 {
 	return (_redir);
 }
