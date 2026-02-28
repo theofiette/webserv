@@ -8,13 +8,13 @@ CFLAGS      = -Wall -Wextra -Werror -std=c++98
 
 SRC         =	srcs/main.cpp \
 				srcs/exceptions/exceptions.cpp \
-				srcs/utils/Request.cpp \
-				srcs/utils/Response.cpp \
-				srcs/WebServer.cpp \
-				srcs/Redir.cpp \
-				srcs/Location.cpp \
-				srcs/Server.cpp \
-				srcs/ConfigParser.cpp \
+				srcs/Server/Request_gestion/Request.cpp \
+				srcs/Server/Request_gestion/Response.cpp \
+				srcs/Server/WebServer.cpp \
+				srcs/Server/config/Redir.cpp \
+				srcs/Server/config/Location.cpp \
+				srcs/Server/config/Server.cpp \
+				srcs/Server/config/ConfigParser.cpp \
 				srcs/utils/format.cpp
 
 OBJ         = $(SRC:.cpp=.o)
