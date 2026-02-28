@@ -245,8 +245,8 @@ void Response::handleDelete(){
 	// si on trouve pas -> no content (204)  
 	if (stat(fullPath.c_str(), &s) == -1)
 	{
-		_statusCode = NO_CONTENT;
-		return ; // TODO: ERROR PAGE 204
+		_statusCode = NOT_FOUND;
+		setErrorResponse(fullPath, _currLocation.getErrMap(), _currLocation.getRoot());
 	}
 	// stat(fullPath.c_str(), &s);
     if (access(fullPath.c_str(), R_OK) == -1)
@@ -284,7 +284,6 @@ std::string const Response::getResponse(sentResponse &sentresp)
 //*********************************************************************************************/
 /*										GETTERS											  	  */
 //*********************************************************************************************/
-
 
 
 void Response::setCurrLocation(Location &loc){
