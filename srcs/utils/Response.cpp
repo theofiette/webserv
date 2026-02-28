@@ -249,17 +249,18 @@ void Response::handleDelete(){
 		return ;
 	}
 	// stat(fullPath.c_str(), &s);
-    if (access(fullPath.c_str(), W_OK | X_OK) == -1)
+    if (access(fullPath.c_str(), W_OK) == -1)
     {
         _statusCode = FORBIDDEN;
         setErrorResponse(fullPath, _currLocation.getErrMap(), _currLocation.getRoot());
-		stat(fullPath.c_str(), &s);
+		// stat(fullPath.c_str(), &s);
 		return ;
     }
 	remove(fullPath.c_str());
-	_body = "<html><h1>File -> " + fullPath + " has been deleted</h1></html>";
-	addHeader("Content-Type", MIMEtable(fullPath));
-	addHeader("Content-Length", intToString(_body.length()));
+	_statusCode = NO_CONTENT;
+	addHeader("Content-Length", 0);
+	// _body = "<html><h1>File -> " + fullPath + " has been deleted</h1></html>";
+	// addHeader("Content-Type", MIMEtable(fullPath));
 
 }
 
