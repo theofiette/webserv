@@ -165,10 +165,7 @@ void	WebServer::_awaitRequests()
 
 // CONSTRUCTORS
 
-WebServer::WebServer(const WebServerConfig &config)
-{
-	_config = config;
-}
+WebServer::WebServer(const WebServerConfig &config) : _config(config), _tempSize(0), _size(0) {}
 
 // DESTRUCTOR
 

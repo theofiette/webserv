@@ -147,7 +147,7 @@ std::string Response::buildFullPath() // passer un int pour la method
 			break ;
 		}
 	}
-	// TODO: check si bloc location / {} est au moins present pour etre sur de matcher sur un truc, pour savoir si on garde ce check
+	// TODO: check si bloc location / {} est au moins present pour etre sur de matcher sur un (truc), pour savoir si on garde ce check
 	
 	if (bestMatch == loc.rend())
 	{
@@ -176,50 +176,55 @@ std::string Response::buildFullPath() // passer un int pour la method
 }
 
 //*********************************************************************************************/
-/*										HANDLERS											  */
+/*										HELPERS											  	  */
 //*********************************************************************************************/
 
-void Response::handleGet()
+bool Response::checkFileAccess(std::string &fullPath, int requiredAccess)
 {
 	struct stat s;
-	std::string fullPath;
-
-	if (_statusCode == CONTENT_TOO_LARGE)
-	{
-		try{	
-			fullPath = _currServ.getErrorsServer().at(_statusCode);
-		}
-		catch (std::exception &e){
-			fullPath = "html/errors/defaultErrorPage.html";
-		}
-	}
-    fullPath = buildFullPath();
-	if (stat(fullPath.c_str(), &s) == -1){
+	if (stat(fullPath.c_str(), &s) == -1) {
 		_statusCode = NOT_FOUND;
 		setErrorResponse(fullPath, _currLocation.getErrors(), _currLocation.getRoot());
+		return (false);
 	}
-	stat(fullPath.c_str(), &s);
-    if (!S_ISREG(s.st_mode) || access(fullPath.c_str(), R_OK) == -1) // normalement ici on est pas un dossier
-    {
-        _statusCode = FORBIDDEN;
-        setErrorResponse(fullPath, _currLocation.getErrors(), _currLocation.getRoot());
-		stat(fullPath.c_str(), &s);
-    }
-    _body.resize(s.st_size);
-    std::ifstream infile(fullPath.c_str(), std::ios::binary);
-    infile.read(&_body[0], s.st_size);
-	addHeader("Content-Type", MIMEtable(fullPath));
+	
+	if (!S_ISREG(s.st_mode) || access(fullPath.c_str(), requiredAccess) == -1) {
+		_statusCode = FORBIDDEN;
+		setErrorResponse(fullPath, _currLocation.getErrors(), _currLocation.getRoot());
+		return (false);
+	}
+	return (true);
+}
+
+bool Response::readFileContent(const std::string &filePath, size_t fileSize)
+{
+	try {
+		_body.resize(fileSize);
+		std::ifstream infile(filePath.c_str(), std::ios::binary);
+		if (!infile.is_open()) {
+			_statusCode = FORBIDDEN;
+			return (false);
+		}
+		
+		if (fileSize > 0)
+			infile.read(&_body[0], fileSize);
+		infile.close();
+		return (true);
+	}
+	catch (std::bad_alloc &e) {
+		_statusCode = CONTENT_TOO_LARGE;
+		return (false);
+	}
+}
+
+void Response::addCommonHeaders(const std::string &filePath)
+{
+	addHeader("Content-Type", MIMEtable(filePath));
 	addHeader("Content-Length", intToString(_body.length()));
 }
 
-void Response::handlePost()
+void Response::parseFormData(std::map<std::string, std::string> &data)
 {
-	struct stat s;
-	std::string fullPath = "html/success.html";
-	
-	stat(fullPath.c_str(), &s);
-
-	std::map<std::string, std::string> data;
 	size_t lastPos = 0;
 
 	for (size_t i = _request.getBody().find("=", 0); i != std::string::npos; i = _request.getBody().find("=", lastPos))
@@ -229,43 +234,78 @@ void Response::handlePost()
 			endPos = _request.getBody().find("\r\n\r\n");
 		std::string key = _request.getBody().substr((lastPos == 0 ? lastPos : lastPos + 1), i - (lastPos + (lastPos != 0)));
 		std::string val = _request.getBody().substr(i + 1, endPos - (i + 1));
-		std::pair<std::string, std::string> p = std::make_pair(key, val);
+		data.insert(std::make_pair(key, val));
 		lastPos = endPos;
-		data.insert(p);
 	}
-	// _statusCode = CREATED; //TODO: maybe a use a un moment 
+}
+
+//*********************************************************************************************/
+/*										HANDLERS											  */
+//*********************************************************************************************/
+
+void Response::handleGet()
+{
+	std::string fullPath;
+	struct stat s;
+
+	if (_statusCode == CONTENT_TOO_LARGE)
+	{
+		try{		
+			fullPath = _currServ.getErrorsServer().at(_statusCode);
+		}
+		catch (std::exception &e){
+			fullPath = "html/errors/defaultErrorPage.html";
+		}
+	}
+    fullPath = buildFullPath();
+	
+	if (!checkFileAccess(fullPath, R_OK))
+		return ;
+	
+	if (stat(fullPath.c_str(), &s) == -1)
+		return ;
+	
+	if (!readFileContent(fullPath, s.st_size))
+		return ;
+	
+	addCommonHeaders(fullPath);
+}
+
+void Response::handlePost()
+{
+	std::string fullPath = "html/success.html";
+	struct stat s;
+
+	if (stat(fullPath.c_str(), &s) == -1)
+		return ;
+
+	std::map<std::string, std::string> data;
+	parseFormData(data);
+
 	_statusCode = SEE_OTHER;
 	addHeader("Location", "http://localhost:8080/success.html");
-	addHeader("Content-Type", MIMEtable(fullPath));
+	addCommonHeaders(fullPath);
 	addHeader("Content-Length", "0");
 }
 
 void Response::handleDelete()
 {
+	std::string fullPath = buildFullPath();
 	struct stat s;
-	std::string fullPath;
 
-    fullPath = buildFullPath();
 	if (stat(fullPath.c_str(), &s) == -1)
 	{
 		_statusCode = NOT_FOUND;
 		setErrorResponse(fullPath, _currLocation.getErrors(), _currLocation.getRoot());
 		return ;
 	}
-	// stat(fullPath.c_str(), &s);
-    if (access(fullPath.c_str(), W_OK) == -1)
-    {
-        _statusCode = FORBIDDEN;
-        setErrorResponse(fullPath, _currLocation.getErrors(), _currLocation.getRoot());
-		// stat(fullPath.c_str(), &s);
+
+    if (!checkFileAccess(fullPath, W_OK))
 		return ;
-    }
+	
 	remove(fullPath.c_str());
 	_statusCode = NO_CONTENT;
-	addHeader("Content-Length", 0);
-	// _body = "<html><h1>File -> " + fullPath + " has been deleted</h1></html>";
-	// addHeader("Content-Type", MIMEtable(fullPath));
-
+	addHeader("Content-Length", "0");
 }
 
 std::string const Response::getResponse(SentResponse &sentresp)
@@ -278,11 +318,7 @@ std::string const Response::getResponse(SentResponse &sentresp)
 		response += it->first + ": " + it->second + "\r\n";
 	response += "\r\n";
 	sentresp.headerLength = response.size();
-	// if (_request.getMap().at("Method") == "GET")
 	response += _body;
-	// std::cout << "-----------------------\n";
-	// std::cout << response << std::endl;
-	// std::cout << "-----------------------\n";
 	return (response);
 }
 

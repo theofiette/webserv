@@ -45,6 +45,11 @@ class Response
 		std::string MIMEtable(std::string);
 		std::string buildFullPath();
 
+		bool checkFileAccess(std::string &fullPath, int requiredAccess);
+		bool readFileContent(const std::string &filePath, size_t fileSize);
+		void addCommonHeaders(const std::string &filePath);
+		void parseFormData(std::map<std::string, std::string> &data);
+
 	public:
 		Response(const Request &, const Server &);
 		~Response();
