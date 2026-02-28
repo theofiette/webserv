@@ -43,12 +43,15 @@ class Response
 
 		std::string intToString(int);
 		std::string MIMEtable(std::string);
-		std::string buildFullPath();
+		std::string buildLocalPath();
 
-		bool checkFileAccess(std::string &fullPath, int requiredAccess);
-		bool readFileContent(const std::string &filePath, size_t fileSize);
-		void addCommonHeaders(const std::string &filePath);
-		void parseFormData(std::map<std::string, std::string> &data);
+		std::map<string, Location>::const_reverse_iterator findBestLocation(const std::string &);
+		void validateMethodAllowed(const Location &);
+		void appendIndexToDirectory(std::string &, const Location &);
+
+		bool checkFileAccess(std::string &, int);
+		bool readFileContent(const std::string &, size_t);
+		void parseFormData(std::map<std::string, std::string> &);
 
 	public:
 		Response(const Request &, const Server &);

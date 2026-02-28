@@ -85,11 +85,11 @@ void Response::pickMethod()
 	throw ExceptionParsingError(); // nouvelle class exception ? 
 }
 
-std::string Response::MIMEtable(std::string fullPath)
+std::string Response::MIMEtable(std::string LocalPath)
 {
 	int i = 0;
 	for (; i < 5; i++)
-		if (fullPath.find("." + mimeTable[i]) != std::string::npos)
+		if (LocalPath.find("." + mimeTable[i]) != std::string::npos)
 			break ;
 	return ("text/" + mimeTable[i]);
 }
@@ -108,22 +108,22 @@ void Response::addHeader(std::string key, std::string value)
 	_header[key] = value;
 }
 
-void Response::setErrorResponse(std::string &fullPath, std::map<int, std::string> const& errMapLocation, std::string const& root)
+void Response::setErrorResponse(std::string &LocalPath, std::map<int, std::string> const& errMapLocation, std::string const& root)
 {
 	// Regarder la gestion du bloc LOCATION
 	// Si pas preciser rediriger vers ERROR PAGE par defaut
 	try{
-		fullPath = root + "/" + errMapLocation.at(_statusCode);
+		LocalPath = root + "/" + errMapLocation.at(_statusCode);
 		_statusCode = MOVED_PERMANENTLY;
 	}
 	catch (std::exception &e)
 	{
 		try{
-			fullPath = _currServ.getErrorsServer().at(_statusCode);
+			LocalPath = _currServ.getErrorsServer().at(_statusCode);
 			_statusCode = OK;
 		}
 		catch (std::exception &e){
-			fullPath = "html/errors/defaultErrorPage.html";
+			LocalPath = "html/errors/defaultErrorPage.html";
 		}
 	}
 }
@@ -131,66 +131,85 @@ void Response::setErrorResponse(std::string &fullPath, std::map<int, std::string
 /*										BUILDERS											  */
 //*********************************************************************************************/
 
-std::string Response::buildFullPath() // passer un int pour la method 
+std::map<string, Location>::const_reverse_iterator Response::findBestLocation(const std::string &uriPath)
 {
-    std::string	reqPath = _request.getMap().at("Path");
 	const std::map<std::string, Location>& loc = _currServ.getLocations();
-	std::map<string, Location>::const_reverse_iterator 	bestMatch = loc.rend();
-	std::string fullPath;
-
+	
 	for (std::map<string, Location>::const_reverse_iterator it = loc.rbegin(); it != loc.rend(); it++)
 	{
-		if (reqPath.find(it->first) == 0) //commence bien par la location
+		if (uriPath.find(it->first) == 0)
 		{
-			bestMatch = it;
-			setCurrLocation(bestMatch->second);
-			break ;
+			setCurrLocation(it->second);
+			return (it);
 		}
 	}
-	// TODO: check si bloc location / {} est au moins present pour etre sur de matcher sur un (truc), pour savoir si on garde ce check
+	return (loc.rend());
+}
+
+void Response::validateMethodAllowed(const Location &location)
+{
+	std::string method = _request.getMap().at("Method");
+	const std::vector<bool>& acceptedMethods = location.getMethods();
 	
-	if (bestMatch == loc.rend())
+	int methodIndex = -1;
+	for (int i = 0; i < METHODS_COUNT; i++)
 	{
-		std::cout << "No matchs found\n";
-		throw ExceptionPathError();
+		if (methods[i] == method)
+		{
+			methodIndex = i;
+			break;
+		}
 	}
 	
-	const std::vector<bool>& acceptedMethods = bestMatch->second.getMethods();
-	if (!acceptedMethods[GET]) // TODO: error 503 -> rediriger vers error page 503 du bloc location OU error 503 general
+	if (methodIndex == -1 || !acceptedMethods[methodIndex])
 	{
 		std::cout << "Method not accepted\n";
 		throw ExceptionPathError();
 	}
+}
 
-	fullPath = bestMatch->second.getRoot() + reqPath;
-	struct stat s; // TODO: stat doublon dans le handler ensuite
-	if (stat(fullPath.c_str(), &s) != -1 && S_ISDIR(s.st_mode)) // Je find l'index par defaut du bloc location ou le global
+void Response::appendIndexToDirectory(std::string &localPath, const Location &location)
+{
+	struct stat s;
+
+	if (stat(localPath.c_str(), &s) != -1 && S_ISDIR(s.st_mode))
 	{
-		std::string index = bestMatch->second.getIndex(); // TODO: si pas d'index, recup le global
-		if (fullPath[fullPath.size() - 1] != '/') // TODO: regarder aussi si fullpath commence par / je crois
-			fullPath += "/";
-		fullPath += index;
+		std::string index = location.getIndex();
+		if (localPath[localPath.size() - 1] != '/')
+			localPath += "/";
+		localPath += index;
 	}
-	// TODO: check si d'autres choses sont a verifier dans le bloc location
-	return (fullPath);
+}
+
+std::string Response::buildLocalPath()
+{
+	std::string uriPath = _request.getMap().at("Path");
+	std::map<string, Location>::const_reverse_iterator bestMatch = findBestLocation(uriPath);
+	
+	validateMethodAllowed(bestMatch->second);
+	
+	std::string localPath = bestMatch->second.getRoot() + uriPath;
+	appendIndexToDirectory(localPath, bestMatch->second);
+	
+	return (localPath);
 }
 
 //*********************************************************************************************/
-/*										HELPERS											  	  */
+/*										UTILS											  	  */
 //*********************************************************************************************/
 
-bool Response::checkFileAccess(std::string &fullPath, int requiredAccess)
+bool Response::checkFileAccess(std::string &LocalPath, int requiredAccess)
 {
 	struct stat s;
-	if (stat(fullPath.c_str(), &s) == -1) {
+	if (stat(LocalPath.c_str(), &s) == -1) {
 		_statusCode = NOT_FOUND;
-		setErrorResponse(fullPath, _currLocation.getErrors(), _currLocation.getRoot());
+		setErrorResponse(LocalPath, _currLocation.getErrors(), _currLocation.getRoot());
 		return (false);
 	}
 	
-	if (!S_ISREG(s.st_mode) || access(fullPath.c_str(), requiredAccess) == -1) {
+	if (!S_ISREG(s.st_mode) || access(LocalPath.c_str(), requiredAccess) == -1) {
 		_statusCode = FORBIDDEN;
-		setErrorResponse(fullPath, _currLocation.getErrors(), _currLocation.getRoot());
+		setErrorResponse(LocalPath, _currLocation.getErrors(), _currLocation.getRoot());
 		return (false);
 	}
 	return (true);
@@ -198,29 +217,11 @@ bool Response::checkFileAccess(std::string &fullPath, int requiredAccess)
 
 bool Response::readFileContent(const std::string &filePath, size_t fileSize)
 {
-	try {
-		_body.resize(fileSize);
-		std::ifstream infile(filePath.c_str(), std::ios::binary);
-		if (!infile.is_open()) {
-			_statusCode = FORBIDDEN;
-			return (false);
-		}
-		
-		if (fileSize > 0)
-			infile.read(&_body[0], fileSize);
-		infile.close();
-		return (true);
-	}
-	catch (std::bad_alloc &e) {
-		_statusCode = CONTENT_TOO_LARGE;
-		return (false);
-	}
-}
-
-void Response::addCommonHeaders(const std::string &filePath)
-{
-	addHeader("Content-Type", MIMEtable(filePath));
-	addHeader("Content-Length", intToString(_body.length()));
+	_body.resize(fileSize);
+	std::ifstream infile(filePath.c_str(), std::ios::binary);
+	if (fileSize > 0)
+		infile.read(&_body[0], fileSize);
+	return (true);
 }
 
 void Response::parseFormData(std::map<std::string, std::string> &data)
@@ -245,65 +246,61 @@ void Response::parseFormData(std::map<std::string, std::string> &data)
 
 void Response::handleGet()
 {
-	std::string fullPath;
+	std::string LocalPath;
 	struct stat s;
 
 	if (_statusCode == CONTENT_TOO_LARGE)
 	{
 		try{		
-			fullPath = _currServ.getErrorsServer().at(_statusCode);
+			LocalPath = _currServ.getErrorsServer().at(_statusCode);
 		}
 		catch (std::exception &e){
-			fullPath = "html/errors/defaultErrorPage.html";
+			LocalPath = "html/errors/defaultErrorPage.html";
 		}
 	}
-    fullPath = buildFullPath();
+    LocalPath = buildLocalPath();
 	
-	if (!checkFileAccess(fullPath, R_OK))
+	if (!checkFileAccess(LocalPath, R_OK) || (stat(LocalPath.c_str(), &s) == -1))
 		return ;
-	
-	if (stat(fullPath.c_str(), &s) == -1)
-		return ;
-	
-	if (!readFileContent(fullPath, s.st_size))
-		return ;
-	
-	addCommonHeaders(fullPath);
+
+	readFileContent(LocalPath, s.st_size);
+	addHeader("Content-Type", MIMEtable(LocalPath));
+	addHeader("Content-Length", intToString(_body.length()));
 }
 
 void Response::handlePost()
 {
-	std::string fullPath = "html/success.html";
+	//TODO: RECUPER DYNAMIQUEMENT SUCCESS HTML via GLOBALSERVER ou REDIR (build full path...)
 	struct stat s;
+	std::string LocalPath = "html/success.html";
 
-	if (stat(fullPath.c_str(), &s) == -1)
+	if (stat(LocalPath.c_str(), &s) == -1)
 		return ;
 
-	std::map<std::string, std::string> data;
-	parseFormData(data);
+	std::map<std::string, std::string> formData; // TODO: utiliser cette data? Du coup on appelera parseform avec &data de la class
+	parseFormData(formData);
 
 	_statusCode = SEE_OTHER;
 	addHeader("Location", "http://localhost:8080/success.html");
-	addCommonHeaders(fullPath);
 	addHeader("Content-Length", "0");
 }
 
 void Response::handleDelete()
 {
-	std::string fullPath = buildFullPath();
+	std::string LocalPath = buildLocalPath();
 	struct stat s;
 
-	if (stat(fullPath.c_str(), &s) == -1)
+	if (stat(LocalPath.c_str(), &s) == -1)
 	{
 		_statusCode = NOT_FOUND;
-		setErrorResponse(fullPath, _currLocation.getErrors(), _currLocation.getRoot());
+		setErrorResponse(LocalPath, _currLocation.getErrors(), _currLocation.getRoot());
 		return ;
 	}
 
-    if (!checkFileAccess(fullPath, W_OK))
+    if (!checkFileAccess(LocalPath, W_OK))
 		return ;
 	
-	remove(fullPath.c_str());
+	remove(LocalPath.c_str());
 	_statusCode = NO_CONTENT;
 	addHeader("Content-Length", "0");
 }
@@ -314,9 +311,11 @@ std::string const Response::getResponse(SentResponse &sentresp)
 
 	response += _request.getMap().at("Protocol") + " ";
 	response += intToString(_statusCode) + " " + _statusMap.at(_statusCode) + "\r\n";
+
 	for (std::map<std::string, std::string>::iterator it = _header.begin(); it != _header.end(); it++)
 		response += it->first + ": " + it->second + "\r\n";
 	response += "\r\n";
+
 	sentresp.headerLength = response.size();
 	response += _body;
 	return (response);
