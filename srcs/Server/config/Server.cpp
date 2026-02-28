@@ -188,10 +188,12 @@ std::map<string, Location>& Server::getLocations()
 	return (_locations);
 }
 
-std::map<int, std::string>&  Server::getErrorsServer(){
+std::map<int, std::string>&  Server::getErrorsServer()
+{
 	return (_errors);
 }
 
-int Server::getMaxBody(){
+int Server::getMaxBody()
+{
 	return (_clientBodyMax);
 }

@@ -212,13 +212,16 @@ void Response::handleGet()
 	addHeader("Content-Length", intToString(_body.length()));
 }
 
-void Response::handlePost(){
+void Response::handlePost()
+{
 	struct stat s;
 	std::string fullPath = "html/success.html";
 	
 	stat(fullPath.c_str(), &s);
+
 	std::map<std::string, std::string> data;
 	size_t lastPos = 0;
+
 	for (size_t i = _request.getBody().find("=", 0); i != std::string::npos; i = _request.getBody().find("=", lastPos))
 	{
 		size_t endPos = _request.getBody().find("&", i);
@@ -237,7 +240,8 @@ void Response::handlePost(){
 	addHeader("Content-Length", "0");
 }
 
-void Response::handleDelete(){
+void Response::handleDelete()
+{
 	struct stat s;
 	std::string fullPath;
 
@@ -267,6 +271,7 @@ void Response::handleDelete(){
 std::string const Response::getResponse(SentResponse &sentresp)
 {
 	std::string response;
+
 	response += _request.getMap().at("Protocol") + " ";
 	response += intToString(_statusCode) + " " + _statusMap.at(_statusCode) + "\r\n";
 	for (std::map<std::string, std::string>::iterator it = _header.begin(); it != _header.end(); it++)
@@ -275,18 +280,15 @@ std::string const Response::getResponse(SentResponse &sentresp)
 	sentresp.headerLength = response.size();
 	// if (_request.getMap().at("Method") == "GET")
 	response += _body;
-
 	// std::cout << "-----------------------\n";
 	// std::cout << response << std::endl;
 	// std::cout << "-----------------------\n";
-
 	return (response);
 }
 
 //*********************************************************************************************/
 /*										GETTERS											  	  */
 //*********************************************************************************************/
-
 
 void Response::setCurrLocation(Location &loc){
 	_currLocation = loc;

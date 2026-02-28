@@ -50,7 +50,7 @@ class Response
 		~Response();
 
 		void setStatusCode();
-		void setCurrLocation(Location &l);
+		void setCurrLocation(Location &);
 		void setErrorResponse(std::string&, std::map<int, std::string> const&, std::string const&);
 		void addHeader(std::string, std::string);
 

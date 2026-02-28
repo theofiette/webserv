@@ -10,7 +10,7 @@ void	WebServer::_initMasterSocket()
 	struct addrinfo hints;
 	int				tmp = 1;
 
-	t_bzero< struct addrinfo >(&hints, sizeof(hints));
+	t_bzero<struct addrinfo>(&hints, sizeof(hints));
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
@@ -135,11 +135,10 @@ void	WebServer::_sendResponse(pollfd &request)
 {
 	SentResponse &currResponse = _responsesMap.at(request.fd);
 	const char *res = currResponse.rawResponse.c_str() + currResponse.bytesSent; // TODO: dynamic
-	std::cout << GREEN BOLD ITALIC << res << END << "\n";
 	int contentLength = stringToInt(extractContentLength(currResponse.rawResponse));
-
 	int remainingSize = (contentLength + currResponse.headerLength) - currResponse.bytesSent;
 
+	std::cout << GREEN BOLD ITALIC << res << END << "\n";
 	currResponse.bytesSent += send(request.fd, res, (remainingSize < SEND_SIZE ? remainingSize : SEND_SIZE), 0);
 	std::cout << ORANGE << "SENT " << currResponse.bytesSent << "\n";
 	std::cout << "OVER  " << contentLength + currResponse.headerLength << "\n";

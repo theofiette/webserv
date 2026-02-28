@@ -19,6 +19,7 @@ std::string extractContentLength(std::string buffer)
 {
 	std::string contentLength;
 	size_t pos = buffer.find("Content-Length:") + 16;
+
 	if (pos != std::string::npos)
 	{
 		size_t end = buffer.find("\r", pos);
@@ -37,8 +38,8 @@ std::string extractContentLength(std::string buffer)
 void Request::recvRequest(int socketFd)
 {
 	char buffer[SEND_SIZE] = {0};
-
 	ssize_t bytesRead = recv(socketFd, buffer, SEND_SIZE - 1, 0);
+
 	_totalBytes += bytesRead;
 	_rawRequest += buffer;
 	size_t headerEnd = _rawRequest.find(CRLF) + CRLF_SIZE;
@@ -67,7 +68,8 @@ void Request::recvRequest(int socketFd)
 	}
 }
 
-void Request::displayInfos(){
+void Request::displayInfos()
+{
 	std::map<std::string, std::string>::iterator it = _reqMap.begin();
 	for (; it != _reqMap.end(); it++)
 		std::cout << it->first << " : " << it->second << "\n";
@@ -118,7 +120,8 @@ int Request::parseRequest(std::string request)
 	return (1);
 }
 
-std::string const Request::getBody(){
+std::string const Request::getBody()
+{
 	return (_body);
 }
 
@@ -127,10 +130,12 @@ std::map<std::string, std::string>& Request::getMap()
 	return (_reqMap);
 }
 
-std::string &Request::getRawRequest(){
+std::string &Request::getRawRequest()
+{
 	return (_rawRequest);
 }
 
-bool &Request::isRequestComplete(){
+bool &Request::isRequestComplete()
+{
 	return (_requestComplete);
 }
