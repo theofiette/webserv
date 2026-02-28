@@ -242,18 +242,19 @@ void Response::handleDelete(){
 	std::string fullPath;
 
     fullPath = buildFullPath();
-	// si on trouve pas -> no content (204)  
 	if (stat(fullPath.c_str(), &s) == -1)
 	{
 		_statusCode = NOT_FOUND;
 		setErrorResponse(fullPath, _currLocation.getErrMap(), _currLocation.getRoot());
+		return ;
 	}
 	// stat(fullPath.c_str(), &s);
-    if (access(fullPath.c_str(), R_OK) == -1)
+    if (access(fullPath.c_str(), W_OK | X_OK) == -1)
     {
         _statusCode = FORBIDDEN;
         setErrorResponse(fullPath, _currLocation.getErrMap(), _currLocation.getRoot());
 		stat(fullPath.c_str(), &s);
+		return ;
     }
 	remove(fullPath.c_str());
 	_body = "<html><h1>File -> " + fullPath + " has been deleted</h1></html>";
