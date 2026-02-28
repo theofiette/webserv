@@ -1,44 +1,38 @@
 # pragma once
 
 # include "webserv.hpp"
-
 # include <vector>
-
 # include "Server.hpp"
+# include "WebServerConfig.hpp"
+
+#include <sstream>
 
 class WebServer
 {
-private:
+	private:
 
-	int					_clientsMax;
-	std::vector<Server>	_servers;
+		WebServerConfig		_config;
 
-	int					_masterSocket;	
-	int					_tempSize;
-	int					_size;
-	pollfd 				_pollfds[MAX_CLIENTS];
+		int					_masterSocket;
+		int					_tempSize;
+		int					_size;
+		pollfd 				_pollfds[MAX_CLIENTS];
 
-	// void	_initConfig(const string &configFilePath);
-	void	_initMasterSocket();
-	void	_initPollFds();
-	void	_awaitRequests();
-	void	_processConnections();
-	void	_processRequest(pollfd &request);
-	void	_loopUpdate();
+		void	_initMasterSocket();
+		void	_initPollFds();
+		void	_awaitRequests();
+		void	_processConnections();
+		void	_processRequest(pollfd &request);
+		void	_loopUpdate();
 
-	WebServer();
+		WebServer();
 	
-public:
+	public:
 
-	//TEMPORARY //TODO delete
-	void	_temp_config(); // This function gives a default configurated webserv
+		void	loop();
+		void	display();
 
-	void loop();
+		WebServer(const WebServerConfig &config);
+		~WebServer();
 
-	WebServer(const string &configFilePath);
-	~WebServer();
-
-	// WebServer(const WebServer &other);	//Copy constructor
-	// WebServer	&operator=(const WebServer &other); //Assignement operator
 };
-

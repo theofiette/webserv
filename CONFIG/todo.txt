@@ -1,3 +1,0 @@
-1) architecture the structure retrieved after parsing config
-2) create a constructor wich fills the structure with the defaults values
-3) parse the file to see if syntax ok and overwrite values when needed
