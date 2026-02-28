@@ -1,4 +1,5 @@
 // #include "../includes/webserv.hpp"
+#include "ConfigParser.hpp"
 #include "webserv.hpp"
 #include "WebServer.hpp"
 #include <vector>
@@ -29,9 +30,13 @@ int main(int argc, char *argv[])
 	signal(SIGINT, sigHandler);
 	try
 	{
-		std::string	configFilePath = (argc > 1 ? argv[1] : CONFIG_PATH);
-		WebServer	webServer(configFilePath);
+		std::string		configFilePath = (argc > 1 ? argv[1] : CONFIG_PATH);
+		ConfigParser	parser;
+		WebServer		webServer(parser.parseFile(configFilePath));
 
+		webServer.init();
+
+		webServer.display();
 		webServer.loop();
 	}
 	catch (std::exception &e)

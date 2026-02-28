@@ -1,20 +1,32 @@
-
 #include "Server.hpp"
 #include "Location.hpp"
+# define SERVER_DF_PORT		8080
+# define SERVER_DF_NAME		"localhost"
+# define SERVER_DF_SEND		false
+# define SERVER_DF_BODY		2048
+# define SERVER_DF_ERROR	"html/errors/default_error.html"
 
-# define SERVER_DEF_PORT	8080
-# define SERVER_DEF_NAME	"localhost"
-# define SERVER_DEF_SEND	false
-# define SERVER_DEF_BODY	2048
-# define SERVER_DEF_ERROR	"html/errors/default_error.html"
+int		Server::_df_listen			= SERVER_DF_PORT;
+string	Server::_df_serverName		= SERVER_DF_NAME;
+bool	Server::_df_sendFile		= SERVER_DF_SEND;
+int		Server::_df_clientBodyMax	= SERVER_DF_BODY;
+string	Server::_df_errorPath		= SERVER_DF_ERROR;
 
-void	Server::registerLocation(string &name, Location &loc)
+// std::map<string, Location> &	Server::getLocations()
+// {
+// 	return (_locations);
+// }
+
+bool	Server::registerLocation(string &name, Location &loc)
 {
 	std::pair<string, Location>	pair;
 
 	pair.first = name;
 	pair.second = loc;
+	if (_locations.find(name) != _locations.end())
+		return (false);
 	_locations.insert(pair);
+	return (true);
 }
 
 void	Server::display() const
@@ -42,18 +54,121 @@ void	Server::display() const
 			it->second.display();
 		}
 	}
-
 	std::cout << "____________________________\n" << std::endl;
 }
+
+// METHODS
+//------------------------------------------------
+
+bool	Server::checkErrorsValidity()
+{
+	std::string	path;
+	mc_is_ite	it, ite;
+
+	it	= _errors.begin();
+	ite	= _errors.end();
+
+	for (; it != ite; it++)
+	{
+		path = it->second;
+		std::cout << "Checking error file: " << path << "\n";
+		if (access(path.c_str(), R_OK))
+			return (false);
+	}
+	return (true);
+}
+
+void	Server::checkDefaultLocation()
+{
+	if (!_locations.size() || _locations.find("/") == _locations.end())
+		_locations.insert(std::pair<string, Location>("/", Location()));
+}
+
+void	Server::clear()
+{
+	_listen = _df_listen;
+	_serverName = _df_serverName;
+	_sendFile = _df_sendFile;
+	_clientBodyMax = _df_clientBodyMax;
+	_errorPage = _df_errorPath;
+	_errors = std::map<int, string>();
+	_locations = std::map<string, Location>();
+	_errors.insert(std::pair<int, string>(0, _errorPage));
+}
+
+void	Server::insertError(int code, string path)
+{
+	std::pair<int, string> new_pair(code, path);
+
+	if (_errors.find(code) == _errors.end())
+		_errors.insert(new_pair);
+	else
+		_errors.find(code)->second = path;
+}
+
+//------------------------------------------------
+
+
+// SETTER // GETTER
+//------------------------------------------------
+
+void	Server::setListen(int value)
+{
+	_listen = value;
+}
+
+void	Server::setServerName(string value)
+{
+	_serverName = value;
+}
+
+void	Server::setSendfile(bool value)
+{
+	_sendFile = value;
+}
+
+void	Server::setClientBodyMax(int value)
+{
+	_clientBodyMax = value;
+}
+
+void	Server::setErrorPath(string value)
+{
+	_errorPage = value;
+}
+
+void	Server::set_df_listen(int value)
+{
+	Server::_df_listen = value;
+}
+
+void	Server::set_df_serverName(string value)
+{
+	Server::_df_serverName = value;
+}
+
+void	Server::set_df_sendFile(bool value)
+{
+	Server::_df_sendFile = value;
+}
+void	Server::set_df_clientBodyMax(int value)
+{
+	Server::_df_clientBodyMax = value;
+}
+void	Server::set_df_errorPath(string value)
+{
+	Server::_df_errorPath = value;
+}
+
+//------------------------------------------------
 
 // CONSTRUCTORS
 
 Server::Server() :
-_listen (SERVER_DEF_PORT), _serverName(SERVER_DEF_NAME),
-_sendFile(SERVER_DEF_SEND), _clientBodyMax(SERVER_DEF_BODY)
+_listen (_df_listen), _serverName(_df_serverName),
+_sendFile(_df_sendFile), _clientBodyMax(_df_clientBodyMax)
 {
-	(void)_listen, (void)_sendFile, (void)_clientBodyMax; //TODO delete
-	_errors.insert(std::pair<int, string>(0, SERVER_DEF_ERROR));
+	_errors.insert(std::pair<int, string>(0, _df_errorPath));
 	// std::cout
 	// 	<< "Default constructor called for class Server" << std::endl;
 }
@@ -73,7 +188,7 @@ std::map<string, Location>& Server::getLocations()
 	return (_locations);
 }
 
-std::map<int, std::string>&  Server::getErrMapServer(){
+std::map<int, std::string>&  Server::getErrorsServer(){
 	return (_errors);
 }
 

@@ -27,6 +27,7 @@ void	WebServer::_initMasterSocket()
 			std::cerr << strerror(errno) << std::endl;
 			throw( ExceptionBadInit() );
 		}
+	freeaddrinfo(gai);
 }
 
 void	WebServer::_initPollFds()
@@ -52,7 +53,7 @@ void	WebServer::_processConnections()
 		}
 		_pollfds[_size].fd = socketFd; 
 		_pollfds[_size].events = POLLIN;
-		Request req(_servers.back());
+		Request req(_config.servers.back());
 		std::pair<int, Request> p = std::make_pair(socketFd, req);
 		_requestsMap.insert(p);
 		_size++;
@@ -99,6 +100,15 @@ void	WebServer::loop()
 	}
 }
 
+void	WebServer::display()
+{
+	std::vector<Server>::iterator it, ite;
+	it	= _config.servers.begin();
+	ite	= _config.servers.end();
+	for (; it != ite; it++)
+		it->display();
+}
+
 void	WebServer::_processRequest(pollfd &request)
 {
 	Request currRequest = _requestsMap.at(request.fd);
@@ -110,20 +120,20 @@ void	WebServer::_processRequest(pollfd &request)
 	//si pas fini de read la request return ;
 	currRequest.parseRequest(currRequest.getRawRequest());
 	
-	Response resp(currRequest, _servers.back()); // TODO: passer le bon server
+	Response resp(currRequest, _config.servers.back()); // TODO: passer le bon server
 
-	sentResponse sentresp;
+	SentResponse sentresp;
 	sentresp.rawResponse = resp.getResponse(sentresp);
 	sentresp.bytesSent = 0;
-	std::pair<int, sentResponse> r = std::make_pair(request.fd, sentresp); // TODO: choose an other way or keep 
-	_responses.insert(r);
+	std::pair<int, SentResponse> r = std::make_pair(request.fd, sentresp); // TODO: choose an other way or keep 
+	_responsesMap.insert(r);
 
 	request.events = POLLOUT; // on set le fd ready to send
 }
 
 void	WebServer::_sendResponse(pollfd &request)
 {
-	sentResponse &currResponse = _responses.at(request.fd);
+	SentResponse &currResponse = _responsesMap.at(request.fd);
 	const char *res = currResponse.rawResponse.c_str() + currResponse.bytesSent; // TODO: dynamic
 	std::cout << GREEN BOLD ITALIC << res << END << "\n";
 	int contentLength = stringToInt(extractContentLength(currResponse.rawResponse));
@@ -137,10 +147,16 @@ void	WebServer::_sendResponse(pollfd &request)
 	//WHAT TO DO IF CLIENT DISCONNECT ??? 
 	if (currResponse.bytesSent == contentLength + currResponse.headerLength)
 	{
-		_responses.erase(request.fd);
+		_responsesMap.erase(request.fd);
 		close(request.fd);
 		request.fd = -1;
 	}
+}
+
+void	WebServer::init()
+{
+	_initMasterSocket();
+	_initPollFds();
 }
 
 void	WebServer::_awaitRequests()
@@ -148,45 +164,17 @@ void	WebServer::_awaitRequests()
 	poll(_pollfds, _size, TIMEOUT);
 }
 
-typedef std::string::const_iterator cstr_ite;
-
-void	WebServer::_temp_config()
-{
-	{Server		temp_S;
-	Location 	temp_L;
-	Location 	temp_L2;
-
-	string		L_name("/");
-	string		L_name2("/html/");
-
-	temp_S.registerLocation(L_name, temp_L);
-
-	// Configure location /html/ pour les tests
-	temp_L2.setRoot("");
-	temp_L2.setIndex("default_error.html");
-	temp_L2.setErrMap();
-	temp_S.registerLocation(L_name2, temp_L2);
-
-	_servers.push_back(temp_S);}
-}
-
-
 // CONSTRUCTORS
 
-WebServer::WebServer(const std::string &configFilePath) : 
-_masterSocket(0), _tempSize(0), _size(0)
+WebServer::WebServer(const WebServerConfig &config)
 {
-	(void)configFilePath;
-	_temp_config();
-	_initMasterSocket();
-	_initPollFds();
+	_config = config;
 }
 
 // DESTRUCTOR
 
-typedef std::vector<int>::iterator v_ite;
-
 WebServer::~WebServer()
 {
 	close(_masterSocket);
+	// std::cout << "Destructor called for class WebServer" << std::endl;
 }

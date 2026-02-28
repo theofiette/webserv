@@ -1,37 +1,34 @@
 # pragma once
 
 # include "webserv.hpp"
-
 # include <vector>
 # include <map>
 
 # include "Server.hpp"
+# include "WebServerConfig.hpp"
+#include <sstream>
 
 class Request;
 
-typedef struct sentResponse 
+typedef struct SentResponse 
 {
 	std::string rawResponse;
-	int		bytesSent;
-	int		headerLength;
-}	sentResponse;
+	int			bytesSent;
+	int			headerLength;
+}	SentResponse;
 
 class WebServer
 {
 	private:
+		WebServerConfig				_config;
 
-		int					_clientsMax;
-		std::vector<Server>	_servers;
+		int							_masterSocket;	
+		int							_tempSize;
+		int							_size;
+		pollfd 						_pollfds[MAX_CLIENTS];
+		std::map<int, Request> 		_requestsMap;
+		std::map<int, SentResponse> _responsesMap;
 
-		int					_masterSocket;	
-		int					_tempSize;
-		int					_size;
-		pollfd 				_pollfds[MAX_CLIENTS];
-
-		std::map<int, Request> _requestsMap;
-		std::map<int, sentResponse> _responses;
-
-		// void	_initConfig(const string &configFilePath);
 		void	_initMasterSocket();
 		void	_initPollFds();
 		void	_awaitRequests();
@@ -42,16 +39,13 @@ class WebServer
 		void	_loopUpdate();
 
 		WebServer();
-		
+
 	public:
+		void	init();
+		void	loop();
+		void	display();
 
-		//TEMPORARY //TODO delete
-		void	_temp_config(); // This function gives a default configurated webserv
-
-		void loop();
-
-		WebServer(const string &configFilePath);
+		WebServer(const WebServerConfig &config);
 		~WebServer();
-		// WebServer(const WebServer &other);	//Copy constructor
-		// WebServer	&operator=(const WebServer &other); //Assignement operator
+
 };

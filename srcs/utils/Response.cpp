@@ -119,7 +119,7 @@ void Response::setErrorResponse(std::string &fullPath, std::map<int, std::string
 	catch (std::exception &e)
 	{
 		try{
-			fullPath = _currServ.getErrMapServer().at(_statusCode);
+			fullPath = _currServ.getErrorsServer().at(_statusCode);
 			_statusCode = OK;
 		}
 		catch (std::exception &e){
@@ -187,7 +187,7 @@ void Response::handleGet()
 	if (_statusCode == CONTENT_TOO_LARGE)
 	{
 		try{	
-			fullPath = _currServ.getErrMapServer().at(_statusCode);
+			fullPath = _currServ.getErrorsServer().at(_statusCode);
 		}
 		catch (std::exception &e){
 			fullPath = "html/errors/defaultErrorPage.html";
@@ -196,13 +196,13 @@ void Response::handleGet()
     fullPath = buildFullPath();
 	if (stat(fullPath.c_str(), &s) == -1){
 		_statusCode = NOT_FOUND;
-		setErrorResponse(fullPath, _currLocation.getErrMap(), _currLocation.getRoot());
+		setErrorResponse(fullPath, _currLocation.getErrors(), _currLocation.getRoot());
 	}
 	stat(fullPath.c_str(), &s);
     if (!S_ISREG(s.st_mode) || access(fullPath.c_str(), R_OK) == -1) // normalement ici on est pas un dossier
     {
         _statusCode = FORBIDDEN;
-        setErrorResponse(fullPath, _currLocation.getErrMap(), _currLocation.getRoot());
+        setErrorResponse(fullPath, _currLocation.getErrors(), _currLocation.getRoot());
 		stat(fullPath.c_str(), &s);
     }
     _body.resize(s.st_size);
@@ -245,14 +245,14 @@ void Response::handleDelete(){
 	if (stat(fullPath.c_str(), &s) == -1)
 	{
 		_statusCode = NOT_FOUND;
-		setErrorResponse(fullPath, _currLocation.getErrMap(), _currLocation.getRoot());
+		setErrorResponse(fullPath, _currLocation.getErrors(), _currLocation.getRoot());
 		return ;
 	}
 	// stat(fullPath.c_str(), &s);
     if (access(fullPath.c_str(), W_OK) == -1)
     {
         _statusCode = FORBIDDEN;
-        setErrorResponse(fullPath, _currLocation.getErrMap(), _currLocation.getRoot());
+        setErrorResponse(fullPath, _currLocation.getErrors(), _currLocation.getRoot());
 		// stat(fullPath.c_str(), &s);
 		return ;
     }
@@ -264,7 +264,7 @@ void Response::handleDelete(){
 
 }
 
-std::string const Response::getResponse(sentResponse &sentresp)
+std::string const Response::getResponse(SentResponse &sentresp)
 {
 	std::string response;
 	response += _request.getMap().at("Protocol") + " ";

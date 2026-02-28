@@ -13,7 +13,9 @@ SRC         =	srcs/main.cpp \
 				srcs/WebServer.cpp \
 				srcs/Redir.cpp \
 				srcs/Location.cpp \
-				srcs/Server.cpp
+				srcs/Server.cpp \
+				srcs/ConfigParser.cpp \
+				srcs/utils/format.cpp
 
 OBJ         = $(SRC:.cpp=.o)
 

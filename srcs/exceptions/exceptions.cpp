@@ -8,8 +8,19 @@ const char* ExceptionNull::what() const throw()
 
 const char* ExceptionBadInit::what() const throw()
 {
+	if (!_precision.empty())
+		return (_precision.c_str());
 	return ("Encountered an error during init.");
 }
+
+ExceptionBadInit::ExceptionBadInit() throw()
+{}
+
+ExceptionBadInit::ExceptionBadInit(std::string str) throw() : _precision(str) 
+{}
+
+ExceptionBadInit::~ExceptionBadInit() throw()
+{}
 
 const char* ExceptionSignal::what() const throw()
 {
