@@ -85,11 +85,11 @@ void Response::pickMethod()
 	throw ExceptionParsingError(); // nouvelle class exception ? 
 }
 
-std::string Response::MIMEtable(std::string LocalPath)
+std::string Response::MIMEtable(std::string localPath)
 {
 	int i = 0;
 	for (; i < 5; i++)
-		if (LocalPath.find("." + mimeTable[i]) != std::string::npos)
+		if (localPath.find("." + mimeTable[i]) != std::string::npos)
 			break ;
 	return ("text/" + mimeTable[i]);
 }
@@ -108,24 +108,29 @@ void Response::addHeader(std::string key, std::string value)
 	_header[key] = value;
 }
 
-void Response::setErrorResponse(std::string &LocalPath, std::map<int, std::string> const& errMapLocation, std::string const& root)
+void Response::setErrorResponse(std::string &localPath, std::map<int, std::string> const& errMapLocation, std::string const& root)
 {
 	// Regarder la gestion du bloc LOCATION
 	// Si pas preciser rediriger vers ERROR PAGE par defaut
-	try{
-		LocalPath = root + "/" + errMapLocation.at(_statusCode);
+	mc_is_ite errPage = errMapLocation.find(_statusCode);
+	if (errPage != errMapLocation.end())
+	{
+		localPath = root + "/" + errPage->second;
 		_statusCode = MOVED_PERMANENTLY;
 	}
-	catch (std::exception &e)
+	else
 	{
-		try{
-			LocalPath = _currServ.getErrorsServer().at(_statusCode);
-			_statusCode = OK;
+		_statusCode = OK;
+		errPage = _currServ.getErrorsServer().find(_statusCode);
+		if (errPage != _currServ.getErrorsServer().end())
+		{
+			localPath = errPage->second;
 		}
-		catch (std::exception &e){
-			LocalPath = "html/errors/defaultErrorPage.html";
+		else{
+			localPath = _currServ.getErrorsServer().find(0)->second;
 		}
 	}
+	std::cout << "LOCALPATH : " << localPath << "\n";
 }
 //*********************************************************************************************/
 /*										BUILDERS											  */
@@ -198,21 +203,17 @@ std::string Response::buildLocalPath()
 /*										UTILS											  	  */
 //*********************************************************************************************/
 
-bool Response::checkFileAccess(std::string &LocalPath, int requiredAccess)
+void Response::checkFileAccess(std::string &localPath, int requiredAccess)
 {
 	struct stat s;
-	if (stat(LocalPath.c_str(), &s) == -1) {
+	if (stat(localPath.c_str(), &s) == -1) {
 		_statusCode = NOT_FOUND;
-		setErrorResponse(LocalPath, _currLocation.getErrors(), _currLocation.getRoot());
-		return (false);
+		setErrorResponse(localPath, _currLocation.getErrors(), _currLocation.getRoot());
 	}
-	
-	if (!S_ISREG(s.st_mode) || access(LocalPath.c_str(), requiredAccess) == -1) {
+	else if (!S_ISREG(s.st_mode) || access(localPath.c_str(), requiredAccess) == -1) {
 		_statusCode = FORBIDDEN;
-		setErrorResponse(LocalPath, _currLocation.getErrors(), _currLocation.getRoot());
-		return (false);
+		setErrorResponse(localPath, _currLocation.getErrors(), _currLocation.getRoot());
 	}
-	return (true);
 }
 
 bool Response::readFileContent(const std::string &filePath, size_t fileSize)
@@ -246,25 +247,26 @@ void Response::parseFormData(std::map<std::string, std::string> &data)
 
 void Response::handleGet()
 {
-	std::string LocalPath;
+	std::string localPath;
 	struct stat s;
 
 	if (_statusCode == CONTENT_TOO_LARGE)
 	{
-		try{		
-			LocalPath = _currServ.getErrorsServer().at(_statusCode);
+		mc_is_ite errPage = _currServ.getErrorsServer().find(_statusCode);
+		if (errPage != _currServ.getErrorsServer().end())
+			localPath = errPage->second;
+		else{
+			localPath = _currServ.getErrorsServer().find(0)->second;
 		}
-		catch (std::exception &e){
-			LocalPath = "html/errors/defaultErrorPage.html";
-		}
+		return ; // RETURN OU PAS ??
 	}
-    LocalPath = buildLocalPath();
-	
-	if (!checkFileAccess(LocalPath, R_OK) || (stat(LocalPath.c_str(), &s) == -1))
+    localPath = buildLocalPath();
+	checkFileAccess(localPath, R_OK);
+	if ((stat(localPath.c_str(), &s) == -1))
 		return ;
 
-	readFileContent(LocalPath, s.st_size);
-	addHeader("Content-Type", MIMEtable(LocalPath));
+	readFileContent(localPath, s.st_size);
+	addHeader("Content-Type", MIMEtable(localPath));
 	addHeader("Content-Length", intToString(_body.length()));
 }
 
@@ -272,9 +274,9 @@ void Response::handlePost()
 {
 	//TODO: RECUPER DYNAMIQUEMENT SUCCESS HTML via GLOBALSERVER ou REDIR (build full path...)
 	struct stat s;
-	std::string LocalPath = "html/success.html";
+	std::string localPath = "html/success.html";
 
-	if (stat(LocalPath.c_str(), &s) == -1)
+	if (stat(localPath.c_str(), &s) == -1)
 		return ;
 
 	std::map<std::string, std::string> formData; // TODO: utiliser cette data? Du coup on appelera parseform avec &data de la class
@@ -287,20 +289,19 @@ void Response::handlePost()
 
 void Response::handleDelete()
 {
-	std::string LocalPath = buildLocalPath();
+	std::string localPath = buildLocalPath();
 	struct stat s;
 
-	if (stat(LocalPath.c_str(), &s) == -1)
+	if (stat(localPath.c_str(), &s) == -1)
 	{
 		_statusCode = NOT_FOUND;
-		setErrorResponse(LocalPath, _currLocation.getErrors(), _currLocation.getRoot());
+		setErrorResponse(localPath, _currLocation.getErrors(), _currLocation.getRoot());
 		return ;
 	}
 
-    if (!checkFileAccess(LocalPath, W_OK))
-		return ;
+    checkFileAccess(localPath, W_OK);
 	
-	remove(LocalPath.c_str());
+	remove(localPath.c_str());
 	_statusCode = NO_CONTENT;
 	addHeader("Content-Length", "0");
 }

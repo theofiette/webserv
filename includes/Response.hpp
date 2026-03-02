@@ -49,7 +49,7 @@ class Response
 		void validateMethodAllowed(const Location &);
 		void appendIndexToDirectory(std::string &, const Location &);
 
-		bool checkFileAccess(std::string &, int);
+		void checkFileAccess(std::string &, int);
 		bool readFileContent(const std::string &, size_t);
 		void parseFormData(std::map<std::string, std::string> &);
 
