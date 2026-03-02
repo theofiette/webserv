@@ -183,15 +183,26 @@ Server::~Server()
 
 // GETTERS
 
-const std::map<string, Location>& Server::getLocations() const
+const std::map<string, Location>&	Server::getLocations() const
 {
 	return (_locations);
 }
 
-const std::map<int, std::string>&  Server::getErrorsServer() const
+const std::map<int, std::string>&	Server::getErrorsServer() const
 {
 	return (_errors);
 }
+
+const std::string&					Server::getServerName() const
+{
+	return (_serverName);
+}
+
+const int&							Server::getServerPort() const
+{
+	return (_listen);
+}
+
 
 int Server::getMaxBody() const
 {

@@ -5,12 +5,14 @@
 #include <string>
 #include "exception.hpp"
 #include "Location.hpp"
+#include "Cgi.hpp"
 
 
 class Request;
 // class Response;
 class Server;
 class Location;
+class Cgi;
 struct SentResponse;
 
 enum ErrorCode{
@@ -36,6 +38,7 @@ class Response
 		Location _currLocation;
 		const Server &_currServ;
 		const Request &_request;
+		const Cgi _cgi;
 		
 		static const std::map<int, std::string> _statusMap;
 		static const std::string methods[METHODS_COUNT];

@@ -125,6 +125,11 @@ const std::string& Request::getBody() const
 	return (_body);
 }
 
+const Server &Request::getServer() const
+{
+	return (_currServ);
+}
+
 const std::map<std::string, std::string>& Request::getMap() const
 {
 	return (_reqMap);

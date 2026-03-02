@@ -71,17 +71,25 @@ void Response::pickMethod()
 		&Response::handlePost,
 		&Response::handleDelete
 	};
-	for (int i = 0; i < METHODS_COUNT; i++)
-		if (_request.getMap().at("Method") == Response::methods[i])
-		{
-			try {
-				(this->*methods[i])();
-				return ;
+	if (_request.getMap().at("Path").find(".cgi") != std::string::npos) //TODO: aller cher dans la loc
+	{
+		// handleCgi();
+		return ;
+	}
+	else
+	{
+		for (int i = 0; i < METHODS_COUNT; i++)
+			if (_request.getMap().at("Method") == Response::methods[i])
+			{
+				try {
+					(this->*methods[i])();
+					return ;
+				}
+				catch (ExceptionPathError &e){
+					return ;
+				}
 			}
-			catch (ExceptionPathError &e){
-				return ;
-			}
-		}
+	}
 	throw ExceptionParsingError(); // nouvelle class exception ? 
 }
 

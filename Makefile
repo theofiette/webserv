@@ -15,7 +15,8 @@ SRC         =	srcs/main.cpp \
 				srcs/Server/config/Location.cpp \
 				srcs/Server/config/Server.cpp \
 				srcs/Server/config/ConfigParser.cpp \
-				srcs/utils/format.cpp
+				srcs/utils/format.cpp \
+				srcs/Server/CGI/Cgi.cpp
 
 OBJ         = $(SRC:.cpp=.o)
 

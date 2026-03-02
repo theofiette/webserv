@@ -119,7 +119,7 @@ void	WebServer::_processRequest(pollfd &request)
 		return ;
 	//si pas fini de read la request return ;
 	currRequest.parseRequest(currRequest.getRawRequest());
-	
+	// static Cgi cgi;
 	Response resp(currRequest, _config.servers.back()); // TODO: passer le bon server
 
 	SentResponse sentresp;

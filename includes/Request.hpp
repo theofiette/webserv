@@ -18,7 +18,7 @@ class Request
 		std::string 						_body;
 		bool								_requestComplete;
 
-		Server &_currServ;
+		const Server& _currServ;
 	public:
 		Request(Server &);
 		~Request();
@@ -34,6 +34,7 @@ class Request
 	// TEMPORAIRE
 	void displayInfos() const;
 	const std::string& getBody() const;
+	const Server &getServer() const;
 };
 
 std::string extractContentLength(std::string buffer);
