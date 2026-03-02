@@ -258,9 +258,9 @@ void Response::handleGet()
 		else{
 			localPath = _currServ.getErrorsServer().find(0)->second;
 		}
-		return ; // RETURN OU PAS ??
 	}
-    localPath = buildLocalPath();
+	else 
+		localPath = buildLocalPath();
 	checkFileAccess(localPath, R_OK);
 	if ((stat(localPath.c_str(), &s) == -1))
 		return ;
