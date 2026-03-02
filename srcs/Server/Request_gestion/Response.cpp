@@ -275,6 +275,7 @@ void Response::handlePost()
 	//TODO: RECUPER DYNAMIQUEMENT SUCCESS HTML via GLOBALSERVER ou REDIR (build full path...)
 	struct stat s;
 	std::string localPath = "html/success.html";
+	// std::string localPath = getSuccessPath();
 
 	if (stat(localPath.c_str(), &s) == -1)
 		return ;
