@@ -48,9 +48,9 @@ void Request::recvRequest(int socketFd)
 		t_bzero(&buffer, sizeof(buffer));
 		return ;
 	}
-	int contentLength = stringToInt(extractContentLength(_rawRequest));
+	int contentLength = stringToInt(extractContentLength(_rawRequest));  // TODO: verify that we have correctly took the content
 	if (contentLength <= 0)
-		_requestComplete = true;
+		_requestComplete = true; // if i dont find content length and im not a get, it fucks 
 	else if (contentLength > 0)
 	{
 		if (contentLength > _currServ.getMaxBody())
@@ -101,17 +101,17 @@ int Request::parseRequest(std::string request)
 		{
 			if (tmp.empty() || tmp[0] == '\r')
 				break;
-			std::pair<std::string, std::string> map;
+			std::pair<std::string, std::string> pair;
 			size_t sep = tmp.find(": ");
 			if (sep == std::string::npos)
 				throw ExceptionParsingError();
-			map.first = tmp.substr(0, sep);
+			pair.first = tmp.substr(0, sep);
 			size_t end = tmp.find('\r');
 			if (end == std::string::npos)
 				throw ExceptionParsingError();
 			sep += 2; // SKIP ": " 
-			map.second = tmp.substr(sep, end - sep);
-			_reqMap.insert(map);
+			pair.second = tmp.substr(sep, end - sep);
+			_reqMap.insert(pair);
 		}
 	}
 	catch (std::exception &e){

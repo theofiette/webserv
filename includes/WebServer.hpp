@@ -10,13 +10,7 @@
 #include <sstream>
 
 class Request;
-
-typedef struct SentResponse 
-{
-	std::string rawResponse;
-	int			bytesSent;
-	int			headerLength;
-}	SentResponse;
+struct SentResponse;
 
 class WebServer
 {

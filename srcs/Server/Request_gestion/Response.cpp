@@ -35,7 +35,8 @@ const std::map<int, std::string> Response::_statusMap = initStatusMap();
 /*										CONSTRUCTORS										  */
 //*********************************************************************************************/
 
-Response::Response(const Request &request, const Server &server) : _statusCode(200), _currServ(server), _request(request)
+Response::Response(const Request &request, const Server &server) : _statusCode(200), 
+_currServ(server), _request(request)
 {
 	_request.displayInfos();
 	if (_request.getMap().at("Method") == "POST")
@@ -97,7 +98,7 @@ std::string Response::MIMEtable(std::string localPath)
 {
 	int i = 0;
 	for (; i < 5; i++)
-		if (localPath.find("." + mimeTable[i]) != std::string::npos)
+		if (localPath.find("." + mimeTable[i]) != std::string::npos) // TODO: securise
 			break ;
 	return ("text/" + mimeTable[i]);
 }
@@ -310,12 +311,12 @@ void Response::handleDelete()
 
     checkFileAccess(localPath, W_OK);
 	
-	remove(localPath.c_str());
+	remove(localPath.c_str()); // TODO: securise
 	_statusCode = NO_CONTENT;
 	addHeader("Content-Length", "0");
 }
 
-std::string const Response::getResponse(SentResponse &sentresp)
+std::string const Response::buildResponse(SentResponse &sentresp)
 {
 	std::string response;
 

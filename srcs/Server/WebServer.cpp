@@ -179,7 +179,7 @@ void	WebServer::_processRequest(pollfd &request)
 	Response resp(currRequest, currRequest.getServer());
 
 	SentResponse sentresp;
-	sentresp.rawResponse = resp.getResponse(sentresp);
+	sentresp.rawResponse = resp.buildResponse(sentresp);
 	sentresp.bytesSent = 0;
 	std::pair<int, SentResponse> r = std::make_pair(request.fd, sentresp); // TODO: choose an other way or keep 
 	_responsesMap.insert(r);
@@ -189,22 +189,18 @@ void	WebServer::_processRequest(pollfd &request)
 
 void	WebServer::_sendResponse(pollfd &request)
 {
-	// write(1, "P", 1);
 	std::cout << "FD is : " << request.fd << std::endl;
-	// if (_responsesMap.find(request.fd) == _responsesMap.end())
-	// 	return ;
 	SentResponse &currResponse = _responsesMap.at(request.fd);
-	write(1, "X", 1);
 
 	const char *res = currResponse.rawResponse.c_str() + currResponse.bytesSent; // TODO: dynamic
 	int contentLength = stringToInt(extractContentLength(currResponse.rawResponse));
 	int remainingSize = (contentLength + currResponse.headerLength) - currResponse.bytesSent;
 
-	std::cout << GREEN BOLD ITALIC << res << END << "\n";
+	// std::cout << GREEN BOLD ITALIC << res << END << "\n";
 	currResponse.bytesSent += send(request.fd, res, (remainingSize < SEND_SIZE ? remainingSize : SEND_SIZE), 0);
-	std::cout << ORANGE << "SENT " << currResponse.bytesSent << "\n";
-	std::cout << "OVER  " << contentLength + currResponse.headerLength << "\n";
-	std::cout <<  "REMAINING " << currResponse.bytesSent - (contentLength + currResponse.headerLength) << END"\n";
+	// std::cout << ORANGE << "SENT " << currResponse.bytesSent << "\n";
+	// std::cout << "OVER  " << contentLength + currResponse.headerLength << "\n";
+	// std::cout <<  "REMAINING " << currResponse.bytesSent - (contentLength + currResponse.headerLength) << END"\n";
 	//WHAT TO DO IF CLIENT DISCONNECT ??? 
 	if (currResponse.bytesSent == contentLength + currResponse.headerLength)
 	{

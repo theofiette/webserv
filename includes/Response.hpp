@@ -28,6 +28,13 @@ enum ErrorCode{
 	CONTENT_TOO_LARGE = 413
 };
 
+typedef struct SentResponse 
+{
+	std::string rawResponse;
+	int			bytesSent;
+	int			headerLength;
+}	SentResponse;
+
 class Response
 {
 	private:
@@ -71,5 +78,5 @@ class Response
 		void handlePost();
 		void handleDelete();
 
-		std::string const getResponse(SentResponse&);
+		std::string const buildResponse(SentResponse&);
 };
