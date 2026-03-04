@@ -26,14 +26,10 @@ class	ExceptionBadInit : public std::exception
 class	ExceptionSignal : public std::exception
 {
 	private:
-		int	_sig;
-
 		const char*	what() const throw();
-		ExceptionSignal();
 	
 	public:
-		ExceptionSignal(int sig);
-		int	getSig() const throw();
+		ExceptionSignal() throw();
 };
 
 class ExceptionParsingError : public std::exception

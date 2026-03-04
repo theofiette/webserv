@@ -1,12 +1,12 @@
 #include "Server.hpp"
 #include "Location.hpp"
-# define SERVER_DF_PORT		8080
-# define SERVER_DF_NAME		"localhost"
+# define SERVER_DF_PORT		"8080"
+# define SERVER_DF_NAME		"127.0.0.1"
 # define SERVER_DF_SEND		false
 # define SERVER_DF_BODY		2048
 # define SERVER_DF_ERROR	"html/errors/default_error.html"
 
-int		Server::_df_listen			= SERVER_DF_PORT;
+string	Server::_df_listen			= SERVER_DF_PORT;
 string	Server::_df_serverName		= SERVER_DF_NAME;
 bool	Server::_df_sendFile		= SERVER_DF_SEND;
 int		Server::_df_clientBodyMax	= SERVER_DF_BODY;
@@ -112,7 +112,7 @@ void	Server::insertError(int code, string path)
 // SETTER // GETTER
 //------------------------------------------------
 
-void	Server::setListen(int value)
+void	Server::setListen(string value)
 {
 	_listen = value;
 }
@@ -137,7 +137,7 @@ void	Server::setErrorPath(string value)
 	_errorPage = value;
 }
 
-void	Server::set_df_listen(int value)
+void	Server::set_df_listen(string value)
 {
 	Server::_df_listen = value;
 }
@@ -196,4 +196,14 @@ const std::map<int, std::string>&  Server::getErrorsServer() const
 int Server::getMaxBody() const
 {
 	return (_clientBodyMax);
+}
+
+const string Server::getServerName() const
+{
+	return (_serverName);
+}
+
+const string Server::getListen() const
+{
+	return (_listen);
 }

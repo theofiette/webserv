@@ -6,42 +6,38 @@
 #include <csignal>
 #include <cstdlib>
 
-//TODO delete
-void sigHandler(int sig)
-{
-	std::cerr << "\n";
-	throw (ExceptionSignal(128 + sig));
-}
+int g_sig;
 
-void exceptionManager(std::exception *e)
+void exceptionManager(std::exception *e, int &returnValue)
 {
-	int	errorCode = 1;
-
 	if (dynamic_cast<ExceptionSignal *>(e))
-		errorCode = dynamic_cast<ExceptionSignal *>(e)->getSig();
+	{
+		std::cerr << "\n";
+		returnValue = g_sig;
+	}
 	std::cerr << BOLD << e->what() << END << std::endl;
-	exit(errorCode);
 }
 
 #define CONFIG_PATH "./config"
 
 int main(int argc, char *argv[])
 {	
-	signal(SIGINT, sigHandler);
+	int returnValue = 0;
+
+	signal(SIGINT, sigHandlerDefault);
 	try
 	{
 		std::string		configFilePath = (argc > 1 ? argv[1] : CONFIG_PATH);
 		ConfigParser	parser;
 		WebServer		webServer(parser.parseFile(configFilePath));
 
-		webServer.init();
-
 		webServer.display();
+		webServer.init();
 		webServer.loop();
 	}
 	catch (std::exception &e)
 	{
-		exceptionManager(&e);
+		exceptionManager(&e, returnValue);
 	}
-	return (0);
+	return (returnValue);
 }

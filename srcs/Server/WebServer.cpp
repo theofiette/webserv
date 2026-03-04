@@ -1,63 +1,114 @@
+#include <csignal>
+
 #include "WebServer.hpp"
+#include "wrapper.hpp"
 #include "Request.hpp"
 #include "Response.hpp"
+#include "safemath.hpp"
 
 # include "errno.h"
 
-void	WebServer::_initMasterSocket()
+void	WebServer::_initReferenceSocket(struct addrinfo &hints)
 {
-	struct addrinfo *gai;
-	struct addrinfo hints;
-	int				tmp = 1;
-
 	t_bzero<struct addrinfo>(&hints, sizeof(hints));
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
-	_masterSocket = socket(AF_INET, SOCK_STREAM, 0); // TODO check protocol
-	//TODO gai_error
-	if (
-		_masterSocket == -1														||
-		fcntl(_masterSocket, F_SETFL, O_NONBLOCK) == - 1 						||
-		getaddrinfo(NULL, LOCALHOST, &hints, &gai) == -1 						||
-		setsockopt(_masterSocket, SOL_SOCKET, SO_REUSEADDR, &tmp, sizeof(int))	||
-		bind(_masterSocket, gai->ai_addr, gai->ai_addrlen) == -1				||
-		listen(_masterSocket, MAX_CLIENTS) == -1)
-		{
-			std::cerr << strerror(errno) << std::endl;
-			throw( ExceptionBadInit() );
-		}
-	freeaddrinfo(gai);
+}
+
+void	WebServer::_initCreateMasterSocket(
+	const Server &currentServer, const struct addrinfo &hints)
+{
+	int	newSocket;
+
+	newSocket = Socket(AF_INET, SOCK_STREAM, 0);
+	_masterSockets.push_back(newSocket);
+	_serverCount++;
+	Fcntl(newSocket, F_SETFL, O_NONBLOCK);
+	Getaddrinfo(currentServer.getServerName(), currentServer.getListen(), &hints, &_gaiPtr);
+	Setsockopt(newSocket, SOL_SOCKET, SO_REUSEADDR);
+	Bind(newSocket, _gaiPtr->ai_addr, _gaiPtr->ai_addrlen);
+	Listen(newSocket, BACKLOG_SIZE); // ici taille max de la backlog
+
+	freeaddrinfo(_gaiPtr);
+	_gaiPtr = NULL;
+}
+
+void	WebServer::_initMasterSocket()
+{
+	struct addrinfo hints;
+
+	std::vector<Server>::iterator it, ite;
+	it	= _config.servers.begin();
+	ite	= _config.servers.end();
+
+	_initReferenceSocket(hints);
+	for (; it != ite; it++)
+		_initCreateMasterSocket(*it, hints);
+}
+
+int	WebServer::_initGetPollSize()
+{
+	unsigned int fds;
+
+	try {
+		fds = safeAddition(_config.clientMax, _config.servers.size());
+	}
+	catch (std::out_of_range &e)
+	{
+		throw (ExceptionBadInit("Max clients + number of servers is out of range"));
+	}
+	if (fds > FD_SETSIZE)
+	{
+		if (_config.servers.size() > FD_SETSIZE)
+			throw (ExceptionBadInit("Server number is exceeding FD_SETSIZE"));
+		fds = FD_SETSIZE - _config.servers.size();
+		std::cerr << "Max clients + number of servers exceeds FD_SETSIZE (" << FD_SETSIZE << ").\n";
+		std::cerr << "Max client number set to " << fds << "\n";
+	}
+
+	std::cout << "The program is initialized with " << _serverCount << " servers." << "\n";
+	std::cout << "It can listen to " << fds - _serverCount << " clients" << std::endl;
+
+	return (static_cast<int>(fds));
 }
 
 void	WebServer::_initPollFds()
 {
-	t_bzero(_pollfds, sizeof(_pollfds));
-	_pollfds[0].fd = _masterSocket;
-	_pollfds[0].events = POLLIN;
-	_size++;
-	_tempSize++;
+	_pollSize = _initGetPollSize();
+	_pollfds = new pollfd[_pollSize];
+	t_bzero(_pollfds, sizeof(*_pollfds) * _pollSize);
+	for (int i = 0; i < _serverCount; i++)
+	{
+		_pollfds[i].fd = _masterSockets[i];
+		_pollfds[i].events = POLLIN;
+		_size++;
+		_tempSize++;
+	}
 }
 
-void	WebServer::_processConnections()
+void	WebServer::_processConnections(int masterSocket, const Server &currServ)
 {
 	int	socketFd;
 
 	while(1)
 	{
-		socketFd = accept(_masterSocket, 0, 0); // TODO check args
-		if (socketFd < 0)
+		if (_size > _pollSize)
 		{
-			// TODO error here ?
+			std::cerr << "Cannot accept client request, server capacity exceeded" << std::endl;
 			break ;
 		}
+		socketFd = accept(masterSocket, 0, 0);
+		if (socketFd == -1)
+			break ;
 		_pollfds[_size].fd = socketFd; 
 		_pollfds[_size].events = POLLIN;
-		Request req(_config.servers.back());
-		std::pair<int, Request> p = std::make_pair(socketFd, req);
-		_requestsMap.insert(p);
 		_size++;
 		_tempSize++;
+		
+		Request req(currServ);
+		std::pair<int, Request> p = std::make_pair(socketFd, req);
+		_requestsMap.insert(p);
 	}
 }
 
@@ -77,20 +128,21 @@ void	WebServer::_loopUpdate()
 				i--;
 			}
 		}
+		_size = _tempSize;
 	}
-	_size = _tempSize;
 }
 
 void	WebServer::loop()
 {
-	while (1) // TODO deal with error
+	while (1) 
 	{
 		_awaitRequests();
 		for (int i = 0; i < _size; i++)
 		{
 			pollfd &currRequest = _pollfds[i];
-			if (currRequest.fd == _masterSocket)
-				_processConnections();
+
+			if (i < _serverCount)
+				_processConnections(_masterSockets[i], _config.servers[i]);
 			else if (currRequest.revents & POLLIN)
 				_processRequest(currRequest);
 			else if (currRequest.revents & POLLOUT)
@@ -120,7 +172,7 @@ void	WebServer::_processRequest(pollfd &request)
 	//si pas fini de read la request return ;
 	currRequest.parseRequest(currRequest.getRawRequest());
 	
-	Response resp(currRequest, _config.servers.back()); // TODO: passer le bon server
+	Response resp(currRequest, currRequest.getServer());
 
 	SentResponse sentresp;
 	sentresp.rawResponse = resp.getResponse(sentresp);
@@ -165,12 +217,18 @@ void	WebServer::_awaitRequests()
 
 // CONSTRUCTORS
 
-WebServer::WebServer(const WebServerConfig &config) : _config(config), _tempSize(0), _size(0) {}
+WebServer::WebServer(const WebServerConfig &config) : 
+_config(config), _serverCount(0), _tempSize(0), _size(0), _pollfds(NULL), _pollSize(0), _gaiPtr(NULL)
+{}
 
 // DESTRUCTOR
 
 WebServer::~WebServer()
 {
-	close(_masterSocket);
+	for (unsigned int i = 0; i < _masterSockets.size(); i++)
+		close(_masterSockets[i]);
+	delete [] _pollfds ;
+	if (_gaiPtr)
+		freeaddrinfo(_gaiPtr);
 	// std::cout << "Destructor called for class WebServer" << std::endl;
 }

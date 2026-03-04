@@ -12,13 +12,13 @@ class Server
 {
 	private:
 
-		static int		_df_listen;
+		static string	_df_listen;
 		static string	_df_serverName;
 		static bool		_df_sendFile;
 		static int		_df_clientBodyMax;
 		static string	_df_errorPath;
 
-		int		_listen;
+		string	_listen;
 		string	_serverName;
 		bool	_sendFile;
 		int		_clientBodyMax;
@@ -38,13 +38,13 @@ class Server
 
 		// std::map<string, Location> &getLocations();
 
-		static void	set_df_listen(int value);
+		static void	set_df_listen(string value);
 		static void	set_df_serverName(string value);
 		static void	set_df_sendFile(bool value);
 		static void	set_df_clientBodyMax(int value);
 		static void	set_df_errorPath(string value);
 
-		void		setListen(int value);
+		void		setListen(string value);
 		void		setServerName(string value);
 		void		setSendfile(bool value);
 		void		setClientBodyMax(int value);
@@ -53,8 +53,10 @@ class Server
 		Server(); 						//Default constructor
 		~Server();						//Destructor
 
-		int							getMaxBody() const;
-		const std::map<string, Location>& getLocations() const;
-		const std::map<int, std::string>& getErrorsServer() const;
+		int								 	getMaxBody() const;
+		const string						getListen() const;
+		const string						getServerName() const;
+		const std::map<string, Location>&	getLocations() const;
+		const std::map<int, std::string>&	getErrorsServer() const;
 
 };

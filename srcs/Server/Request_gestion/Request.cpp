@@ -3,7 +3,7 @@
 #include <map>
 #include <sstream>
 
-Request::Request(Server &server) : _totalBytes(0), _requestComplete(false), _currServ(server) {}
+Request::Request(const Server &server) : _totalBytes(0), _requestComplete(false), _currServ(server) {}
 
 Request::~Request(){}
 
@@ -119,6 +119,12 @@ int Request::parseRequest(std::string request)
 	}
 	return (1);
 }
+
+const Server &	Request::getServer() const
+{
+	return (_currServ);
+}
+
 
 const std::string& Request::getBody() const
 {

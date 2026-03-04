@@ -18,9 +18,10 @@ class Request
 		std::string 						_body;
 		bool								_requestComplete;
 
-		Server &_currServ;
+		const Server &_currServ;
+
 	public:
-		Request(Server &);
+		Request(const Server &);
 		~Request();
 
 		int	parseRequest(std::string);
@@ -30,6 +31,8 @@ class Request
 	void recvRequest(int);
 	bool &isRequestComplete();
 	const std::map<std::string, std::string>& getMap() const;
+
+	const Server &	getServer() const;
 
 	// TEMPORAIRE
 	void displayInfos() const;

@@ -88,6 +88,36 @@ void	Location::set_df_autoIndex(bool value)
 	Location::_df_autoIndex = value;
 }
 
+void	Location::insertError(int code, string path)
+{
+	std::pair<int, string> new_pair(code, path);
+
+	if (_errors.find(code) == _errors.end())
+		_errors.insert(new_pair);
+	else
+		_errors.find(code)->second = path;
+}
+
+//WORKING HERE
+
+bool	Location::checkErrorsValidity()
+{
+	std::string	path;
+	std::map<int, std::string>::const_iterator	it, ite;
+
+	it	= _errors.begin();
+	ite	= _errors.end();
+
+	for (; it != ite; it++)
+	{
+		path = it->second;
+		std::cout << "Checking error file: " << path << "\n";
+		if (access(path.c_str(), R_OK))
+			return (false);
+	}
+	return (true);
+}
+
 void	Location::display() const
 {
 	std::cout << "methods : G | P | D \n          ";
@@ -99,10 +129,25 @@ void	Location::display() const
 	}
 	std::cout << "\n";
 	std::cout << "root is " << _root << "\n";
-		std::cout << "index is " << _index << "\n";
-		std::cout << "autoindex option is set as: " << std::boolalpha << _autoIndex << "\n";
-		std::cout << "redir: ";
-		_redir.display();
+	std::cout << "index is " << _index << "\n";
+	std::cout << "autoindex option is set as: " << std::boolalpha << _autoIndex << "\n";
+	if (_cgi.size())
+	{
+		std::cout << "cgi: " << "\n";
+		for (unsigned int i = 0; i < _cgi.size(); i++)
+			std::cout << "	" << _cgi[i] << "\n";
+	}
+	if (_errors.size())
+	{
+		std::map<int, std::string>::const_iterator it, ite;
+		it = _errors.begin();
+		ite = _errors.end();
+		std::cout <<"errors: " << "\n";
+		for (; it!= ite; it++)
+			std::cout << "	" << it->first << " : " << it->second << "\n";
+	}
+	std::cout << "redir: ";
+	_redir.display();
 	std::cout << std::endl;
 }
 

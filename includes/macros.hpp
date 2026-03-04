@@ -14,6 +14,8 @@
 
 typedef std::string string;
 
+#define BACKLOG_SIZE	1024
+
 # define CRLF_SIZE	4
 # define CRLF "\r\n\r\n"
 # define READ_SIZE	4096
@@ -25,8 +27,9 @@ typedef std::string string;
 
 #define CONFIG_RULE	4
 
-#define	METHODS_COUNT	3
 #define MIME_SIZE 6
+
+#define	METHODS_COUNT	3
 enum	E_METHODS
 {
 	GET,

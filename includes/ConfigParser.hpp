@@ -64,6 +64,7 @@ class ConfigParser
 		void	_PARAM_name();
 		void	_PARAM_methods();
 		void	_PARAM_cgi();
+		void	_PARAM_error();
 		void	_PARAM_root();
 		void	_PARAM_index();
 		void	_PARAM_autoindex();

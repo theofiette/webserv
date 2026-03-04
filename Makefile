@@ -2,6 +2,8 @@ NAME        = webserv
 
 INCLUDES	= includes/
 
+BUILD_DIR	= .build
+
 CC          = c++
 FLAGS		= -I $(INCLUDES)
 CFLAGS      = -Wall -Wextra -Werror -std=c++98
@@ -15,9 +17,12 @@ SRC         =	srcs/main.cpp \
 				srcs/Server/config/Location.cpp \
 				srcs/Server/config/Server.cpp \
 				srcs/Server/config/ConfigParser.cpp \
-				srcs/utils/format.cpp
+				srcs/utils/format.cpp \
+				srcs/utils/wrapper.cpp \
+				srcs/utils/safemath.cpp \
+				srcs/signal/signal.cpp
 
-OBJ         = $(SRC:.cpp=.o)
+OBJ         = $(SRC:%.cpp=$(BUILD_DIR)/%.o)
 
 # === Colors ===
 GREEN       = \033[0;32m
@@ -35,7 +40,8 @@ $(NAME): $(OBJ)
 	@$(CC) $(CFLAGS) $(FLAGS) $(OBJ) -o $(NAME) && \
 	echo "   $(GREEN)⤷ $(END)Executable: $(GREEN)$(NAME)$(END)"
 
-%.o: %.cpp
+$(BUILD_DIR)/%.o: %.cpp
+	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) $(FLAGS) -c $< -o $@ && \
 	printf "   $(GREEN)⤷ $(BROWN)%-25s $(BLUE)→ $(BROWN)%s$(END)\n" "$<" "$@"
 
