@@ -94,7 +94,7 @@ void	WebServer::_processConnections(int masterSocket, const Server &currServ)
 	int	socketFd;
 
 	std::cout << RED << "Current server: " << masterSocket << std::endl;
-	while(_size <= _pollSize)
+	while (_size < _pollSize)
 	{
 		// if (_size >= _pollSize)
 		// {
@@ -117,14 +117,15 @@ void	WebServer::_processConnections(int masterSocket, const Server &currServ)
 	}
 }
 
-void	WebServer::_loopUpdate(){
-	std::cout << YELLOW << "Size is " << _size <<  std::endl;
+void	WebServer::_loopUpdate()
+{
 	if (_size != _tempSize) // not finished + don't like
 	{
-		for (int i = 0; i < _size; i++)
+		for (int i = 0; i < _tempSize; i++)
 		{
 			if (_pollfds[i].fd == -1)
 			{
+				std::cerr << RED ITALIC << "Cleaned a client: " << i << END << "\n";
 				for (int j = i; j < _size - 1; j++)
 				{
 					_pollfds[j] = _pollfds[j + 1];
@@ -133,7 +134,6 @@ void	WebServer::_loopUpdate(){
 				i--;
 			}
 		}
-		_size = _tempSize;
 	}
 }
 
@@ -145,7 +145,6 @@ void	WebServer::loop()
 		for (int i = 0; i < _size; i++)
 		{
 			pollfd &currRequest = _pollfds[i];
-
 			if (i < _serverCount)
 				_processConnections(_masterSockets[i], _config.servers[i]);
 			else if (currRequest.revents & POLLIN)
@@ -190,7 +189,13 @@ void	WebServer::_processRequest(pollfd &request)
 
 void	WebServer::_sendResponse(pollfd &request)
 {
+	// write(1, "P", 1);
+	std::cout << "FD is : " << request.fd << std::endl;
+	// if (_responsesMap.find(request.fd) == _responsesMap.end())
+	// 	return ;
 	SentResponse &currResponse = _responsesMap.at(request.fd);
+	write(1, "X", 1);
+
 	const char *res = currResponse.rawResponse.c_str() + currResponse.bytesSent; // TODO: dynamic
 	int contentLength = stringToInt(extractContentLength(currResponse.rawResponse));
 	int remainingSize = (contentLength + currResponse.headerLength) - currResponse.bytesSent;
@@ -203,9 +208,12 @@ void	WebServer::_sendResponse(pollfd &request)
 	//WHAT TO DO IF CLIENT DISCONNECT ??? 
 	if (currResponse.bytesSent == contentLength + currResponse.headerLength)
 	{
+		request.revents = 0;
+		std::cout << RED ITALIC << "Closing fd " << request.fd << END << std::endl;
 		_responsesMap.erase(request.fd);
 		close(request.fd);
 		request.fd = -1;
+		_size--;
 	}
 }
 
@@ -235,5 +243,5 @@ WebServer::~WebServer()
 	delete [] _pollfds ;
 	if (_gaiPtr)
 		freeaddrinfo(_gaiPtr);
-	// std::cout << "Destructor called for class WebServer" << std::endl;
+	std::cout << "Destructor called for class WebServer" << std::endl;
 }
