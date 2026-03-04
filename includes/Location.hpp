@@ -1,5 +1,6 @@
 #pragma once
 
+#include "webserv.hpp"
 #include "Redir.hpp"
 #include "macros.hpp"
 #include <vector>
@@ -26,6 +27,8 @@ class Location
 	public:
 
 		bool	registerCgi(std::string cgi);
+		void	insertError(int code, string path);
+		bool	checkErrorsValidity();
 		void	display() const;
 		void	clear();
 
@@ -48,7 +51,7 @@ class Location
 		const std::string&					getRoot() const;
 		const std::map<int, std::string>&	getErrors() const;
 		const std::string& 					getIndex() const;
-		const std::vector<bool>&	getMethods() const;
-		const Redir&				getRedir() const;
-};
+		const std::vector<bool>&			getMethods() const;
+		const Redir&						getRedir() const;
+	};
 

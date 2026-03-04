@@ -242,7 +242,7 @@ void Response::parseFormData(std::map<std::string, std::string> &data)
 		size_t endPos = _request.getBody().find("&", i);
 		if (endPos == std::string::npos)
 			endPos = _request.getBody().find("\r\n\r\n");
-		std::string key = _request.getBody().substr((lastPos == 0 ? lastPos : lastPos + 1), i - (lastPos + (lastPos != 0)));
+		std::string key = _request.getBody().substr((lastPos == 0 ? lastPos : lastPos + 1), i - (lastPos + (lastPos != 0))); // 🤮🤮🤮
 		std::string val = _request.getBody().substr(i + 1, endPos - (i + 1));
 		data.insert(std::make_pair(key, val));
 		lastPos = endPos;

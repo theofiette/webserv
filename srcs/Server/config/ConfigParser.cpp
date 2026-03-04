@@ -1,6 +1,6 @@
 
 # include "ConfigParser.hpp"
-
+#include <sys/stat.h>
 int	ConfigParser::_safeStoi(std::string str)
 {
 	std::istringstream	iss(str);
@@ -42,9 +42,13 @@ void	ConfigParser::_parseError(const char *errorString)
 
 void	ConfigParser::_openFile(const std::string &filePath)
 {
+	struct stat s;
+
 	_file.open(filePath.c_str(), std::ios_base::in);
-	if (_file.fail())
+	if (_file.fail() || stat(filePath.c_str(), &s) == -1)
 		_parseError("Could not properly open config file");
+	if (!S_ISREG(s.st_mode))
+		_parseError("Config path doesn't lead to a regular file");	
 }
 
 void	ConfigParser::_formatLine(std::string &line)
@@ -73,6 +77,8 @@ void	ConfigParser::_bracketClosed()
 	_bracketCount--;
 	if (_bracketCount == 1 && _scope == LOCATION)
 	{
+		if (!_currentServer.checkErrorsValidity())
+			_parseError("Location has invalid error file.");
 		_currentServer.registerLocation(_Location.first, _Location.second);
 		_scope = SERVER;
 	}
@@ -83,7 +89,7 @@ void	ConfigParser::_bracketClosed()
 		if (_scope == SERVER)
 		{
 			_currentServer.checkDefaultLocation();
-			if (!_currentServer.checkErrorsValidity())
+			if (!_Location.second.checkErrorsValidity())
 				_parseError("Server has invalid error file.");
 			_config.servers.push_back(_currentServer);
 			// _currentServer.display();
@@ -215,7 +221,7 @@ void	ConfigParser::_dispatchScope()
 WebServerConfig ConfigParser::parseFile(const std::string &filePath)
 {
 	string			line;
-	
+
 	_openFile(filePath);
 	while (!std::getline(_file, line).eof())
 	{
@@ -223,9 +229,6 @@ WebServerConfig ConfigParser::parseFile(const std::string &filePath)
 		_formatLine(line);
 		_stream.str(line);
 		_extractToken();
-
-		// std::cerr << "Scope : " << _scope << " | line : " << line << "\n";
-
 		while (!_token.empty())
 		{
 			_checkBrackets();
@@ -246,7 +249,8 @@ void	ConfigParser::_PARAM_max_clients()
 
 void	ConfigParser::_PARAM_server_listen()
 {
-	Server::set_df_listen(_safeStoi(_token));
+	if (_safeStoi(_token))
+	Server::set_df_listen(_token);
 }
 
 void	ConfigParser::_PARAM_server_name()
@@ -332,7 +336,7 @@ void	ConfigParser::_PARAM_client_body_max()
 
 void	ConfigParser::_PARAM_listen()
 {
-	_currentServer.setListen(_safeStoi(_token));
+	_currentServer.setListen(_token);
 }
 
 void	ConfigParser::_PARAM_name()
@@ -354,6 +358,22 @@ void	ConfigParser::_PARAM_cgi()
 			return ;
 		}
 	}
+}
+
+void	ConfigParser::_PARAM_error()
+{
+	std::string	param;
+
+	param = _token;
+	_extractToken();
+	if (_token == ";")
+	{
+		_stream.clear();
+		_stream.str(";");
+		_Location.second.insertError(0, param);
+	}
+	else
+		_Location.second.insertError(_safeStoi(param), _token);
 }
 
 void	ConfigParser::_PARAM_methods()
@@ -436,6 +456,7 @@ void	ConfigParser::_initLookUpParamFunctionTable(
 	table.insert(pairParam("name",					&ConfigParser::_PARAM_name));
 	table.insert(pairParam("methods",				&ConfigParser::_PARAM_methods));
 	table.insert(pairParam("cgi",					&ConfigParser::_PARAM_cgi));
+	table.insert(pairParam("error",					&ConfigParser::_PARAM_error));
 	table.insert(pairParam("root",					&ConfigParser::_PARAM_root));
 	table.insert(pairParam("index",					&ConfigParser::_PARAM_index));
 	table.insert(pairParam("autoindex",				&ConfigParser::_PARAM_autoindex));
@@ -464,6 +485,7 @@ void	ConfigParser::_initLookUpParamValidityTable(std::map<string, int> &table)
 	table.insert(std::pair<string, int>("name", 				SERVER));
 	table.insert(std::pair<string, int>("methods", 				LOCATION));
 	table.insert(std::pair<string, int>("cgi",	 				LOCATION));
+	table.insert(std::pair<string, int>("error",	 			LOCATION));
 	table.insert(std::pair<string, int>("root", 				LOCATION));
 	table.insert(std::pair<string, int>("index", 				LOCATION));
 	table.insert(std::pair<string, int>("autoindex", 			LOCATION));

@@ -18,7 +18,7 @@ Cgi::Cgi(const Request &request)
 	_metaVariables["REQUEST_METHOD"] = (rm.find("Method") != rm.end() ? rm.find("Method")->second : "");
 	_metaVariables["SCRIPT_NAME"] = (rm.find("Path") != rm.end() ? rm.find("Path")->second : ""); // TODO:substr
 	_metaVariables["SERVER_NAME"] = request.getServer().getServerName();
-	_metaVariables["SERVER_PORT"] = request.getServer().getServerPort();
+	_metaVariables["SERVER_PORT"] = request.getServer().getListen();
 	_metaVariables["SERVER_PROTOCOL"] = (rm.find("Protocol") != rm.end() ? rm.find("Path")->second : "");
 	// _metaVariables["SERVER_SOFTWARE"] = "";
 	_metaVariables["scheme"] = "";

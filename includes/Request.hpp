@@ -18,9 +18,10 @@ class Request
 		std::string 						_body;
 		bool								_requestComplete;
 
-		const Server& _currServ;
+		const Server &_currServ;
+
 	public:
-		Request(Server &);
+		Request(const Server &);
 		~Request();
 
 		int	parseRequest(std::string);
@@ -33,6 +34,7 @@ class Request
 
 	// TEMPORAIRE
 	void displayInfos() const;
+
 	const std::string& getBody() const;
 	const Server &getServer() const;
 };
