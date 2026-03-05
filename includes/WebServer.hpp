@@ -10,6 +10,8 @@
 #include <sstream>
 
 class Request;
+class Response;
+
 struct SentResponse;
 
 class WebServer
@@ -27,7 +29,9 @@ class WebServer
 		struct addrinfo 			*_gaiPtr;
 
 		std::map<int, Request> 		_requestsMap;
-		std::map<int, SentResponse> _responsesMap;
+		// std::map<int, SentResponse> _responsesMap;
+		std::map<int, Response> _responsesMap;
+
 
 
 		void	_initMasterSocket();

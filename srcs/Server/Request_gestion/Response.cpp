@@ -49,6 +49,8 @@ _currServ(server), _request(request)
 		}
 	}
 	pickMethod();
+	buildRawResponse();
+	_bytesSent = 0;
 }
 
 Response::~Response(){}
@@ -316,20 +318,38 @@ void Response::handleDelete()
 	addHeader("Content-Length", "0");
 }
 
-std::string const Response::buildResponse(SentResponse &sentresp)
+std::string Response::getChunckResp(int bytes)
 {
-	std::string response;
+	std::string chunckResp;
 
-	response += _request.getMap().at("Protocol") + " ";
-	response += intToString(_statusCode) + " " + _statusMap.at(_statusCode) + "\r\n";
+	chunckResp = _rawResponse.substr(_bytesSent, bytes);
+	return (chunckResp.c_str());
+}
+
+void	Response::updateBytesSent(int bytes)
+{
+	_bytesSent += bytes;
+}
+
+bool	Response::isSent()
+{
+	return (_bytesSent >= _rawResponse.size());
+}
+
+
+void Response::buildRawResponse()
+{
+	_rawResponse += _request.getMap().at("Protocol") + " ";
+	_rawResponse += intToString(_statusCode) + " " + _statusMap.at(_statusCode) + "\r\n";
 
 	for (std::map<std::string, std::string>::iterator it = _header.begin(); it != _header.end(); it++)
-		response += it->first + ": " + it->second + "\r\n";
-	response += "\r\n";
+		_rawResponse += it->first + ": " + it->second + "\r\n";
+	_rawResponse += "\r\n";
 
-	sentresp.headerLength = response.size();
-	response += _body;
-	return (response);
+	_contentLength = stringToInt(extractContentLength(_rawResponse));
+
+	_headerLength = _rawResponse.size();
+	_rawResponse += _body;
 }
 
 //*********************************************************************************************/
@@ -338,4 +358,19 @@ std::string const Response::buildResponse(SentResponse &sentresp)
 
 void Response::setCurrLocation(const Location &loc){
 	_currLocation = loc;
+}
+
+const std::string& Response::getRawResponse() const
+{
+	return (_rawResponse);
+}
+
+int Response::getBytesSent() const
+{
+	return (_bytesSent);
+}
+
+int Response::getHeaderLength() const
+{
+	return (_headerLength);
 }

@@ -165,6 +165,28 @@ void	WebServer::display()
 		it->display();
 }
 
+// void	WebServer::_processRequest(pollfd &request)
+// {
+// 	Request currRequest = _requestsMap.at(request.fd);
+
+// 	currRequest.recvRequest(request.fd);
+// 	std::cout << BLUE BOLD <<  currRequest.getRawRequest() << END << "\n";
+// 	if (currRequest.isRequestComplete() == false)
+// 		return ;
+// 	//si pas fini de read la request return ;
+// 	currRequest.parseRequest(currRequest.getRawRequest());
+	
+// 	Response resp(currRequest, currRequest.getServer());
+
+// 	SentResponse sentresp;
+// 	sentresp.rawResponse = resp.buildRawResponse(sentresp);
+// 	sentresp.bytesSent = 0;
+// 	std::pair<int, SentResponse> r = std::make_pair(request.fd, sentresp); // TODO: choose an other way or keep 
+// 	_responsesMap.insert(r);
+
+// 	request.events = POLLOUT; // on set le fd ready to send
+// }
+
 void	WebServer::_processRequest(pollfd &request)
 {
 	Request currRequest = _requestsMap.at(request.fd);
@@ -178,10 +200,7 @@ void	WebServer::_processRequest(pollfd &request)
 	
 	Response resp(currRequest, currRequest.getServer());
 
-	SentResponse sentresp;
-	sentresp.rawResponse = resp.buildResponse(sentresp);
-	sentresp.bytesSent = 0;
-	std::pair<int, SentResponse> r = std::make_pair(request.fd, sentresp); // TODO: choose an other way or keep 
+	std::pair<int, Response> r = std::make_pair(request.fd, resp); // TODO: choose an other way or keep 
 	_responsesMap.insert(r);
 
 	request.events = POLLOUT; // on set le fd ready to send
@@ -189,20 +208,14 @@ void	WebServer::_processRequest(pollfd &request)
 
 void	WebServer::_sendResponse(pollfd &request)
 {
-	std::cout << "FD is : " << request.fd << std::endl;
-	SentResponse &currResponse = _responsesMap.at(request.fd);
+	Response &currResponse = _responsesMap.at(request.fd);
 
-	const char *res = currResponse.rawResponse.c_str() + currResponse.bytesSent; // TODO: dynamic
-	int contentLength = stringToInt(extractContentLength(currResponse.rawResponse));
-	int remainingSize = (contentLength + currResponse.headerLength) - currResponse.bytesSent;
-
-	// std::cout << GREEN BOLD ITALIC << res << END << "\n";
-	currResponse.bytesSent += send(request.fd, res, (remainingSize < SEND_SIZE ? remainingSize : SEND_SIZE), 0);
-	// std::cout << ORANGE << "SENT " << currResponse.bytesSent << "\n";
-	// std::cout << "OVER  " << contentLength + currResponse.headerLength << "\n";
-	// std::cout <<  "REMAINING " << currResponse.bytesSent - (contentLength + currResponse.headerLength) << END"\n";
-	//WHAT TO DO IF CLIENT DISCONNECT ??? 
-	if (currResponse.bytesSent == contentLength + currResponse.headerLength)
+	std::string chunckedStr = currResponse.getChunckResp(SEND_SIZE);
+	int bytesSent = send(request.fd, chunckedStr.c_str(), chunckedStr.size(), 0);
+	if (bytesSent == -1)
+		;
+	currResponse.updateBytesSent(bytesSent);
+	if (currResponse.isSent())
 	{
 		request.revents = 0;
 		std::cout << RED ITALIC << "Closing fd " << request.fd << END << std::endl;

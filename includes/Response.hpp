@@ -41,6 +41,11 @@ class Response
 		int _statusCode;
 		std::map<std::string, std::string> _header;
 		std::string _body;
+
+		std::string				_rawResponse;
+		size_t					_bytesSent;
+		int						_headerLength;
+		int						_contentLength;
 		
 		Location _currLocation;
 		const Server &_currServ;
@@ -78,5 +83,12 @@ class Response
 		void handlePost();
 		void handleDelete();
 
-		std::string const buildResponse(SentResponse&);
+		void 				buildRawResponse();
+		std::string 		getChunckResp(int);
+		void				updateBytesSent(int);
+		bool				isSent();
+
+		const std::string&	getRawResponse() const;
+		int					getHeaderLength() const;
+		int					getBytesSent() const;
 };
