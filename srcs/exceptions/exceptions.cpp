@@ -13,6 +13,22 @@ const char* ExceptionBadInit::what() const throw()
 	return ("Encountered an error during init.");
 }
 
+const char* ExceptionRuntime::what() const throw()
+{
+	if (!_precision.empty())
+		return (_precision.c_str());
+	return ("Encountered an error during runtime.");
+}
+
+ExceptionRuntime::ExceptionRuntime() throw()
+{}
+
+ExceptionRuntime::ExceptionRuntime(std::string str) throw() : _precision(str) 
+{}
+
+ExceptionRuntime::~ExceptionRuntime() throw()
+{}
+
 ExceptionBadInit::ExceptionBadInit() throw()
 {}
 

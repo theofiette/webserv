@@ -163,17 +163,17 @@ void	WebServer::loop()
 			{
 				if (!processing_req)
 				{
-					std::cout << RED << "\nStarting to process requests: " << std::endl;
+					std::cout << RED << "\nStarting to process requests: " << END << std::endl;
 					processing_req = true;
 				}
-				std::cout << YELLOW << "Processing request from fd " << currRequest.fd << std::endl;
+				std::cout << YELLOW << "Processing request from fd " << END << currRequest.fd << std::endl;
 				_processRequest(currRequest);
 			}
 			else if (currRequest.revents & POLLOUT)
 			{
 				if (!sending_resp)
 				{
-					std::cout << RED << "\nStarting to send responses: " << std::endl;
+					std::cout << RED << "\nStarting to send responses: " << END << std::endl;
 					sending_resp = true;
 				}
 				_sendResponse(currRequest);
@@ -195,7 +195,7 @@ void	WebServer::display()
 void	WebServer::_processRequest(pollfd &request)
 {
 	if (_requestsMap.find(request.fd) == _requestsMap.end())
-		throw (ExceptionNull());
+		throw (ExceptionRuntime("Can't find corresponding request."));
 	Request currRequest = _requestsMap.at(request.fd);
 
 	currRequest.recvRequest(request.fd);
@@ -217,7 +217,7 @@ void	WebServer::_sendResponse(pollfd &request)
 {
 	std::cout << "REQUEST FD " << request.fd << "\n";
 	if (_responsesMap.find(request.fd) == _responsesMap.end())
-		throw (ExceptionBadInit());
+		throw (ExceptionRuntime("Can't find corresponding response."));
 	Response &currResponse = _responsesMap.at(request.fd);
 
 	std::string chunckedStr = currResponse.getChunckResp(SEND_SIZE);

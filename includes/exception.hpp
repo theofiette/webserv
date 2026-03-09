@@ -21,17 +21,17 @@ class	ExceptionBadInit : public std::exception
 		~ExceptionBadInit() throw();
 };
 
-// class	ExceptionMissingData : public std::exception
-// {
-// 	private:
-// 		std::string _precision;
-// 		const char*  what() const throw();
+class	ExceptionRuntime : public std::exception
+{
+	private:
+		std::string _precision;
+		const char*  what() const throw();
 
-// 	public:
-// 		ExceptionMissingData()throw();
-// 		ExceptionMissingData(std::string precision) throw();
-// 		~ExceptionMissingData() throw();
-// };
+	public:
+		ExceptionRuntime()throw();
+		ExceptionRuntime(std::string precision) throw();
+		~ExceptionRuntime() throw();
+};
 
 class	ExceptionSignal : public std::exception
 {
