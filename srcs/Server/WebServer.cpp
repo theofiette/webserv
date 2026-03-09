@@ -107,7 +107,7 @@ void	WebServer::_processConnections(int masterSocket, const Server &currServ)
 			break ;
 		std::cout << YELLOW << "Connected to client " << _size << " on fd " << socketFd << std::endl;
 		_pollfds[_size].fd = socketFd; 
-		_pollfds[_size].events = POLLIN;
+		_pollfds[_size].revents = POLLIN;
 		_size++;
 		_tempSize++;
 		
