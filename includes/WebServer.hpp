@@ -23,7 +23,8 @@ class WebServer
 
 		std::vector<int>			_masterSockets;
 		int							_serverCount;
-		int							_size;
+		int							_connectionsCount ;
+		int							_updatedConnectionCount;
 		pollfd 						*_pollfds;
 		int							_pollSize;
 
