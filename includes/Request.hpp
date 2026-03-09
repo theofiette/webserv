@@ -20,18 +20,19 @@ class Request
 
 		const Server &_currServ;
 
+		void 	setFirstLine(std::string);
+
 	public:
 		Request(const Server &);
 		~Request();
 
-		int	parseRequest(std::string);
-		void setFirstLine(std::string);
+		int		parseRequest(std::string);
 		
-	const std::string& getRawRequest() const;
-	void recvRequest(int);
-	bool &isRequestComplete();
-	const std::map<std::string, std::string>& getMap() const;
-
+		const std::string& getRawRequest() const;
+		void recvRequest(int);
+		bool &isRequestComplete();
+		const std::map<std::string, std::string>& getMap() const;
+	
 	// TEMPORAIRE
 	void displayInfos() const;
 

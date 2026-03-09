@@ -38,7 +38,7 @@ const std::map<int, std::string> Response::_statusMap = initStatusMap();
 Response::Response(const Request &request, const Server &server) : _statusCode(200), 
 _currServ(server), _request(request)
 {
-	_request.displayInfos();
+	// _request.displayInfos();
 	if (_request.getMap().at("Method") == "POST")
 	{
 		if (stringToInt(_request.getMap().at("Content-Length")) > _currServ.getMaxBody())
@@ -74,6 +74,8 @@ void Response::pickMethod()
 		&Response::handlePost,
 		&Response::handleDelete
 	};
+	if (_request.getMap().at("Method") == "HEAD")
+		handleGet();
 	if (_request.getMap().at("Path").find(".cgi") != std::string::npos) //TODO: aller cher dans la loc
 	{
 		// handleCgi();
@@ -116,7 +118,7 @@ void Response::setStatusCode()
 
 void Response::addHeader(std::string key, std::string value)
 {
-	_header[key] = value;
+	_header.insert(std::pair<string, string>(key, value));
 }
 
 void Response::setErrorResponse(std::string &localPath, std::map<int, std::string> const& errMapLocation, std::string const& root)
@@ -202,7 +204,7 @@ std::string Response::buildLocalPath()
 	std::string uriPath = _request.getMap().at("Path");
 	std::map<string, Location>::const_reverse_iterator bestMatch = findBestLocation(uriPath);
 	
-	validateMethodAllowed(bestMatch->second);
+	// validateMethodAllowed(bestMatch->second);
 	
 	std::string localPath = bestMatch->second.getRoot() + uriPath;
 	appendIndexToDirectory(localPath, bestMatch->second);
@@ -213,6 +215,12 @@ std::string Response::buildLocalPath()
 //*********************************************************************************************/
 /*										UTILS											  	  */
 //*********************************************************************************************/
+
+
+void	Response::insertCookieHeader(std::string cookie)
+{
+	_header.insert(std::pair<string, string>("Set-Cookie", cookie));
+}
 
 void Response::checkFileAccess(std::string &localPath, int requiredAccess)
 {
@@ -275,7 +283,6 @@ void Response::handleGet()
 	checkFileAccess(localPath, R_OK);
 	if ((stat(localPath.c_str(), &s) == -1))
 		return ;
-
 	readFileContent(localPath, s.st_size);
 	addHeader("Content-Type", MIMEtable(localPath));
 	addHeader("Content-Length", intToString(_body.length()));
@@ -323,7 +330,7 @@ std::string Response::getChunckResp(int bytes)
 	std::string chunckResp;
 
 	chunckResp = _rawResponse.substr(_bytesSent, bytes);
-	return (chunckResp.c_str());
+	return (chunckResp);
 }
 
 void	Response::updateBytesSent(int bytes)
@@ -339,11 +346,14 @@ bool	Response::isSent()
 
 void Response::buildRawResponse()
 {
+	std::map<std::string, std::string>::iterator it 		= _header.begin();
+
 	_rawResponse += _request.getMap().at("Protocol") + " ";
 	_rawResponse += intToString(_statusCode) + " " + _statusMap.at(_statusCode) + "\r\n";
 
-	for (std::map<std::string, std::string>::iterator it = _header.begin(); it != _header.end(); it++)
+	for (; it != _header.end(); it++)
 		_rawResponse += it->first + ": " + it->second + "\r\n";
+	
 	_rawResponse += "\r\n";
 
 	_contentLength = stringToInt(extractContentLength(_rawResponse));

@@ -11,10 +11,8 @@ class	ExceptionNull : public std::exception
 
 class	ExceptionBadInit : public std::exception
 {
-	private:
-		
+	private:	
 		std::string	_precision;
-
 		const char*  what() const throw();
 
 	public:
@@ -22,6 +20,18 @@ class	ExceptionBadInit : public std::exception
 		ExceptionBadInit(std::string precision) throw();
 		~ExceptionBadInit() throw();
 };
+
+// class	ExceptionMissingData : public std::exception
+// {
+// 	private:
+// 		std::string _precision;
+// 		const char*  what() const throw();
+
+// 	public:
+// 		ExceptionMissingData()throw();
+// 		ExceptionMissingData(std::string precision) throw();
+// 		~ExceptionMissingData() throw();
+// };
 
 class	ExceptionSignal : public std::exception
 {
@@ -50,3 +60,4 @@ class ExceptionMethodError : public std::exception
 	private:
 		const char*	what() const throw();
 };
+

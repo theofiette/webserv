@@ -70,8 +70,9 @@ int	WebServer::_initGetPollSize()
 	}
 
 	std::cout << "The program is initialized with " << _serverCount << " servers." << "\n";
-	std::cout << "It can listen to " << fds - _serverCount << " clients" << std::endl;
+	std::cout << "It can listen to " << fds << " clients" << std::endl;
 
+	//TODO: this is false, needs to be corrected
 	return (static_cast<int>(fds));
 }
 
@@ -93,7 +94,6 @@ void	WebServer::_processConnections(int masterSocket, const Server &currServ)
 {
 	int	socketFd;
 
-	std::cout << RED << "Current server: " << masterSocket << std::endl;
 	while (_size < _pollSize)
 	{
 		// if (_size >= _pollSize)
@@ -103,9 +103,9 @@ void	WebServer::_processConnections(int masterSocket, const Server &currServ)
 		// 	break ;
 		// }
 		socketFd = accept(masterSocket, 0, 0);
-		std::cout << YELLOW << "Connected on  " << socketFd << std::endl;
 		if (socketFd == -1)
 			break ;
+		std::cout << YELLOW << "Connected to client " << _size << " on fd " << socketFd << std::endl;
 		_pollfds[_size].fd = socketFd; 
 		_pollfds[_size].events = POLLIN;
 		_size++;
@@ -130,6 +130,7 @@ void	WebServer::_loopUpdate()
 				{
 					_pollfds[j] = _pollfds[j + 1];
 				}
+
 				_tempSize--;
 				i--;
 			}
@@ -139,18 +140,44 @@ void	WebServer::_loopUpdate()
 
 void	WebServer::loop()
 {
+	bool processing_req;
+	bool sending_resp;
+
 	while (1) 
 	{
+
+		processing_req = false;
+		sending_resp = false;
+
 		_awaitRequests();
+		std::cerr << BLUE ITALIC << "\n--> The server received a request, loop initiated. " << END << "\n";
 		for (int i = 0; i < _size; i++)
 		{
 			pollfd &currRequest = _pollfds[i];
 			if (i < _serverCount)
+			{
+				std::cout << RED << "\nListening to connections on server: " << i + 1 << " (fd: " << currRequest.fd << ")" << std::endl;
 				_processConnections(_masterSockets[i], _config.servers[i]);
+			}
 			else if (currRequest.revents & POLLIN)
+			{
+				if (!processing_req)
+				{
+					std::cout << RED << "\nStarting to process requests: " << std::endl;
+					processing_req = true;
+				}
+				std::cout << YELLOW << "Processing request from fd " << currRequest.fd << std::endl;
 				_processRequest(currRequest);
+			}
 			else if (currRequest.revents & POLLOUT)
+			{
+				if (!sending_resp)
+				{
+					std::cout << RED << "\nStarting to send responses: " << std::endl;
+					sending_resp = true;
+				}
 				_sendResponse(currRequest);
+			}
 		}
 		_loopUpdate();
 	}
@@ -165,34 +192,14 @@ void	WebServer::display()
 		it->display();
 }
 
-// void	WebServer::_processRequest(pollfd &request)
-// {
-// 	Request currRequest = _requestsMap.at(request.fd);
-
-// 	currRequest.recvRequest(request.fd);
-// 	std::cout << BLUE BOLD <<  currRequest.getRawRequest() << END << "\n";
-// 	if (currRequest.isRequestComplete() == false)
-// 		return ;
-// 	//si pas fini de read la request return ;
-// 	currRequest.parseRequest(currRequest.getRawRequest());
-	
-// 	Response resp(currRequest, currRequest.getServer());
-
-// 	SentResponse sentresp;
-// 	sentresp.rawResponse = resp.buildRawResponse(sentresp);
-// 	sentresp.bytesSent = 0;
-// 	std::pair<int, SentResponse> r = std::make_pair(request.fd, sentresp); // TODO: choose an other way or keep 
-// 	_responsesMap.insert(r);
-
-// 	request.events = POLLOUT; // on set le fd ready to send
-// }
-
 void	WebServer::_processRequest(pollfd &request)
 {
+	if (_requestsMap.find(request.fd) == _requestsMap.end())
+		throw (ExceptionNull());
 	Request currRequest = _requestsMap.at(request.fd);
 
 	currRequest.recvRequest(request.fd);
-	std::cout << BLUE BOLD <<  currRequest.getRawRequest() << END << "\n";
+	// std::cout << BLUE BOLD <<  currRequest.getRawRequest() << END << "\n";
 	if (currRequest.isRequestComplete() == false)
 		return ;
 	//si pas fini de read la request return ;
@@ -208,18 +215,21 @@ void	WebServer::_processRequest(pollfd &request)
 
 void	WebServer::_sendResponse(pollfd &request)
 {
+	std::cout << "REQUEST FD " << request.fd << "\n";
+	if (_responsesMap.find(request.fd) == _responsesMap.end())
+		throw (ExceptionBadInit());
 	Response &currResponse = _responsesMap.at(request.fd);
 
 	std::string chunckedStr = currResponse.getChunckResp(SEND_SIZE);
 	int bytesSent = send(request.fd, chunckedStr.c_str(), chunckedStr.size(), 0);
-	if (bytesSent == -1)
-		;
+	// if (bytesSent == -1)
+	// ;
 	currResponse.updateBytesSent(bytesSent);
 	if (currResponse.isSent())
 	{
 		request.revents = 0;
 		std::cout << RED ITALIC << "Closing fd " << request.fd << END << std::endl;
-		_responsesMap.erase(request.fd);
+		_responsesMap.erase(_responsesMap.find(request.fd)); // I THINK PROBLEM HERE
 		close(request.fd);
 		request.fd = -1;
 		_size--;

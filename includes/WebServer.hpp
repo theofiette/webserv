@@ -3,14 +3,16 @@
 # include "webserv.hpp"
 # include <vector>
 # include <map>
+# include <sstream>
 
 # include "Server.hpp"
-# include "signal.hpp"
 # include "WebServerConfig.hpp"
-#include <sstream>
+# include "Session.hpp"
+# include "signal.hpp"
 
 class Request;
 class Response;
+class SessionManager;
 
 struct SentResponse;
 
@@ -29,10 +31,9 @@ class WebServer
 		struct addrinfo 			*_gaiPtr;
 
 		std::map<int, Request> 		_requestsMap;
-		// std::map<int, SentResponse> _responsesMap;
-		std::map<int, Response> _responsesMap;
+		std::map<int, Response> 	_responsesMap;
 
-
+		SessionManager				_sessionManager;
 
 		void	_initMasterSocket();
 		void	_initReferenceSocket(struct addrinfo &hints);
@@ -40,7 +41,6 @@ class WebServer
 
 		void	_initPollFds();
 		int		_initGetPollSize();
-
 
 		void	_awaitRequests();
 		void	_processConnections(int masterSocket, const Server &currServ);

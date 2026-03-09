@@ -18,10 +18,10 @@ int stringToInt(std::string num)
 std::string extractContentLength(std::string buffer)
 {
 	std::string contentLength;
-	size_t pos = buffer.find("Content-Length:") + 16;
-
+	size_t pos = buffer.find("Content-Length:");
 	if (pos != std::string::npos)
 	{
+		pos += 16;
 		size_t end = buffer.find("\r", pos);
 		if (end != std::string::npos)
 			contentLength = buffer.substr(pos, end - pos);

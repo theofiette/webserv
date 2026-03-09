@@ -12,6 +12,7 @@ SRC         =	srcs/main.cpp \
 				srcs/exceptions/exceptions.cpp \
 				srcs/Server/Request_gestion/Request.cpp \
 				srcs/Server/Request_gestion/Response.cpp \
+				srcs/Server/Request_gestion/Session.cpp \
 				srcs/Server/WebServer.cpp \
 				srcs/Server/config/Redir.cpp \
 				srcs/Server/config/Location.cpp \
@@ -21,7 +22,7 @@ SRC         =	srcs/main.cpp \
 				srcs/Server/CGI/Cgi.cpp \
 				srcs/utils/wrapper.cpp \
 				srcs/utils/safemath.cpp \
-				srcs/signal/signal.cpp
+				srcs/signal/signal.cpp 
 
 OBJ         = $(SRC:%.cpp=$(BUILD_DIR)/%.o)
 

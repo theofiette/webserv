@@ -14,7 +14,7 @@
 
 typedef std::string string;
 
-#define BACKLOG_SIZE	10
+#define BACKLOG_SIZE	1024
 
 # define CRLF_SIZE	4
 # define CRLF "\r\n\r\n"
