@@ -86,7 +86,7 @@ void	WebServer::_initPollFds()
 		_pollfds[i].fd = _masterSockets[i];
 		_pollfds[i].events = POLLIN;
 		_size++;
-		_tempSize++;
+		_size++;
 	}
 }
 
@@ -105,11 +105,10 @@ void	WebServer::_processConnections(int masterSocket, const Server &currServ)
 		socketFd = accept(masterSocket, 0, 0);
 		if (socketFd == -1)
 			break ;
-		std::cout << YELLOW << "Connected to client " << _size << " on fd " << socketFd << std::endl;
+		std::cout << YELLOW << "Connected to client " << _size << " on fd " << socketFd << std::endl << END;
 		_pollfds[_size].fd = socketFd; 
 		_pollfds[_size].revents = POLLIN;
 		_size++;
-		_tempSize++;
 		
 		Request req(currServ);
 		std::pair<int, Request> p = std::make_pair(socketFd, req);
@@ -119,23 +118,28 @@ void	WebServer::_processConnections(int masterSocket, const Server &currServ)
 
 void	WebServer::_loopUpdate()
 {
-	if (_size != _tempSize) // not finished + don't like
+	for (int i = 0; i < _size; i++)
 	{
-		for (int i = 0; i < _tempSize; i++)
+		if (_pollfds[i].fd == -1)
 		{
-			if (_pollfds[i].fd == -1)
+			std::cerr << RED ITALIC << "Cleaned a client: " << i << END << "\n";
+			for (int j = i; j < _size - 1; j++)
 			{
-				std::cerr << RED ITALIC << "Cleaned a client: " << i << END << "\n";
-				for (int j = i; j < _size - 1; j++)
-				{
-					_pollfds[j] = _pollfds[j + 1];
-				}
-
-				_tempSize--;
-				i--;
+				_pollfds[j] = _pollfds[j + 1];
 			}
+
+			_size--;
+			i--;
 		}
 	}
+}
+void	WebServer::_closeConnection(pollfd &request)
+{
+	request.revents = 0;
+	_requestsMap.erase(_requestsMap.find(request.fd));
+	_responsesMap.erase(_responsesMap.find(request.fd)); // I THINK PROBLEM HERE
+	close(request.fd);
+	request.fd = -1;
 }
 
 void	WebServer::loop()
@@ -159,6 +163,8 @@ void	WebServer::loop()
 				std::cout << RED << "\nListening to connections on server: " << i + 1 << " (fd: " << currRequest.fd << ")" << std::endl;
 				_processConnections(_masterSockets[i], _config.servers[i]);
 			}
+			else if (currRequest.revents & POLLHUP || currRequest.revents & POLLERR)
+				_closeConnection(currRequest);
 			else if (currRequest.revents & POLLIN)
 			{
 				if (!processing_req)
@@ -178,6 +184,8 @@ void	WebServer::loop()
 				}
 				_sendResponse(currRequest);
 			}
+			else
+				std::cout << "socket " << currRequest.fd << " DONT FIT ANY CONDITION\n\n";
 		}
 		_loopUpdate();
 	}
@@ -226,14 +234,7 @@ void	WebServer::_sendResponse(pollfd &request)
 	// ;
 	currResponse.updateBytesSent(bytesSent);
 	if (currResponse.isSent())
-	{
-		request.revents = 0;
-		std::cout << RED ITALIC << "Closing fd " << request.fd << END << std::endl;
-		_responsesMap.erase(_responsesMap.find(request.fd)); // I THINK PROBLEM HERE
-		close(request.fd);
-		request.fd = -1;
-		_size--;
-	}
+		_closeConnection(request);
 }
 
 void	WebServer::init()
@@ -250,7 +251,7 @@ void	WebServer::_awaitRequests()
 // CONSTRUCTORS
 
 WebServer::WebServer(const WebServerConfig &config) : 
-_config(config), _serverCount(0), _tempSize(0), _size(0), _pollfds(NULL), _pollSize(0), _gaiPtr(NULL)
+_config(config), _serverCount(0), _size(0), _pollfds(NULL), _pollSize(0), _gaiPtr(NULL)
 {}
 
 // DESTRUCTOR

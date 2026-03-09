@@ -23,7 +23,6 @@ class WebServer
 
 		std::vector<int>			_masterSockets;
 		int							_serverCount;
-		int							_tempSize;
 		int							_size;
 		pollfd 						*_pollfds;
 		int							_pollSize;
@@ -44,6 +43,7 @@ class WebServer
 
 		void	_awaitRequests();
 		void	_processConnections(int masterSocket, const Server &currServ);
+		void	_closeConnection(pollfd &);
 		void	_processRequest(pollfd &);
 		void	_sendResponse(pollfd &);	
 
