@@ -21,18 +21,19 @@ class Request
 
 		const Server &_currServ;
 
-		bool 	setFirstLine(std::string);
+		void 	setFirstLine(std::string);
 
 	public:
 		Request(const Server &);
 		~Request();
 
 		bool 		stateRequestValidity();
-		bool 		fillHeader(std::stringstream &, std::string &);
+		void 		fillHeader(std::stringstream &, std::string &);
+		void 		extractBody(int, size_t);
 		void		parseRequest(std::string);
 		void		recvRequest(int);		
 		// // TEMPORAIRE
-		void displayInfos() const;
+		void 				displayInfos() const;
 		bool &				isRequestComplete();
 		
 		const std::string& 	getRawRequest() const;
