@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>TeamRequette's Webserv - CGI</title>
+	<style>
+		label, input {
+			display: table-cell;
+			margin-bottom: 10px;
+		}
+		
+		body {
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			background: linear-gradient(135deg, #c90000 0%, #764ba2 100%);
+			min-height: 100vh;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: flex-start;
+			padding: 50px 20px;
+		}
+
+		.header {
+			text-align: center;
+			margin-bottom: 50px;
+		}
+
+		.header h1 {
+			color: white;
+			font-size: 3em;
+			margin: 0;
+			text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+		}
+
+		.container {
+			text-align: center;
+			background: white;
+			padding: 50px;
+			border-radius: 10px;
+			box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+			max-width: 600px;
+			margin-bottom: 40px;
+		}
+
+		.container h2 {
+			color: #333;
+			margin-top: 0;
+			margin-bottom: 30px;
+			font-size: 1.8em;
+		}
+		
+		.button {
+			display: inline-block;
+			padding: 12px 30px;
+			background: linear-gradient(135deg, #764ba2 0%, #c90000 100%);
+			color: white;
+			text-decoration: none;
+			border-radius: 5px;
+			transition: transform 0.3s, box-shadow 0.3s;
+			margin: 10px;
+		}
+		
+		.button:hover {
+			background: linear-gradient(135deg, #303030 20%, #fefefe 100%);
+			color: #303030;
+			transform: translateY(-3px);
+			box-shadow: 0 5px 15px #303030;
+		}
+
+		button {
+			padding: 12px 30px;
+			background: linear-gradient(135deg, #764ba2 0%, #c90000 100%);
+			color: white;
+			border: none;
+			border-radius: 5px;
+			font-size: 1em;
+			cursor: pointer;
+			transition: transform 0.3s, box-shadow 0.3s;
+		}
+
+		button:hover {
+			background: linear-gradient(135deg, #303030 20%, #fefefe 100%);
+			color: #303030;
+			transform: translateY(-3px);
+			box-shadow: 0 5px 15px #303030;
+		}
+	</style>
+</head>
+<body>
+	<div class="header">
+		<h1>⭐ CGI</h1>
+	</div>
+
+	<div class="container">
+		<h2>🔗 GET Method</h2>
+		<p>Click the button below to test the CGI with GET request</p>
+		<a href="/cgi.sh" class="button">CLICK HERE FOR CGI (GET)</a>
+	</div>
+
+	<div class="container">
+		<h2>📝 POST Method</h2>
+		<p>Fill in the form below and submit to test the CGI with POST request</p>
+		<form action="/cgi.sh" method="post">
+			<div>
+				<label for="name">Enter your name&nbsp;:</label>
+				<input type="text" name="name" id="name" required/>
+			</div>
+			<div>
+				<label for="password">Enter your password&nbsp;:</label>
+				<input type="password" name="password" id="password" required/>
+			</div>
+			<div>
+				<label for="phone">Enter your phone number&nbsp;:</label>
+				<input type="tel" id="phone" name="phone" pattern="[0-9]{1}" required/>
+			</div>
+			<div>
+				<label for="email">Enter your email&nbsp;:</label>
+				<input type="text" name="email" id="email" required/>
+			</div>
+			<div>
+				<button type="submit">Submit Form (POST)</button>
+			</div>
+		</form>
+	</div>
+
+</body>
+</html>
