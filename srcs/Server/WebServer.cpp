@@ -85,7 +85,6 @@ void	WebServer::_initPollFds()
 	{
 		_pollfds[i].fd = _masterSockets[i];
 		_pollfds[i].events = POLLIN;
-		// _updatedConnectionCount++;
 		_connectionsCount ++;
 	}
 }
@@ -94,49 +93,20 @@ void	WebServer::_processConnections(int masterSocket, const Server &currServ)
 {
 	int	socketFd;
 
-	while (_updatedConnectionCount < _pollSize)
+	while (_connectionsCount < _pollSize)
 	{
-		// if (_updatedConnectionCount >= _pollSize)
-		// {
-		// 	std::cout << YELLOW << "Size= " << _updatedConnectionCount << " | POLLSIZE= " << _pollSize << std::endl;
-		// 	std::cerr << "Cannot accept client request, server capacity exceeded" << END << std::endl;
-		// 	break ;
-		// }
 		socketFd = accept(masterSocket, 0, 0);
 		if (socketFd == -1)
 			break ;
 		std::cout << YELLOW << "Connected to client " << _connectionsCount << " on fd " << socketFd << std::endl << END;
 		_pollfds[_connectionsCount].fd = socketFd; 
 		_pollfds[_connectionsCount].revents = POLLIN;
-		// _updatedConnectionCount++;
 		_connectionsCount ++;
 		
 		Request req(currServ);
 		std::pair<int, Request> p = std::make_pair(socketFd, req);
 		_requestsMap.insert(p);
 	}
-}
-
-void	WebServer::_loopUpdate()
-{
-	// if (_updatedConnectionCount < _connectionsCount ) // not finished + don't like
-	// {
-	// TODO : CHECK BETTER LOOP
-	for (int i = 0; i < _connectionsCount ; i++)
-	{
-		if (_pollfds[i].fd == -1)
-		{
-			std::cerr << RED ITALIC << "Cleaned a client: " << i << END << "\n";
-			for (int j = i; j < _connectionsCount - 1; j++)
-			{
-				_pollfds[j] = _pollfds[j + 1];
-			}
-
-			_connectionsCount --;
-			i--;
-		}
-	}
-	// }
 }
 
 void	WebServer::loop()
@@ -146,10 +116,8 @@ void	WebServer::loop()
 
 	while (1) 
 	{
-
 		processingReq = false;
 		sendingResp = false;
-
 		_awaitRequests();
 		std::cerr << BLUE ITALIC << "\n--> The server received a request, loop initiated. " << END << "\n";
 		for (int i = 0; i < _connectionsCount ; i++)
@@ -178,9 +146,14 @@ void	WebServer::loop()
 					sendingResp = true;
 				}
 				_sendResponse(currRequest);
+				if (_responsesMap.find(currRequest.fd)->second.isSent())
+				{
+					_closeConnection(currRequest, _pollfds);
+					i--;
+				}
 			}
 		}
-		_loopUpdate();
+		// _loopUpdate();
 	}
 }
 
@@ -203,7 +176,6 @@ void	WebServer::_processRequest(pollfd &request)
 	// std::cout << BLUE BOLD <<  currRequest.getRawRequest() << END << "\n";
 	if (currRequest.isRequestComplete() == false)
 		return ;
-	//si pas fini de read la request return ;
 	currRequest.parseRequest(currRequest.getRawRequest());
 	
 	Response resp(currRequest, currRequest.getServer());
@@ -211,7 +183,7 @@ void	WebServer::_processRequest(pollfd &request)
 	std::pair<int, Response> r = std::make_pair(request.fd, resp); // TODO: choose an other way or keep 
 	_responsesMap.insert(r);
 
-	request.events = POLLOUT; // on set le fd ready to send
+	request.events = POLLOUT;
 }
 
 void	WebServer::_sendResponse(pollfd &request)
@@ -226,8 +198,6 @@ void	WebServer::_sendResponse(pollfd &request)
 	// if (bytesSent == -1)
 	// ;
 	currResponse.updateBytesSent(bytesSent);
-	if (currResponse.isSent())
-		_closeConnection(request);
 }
 
 void	WebServer::init()
@@ -241,23 +211,23 @@ void	WebServer::_awaitRequests()
 	poll(_pollfds, _connectionsCount, TIMEOUT); //TODO : wrapp for -1
 }
 
-void	WebServer::_closeConnection(pollfd &request)
+void	WebServer::_closeConnection(pollfd &request, pollfd *fds)
 {
 	request.revents = 0;
 	std::cout << RED ITALIC << "Closing fd " << request.fd << END << std::endl;
 	if (_responsesMap.find(request.fd) != _responsesMap.end())
-		_responsesMap.erase(_responsesMap.find(request.fd)); // I THINK PROBLEM HERE
+		_responsesMap.erase(_responsesMap.find(request.fd));
 	if (_requestsMap.find(request.fd) != _requestsMap.end())
-		_requestsMap.erase(_requestsMap.find(request.fd)); // I THINK PROBLEM HERE
+		_requestsMap.erase(_requestsMap.find(request.fd));
 	close(request.fd);
-	request.fd = -1;
-	// _updatedConnectionCount--;
+	request = fds[_connectionsCount - 1];
+	_connectionsCount--;
 }
 
 // CONSTRUCTORS
 
 WebServer::WebServer(const WebServerConfig &config) : 
-_config(config), _serverCount(0), _connectionsCount(0), _updatedConnectionCount(0), _pollfds(NULL), _pollSize(0), _gaiPtr(NULL)
+_config(config), _serverCount(0), _connectionsCount(0), _pollfds(NULL), _pollSize(0), _gaiPtr(NULL)
 {}
 
 // DESTRUCTOR
