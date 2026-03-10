@@ -36,6 +36,22 @@ Cgi::~Cgi()
 
 }
 
+const std::map<std::string, std::string>& Cgi::getMetaVars() const{
+	return (_metaVariables);
+}
+
+char* const* Cgi::getEnv() const{
+	return (_cgiEnv);
+}
+
+const std::string& Cgi::getBodyMessage() const{
+	return (_bodyMessage);
+}
+
+void Cgi::setBodyMessage(const std::string &body){
+	_bodyMessage = body;
+}
+
 void Cgi::setupCgiFrame()
 {
 	
