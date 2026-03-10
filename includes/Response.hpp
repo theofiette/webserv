@@ -84,6 +84,7 @@ class Response
 		void handleGet();
 		void handlePost();
 		void handleDelete();
+		void handleCgi(Request const&);
 
 		void 				buildRawResponse();
 		std::string 		getChunckResp(int);

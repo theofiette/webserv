@@ -325,6 +325,66 @@ void Response::handleDelete()
 	addHeader("Content-Length", "0");
 }
 
+void Response::handleCgi(Request const& request){
+	Cgi cgi(request);
+
+	int pipe_in[2];
+	int pipe_out[2];
+
+	if (pipe(pipe_in) == -1 || pipe(pipe_out) == -1)
+		throw ExceptionCgiPipeError();
+	
+	// write()
+	pid_t pid = fork();
+	if (!pid)
+	{
+		close(pipe_in[1]);
+		close(pipe_out[0]);
+	
+		dup2(pipe_in[0], STDIN_FILENO); //pour lire le contenu du POST? ou directement depuis pipein[0]
+
+		if (dup2(pipe_out[1], STDOUT_FILENO) == -1)
+		{
+			close(pipe_in[0]);
+			close(pipe_out[1]);
+			exit(1);
+		}
+		std::string file = "./" + (cgi.getMetaVars().find("SCRIPT_NAME")->second).substr(1);
+		
+		char **tmp;
+		tmp = new char*[2];
+		tmp[0] = strdup(file.c_str());
+		tmp[1] = NULL;
+		execve(tmp[0], tmp, cgi.getEnv());
+		perror("execve");
+		exit(0);
+	}
+	else
+	{
+		close(pipe_in[0]);
+		close(pipe_out[1]);
+		if (_request.getMap().find("Method")->second == "POST")
+		{
+			cgi.setBodyMessage(_request.getBody()); //write in stdout
+			write(pipe_in[1], cgi.getBodyMessage().c_str(), cgi.getBodyMessage().size());
+		}
+		close(pipe_in[1]);
+		waitpid(pid, NULL, 0); //ADD TIMEOUT TO AVOID ZOMBIE PROCESS?
+
+		char buffer[4096];
+		int bytesRead;
+
+		while ((bytesRead = read(pipe_out[0], buffer, sizeof(buffer))) > 0){
+			_rawResponse += buffer;
+		}
+		close(pipe_out[0]);
+		if (bytesRead == -1)
+		{
+			throw ExceptionCgiPipeError(); // vrai error
+		}
+	}
+}
+
 std::string Response::getChunckResp(int bytes)
 {
 	std::string chunckResp;
