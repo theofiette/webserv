@@ -61,3 +61,8 @@ const char*	ExceptionMethodError::what() const throw()
 {
 	return ("Method not recognized.\n"); // A approfondir 
 }
+
+const char*	ExceptionCgiPipeError::what() const throw()
+{
+	return ("Cgi: Pipe Error detected.\n"); // A approfondir 
+}

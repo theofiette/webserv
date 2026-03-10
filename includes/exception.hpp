@@ -48,7 +48,6 @@ class ExceptionParsingError : public std::exception
 		const char*	what() const throw();
 };
 
-
 class ExceptionPathError : public std::exception
 {
 	private:
@@ -61,3 +60,8 @@ class ExceptionMethodError : public std::exception
 		const char*	what() const throw();
 };
 
+class ExceptionCgiPipeError : public std::exception
+{
+	private:
+		const char*	what() const throw();
+};

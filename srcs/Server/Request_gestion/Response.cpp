@@ -8,6 +8,7 @@
 #include <sstream>
 
 #include <sys/stat.h>
+#include <sys/wait.h>
 
 const std::string Response::methods[METHODS_COUNT] = {"GET", "POST", "DELETE"};
 const std::string Response::mimeTable[MIME_SIZE] = {"html", "css", "png", "ico", "gif", "plain"};
