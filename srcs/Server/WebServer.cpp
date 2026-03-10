@@ -153,7 +153,6 @@ void	WebServer::loop()
 				}
 			}
 		}
-		// _loopUpdate();
 	}
 }
 
@@ -172,18 +171,30 @@ void	WebServer::_processRequest(pollfd &request)
 		throw (ExceptionRuntime("Can't find corresponding request."));
 	Request currRequest = _requestsMap.at(request.fd);
 
-	currRequest.recvRequest(request.fd);
+	try {
+		currRequest.recvRequest(request.fd);
+	}
+	catch (std::exception &e) {
+		std::cerr << RED << "Error receiving request on fd " << request.fd << ": " << e.what() << END << std::endl;
+		_closeConnection(request, _pollfds);
+		return;
+	}
+	
 	// std::cout << BLUE BOLD <<  currRequest.getRawRequest() << END << "\n";
 	if (currRequest.isRequestComplete() == false)
 		return ;
-	currRequest.parseRequest(currRequest.getRawRequest());
 	
-	Response resp(currRequest, currRequest.getServer());
-
-	std::pair<int, Response> r = std::make_pair(request.fd, resp); // TODO: choose an other way or keep 
-	_responsesMap.insert(r);
-
-	request.events = POLLOUT;
+	try {
+		currRequest.parseRequest(currRequest.getRawRequest());
+		Response resp(currRequest, currRequest.getServer());
+		std::pair<int, Response> r = std::make_pair(request.fd, resp); // TODO: choose an other way or keep 
+		_responsesMap.insert(r);
+		request.events = POLLOUT;
+	}
+	catch (std::exception &e) {
+		std::cerr << RED << "Error processing request on fd " << request.fd << ": " << e.what() << END << std::endl;
+		_closeConnection(request, _pollfds);
+	}
 }
 
 void	WebServer::_sendResponse(pollfd &request)

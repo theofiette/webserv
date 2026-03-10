@@ -40,8 +40,12 @@ Response::Response(const Request &request, const Server &server) : _statusCode(2
 _currServ(server), _request(request)
 {
 	// _request.displayInfos();
+	if (_request.getMap().find("Method") == _request.getMap().end())
+		throw (ExceptionRuntime("Invalid request for response constructor (Method)"));
 	if (_request.getMap().at("Method") == "POST")
 	{
+		if (_request.getMap().find("Method") == _request.getMap().end())
+			throw (ExceptionRuntime("Invalid request for response constructor (Content Length)"));
 		if (stringToInt(_request.getMap().at("Content-Length")) > _currServ.getMaxBody())
 		{
 			_statusCode = CONTENT_TOO_LARGE;
@@ -75,8 +79,12 @@ void Response::pickMethod()
 		&Response::handlePost,
 		&Response::handleDelete
 	};
+	if (_request.getMap().find("Method") == _request.getMap().end())
+		throw (ExceptionRuntime("Invalid pick method for response (Method)"));
 	if (_request.getMap().at("Method") == "HEAD")
 		handleGet();
+	if (_request.getMap().find("Path") == _request.getMap().end())
+		throw (ExceptionRuntime("Invalid pick method for response (Path)"));
 	if (_request.getMap().at("Path").find(".cgi") != std::string::npos) //TODO: aller cher dans la loc
 	{
 		// handleCgi();
@@ -409,6 +417,8 @@ void Response::buildRawResponse()
 {
 	std::map<std::string, std::string>::iterator it 		= _header.begin();
 
+	if (_request.getMap().find("Protocol") == _request.getMap().end())
+		throw (ExceptionRuntime("Invalid request for build constructor (Method)"));
 	_rawResponse += _request.getMap().at("Protocol") + " ";
 	_rawResponse += intToString(_statusCode) + " " + _statusMap.at(_statusCode) + "\r\n";
 

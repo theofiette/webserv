@@ -40,6 +40,9 @@ void Request::recvRequest(int socketFd)
 	char buffer[SEND_SIZE] = {0};
 	ssize_t bytesRead = recv(socketFd, buffer, SEND_SIZE - 1, 0);
 
+	if (bytesRead < 0)
+		throw ExceptionRuntime("recv() error");
+
 	_totalBytes += bytesRead;
 	_rawRequest += buffer;
 	size_t headerEnd = _rawRequest.find(CRLF) + CRLF_SIZE;
@@ -116,6 +119,7 @@ int Request::parseRequest(std::string request)
 	}
 	catch (std::exception &e){
 		std::cout << "EXCEPTION IS: " <<  e.what() << "\n";
+		throw ExceptionParsingError();
 	}
 	return (1);
 }
