@@ -10,9 +10,9 @@ CFLAGS      = -Wall -Wextra -Werror -std=c++98
 
 SRC         =	srcs/main.cpp \
 				srcs/exceptions/exceptions.cpp \
-				srcs/Server/Request_gestion/Request.cpp \
-				srcs/Server/Request_gestion/Response.cpp \
-				srcs/Server/Request_gestion/Session.cpp \
+				srcs/Server/RequestGestion/Request.cpp \
+				srcs/Server/RequestGestion/Response.cpp \
+				srcs/Server/RequestGestion/Session.cpp \
 				srcs/Server/WebServer.cpp \
 				srcs/Server/config/Redir.cpp \
 				srcs/Server/config/Location.cpp \
@@ -27,25 +27,25 @@ SRC         =	srcs/main.cpp \
 OBJ         = $(SRC:%.cpp=$(BUILD_DIR)/%.o)
 
 # === Colors ===
-GREEN       = \033[0;32m
-BLUE        = \033[0;34m
-BROWN       = \033[0;33m
-END         = \033[0m
-TITLE       = \033[1;36m
+GREEN       = $(shell printf '\033[0;32m')
+PURPLE      = $(shell printf '\033[0;34m')
+GREY        = $(shell printf '\033[3;30m')
+TITLE       = $(shell printf '\033[1;33m')
+END         = $(shell printf '\033[0m')
 
 # === Rules ===
 
 all: $(NAME)
 
 $(NAME): $(OBJ)
-	@echo "$(GREEN) $(TITLE)🔘 make $(NAME)" "$(END)"
+	@echo "$(TITLE)🔘 make $(NAME)" "$(END)"
 	@$(CC) $(CFLAGS) $(FLAGS) $(OBJ) -o $(NAME) && \
 	echo "   $(GREEN)⤷ $(END)Executable: $(GREEN)$(NAME)$(END)"
 
 $(BUILD_DIR)/%.o: %.cpp
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) $(FLAGS) -c $< -o $@ && \
-	printf "   $(GREEN)⤷ $(BROWN)%-25s $(BLUE)→ $(BROWN)%s$(END)\n" "$<" "$@"
+	printf "   $(GREEN)⤷ $(GREY)%-40s $(PURPLE)→ $(GREY)%s$(END)\n" "$<" "$@"
 
 c clean:
 	@echo "$(GREEN) $(TITLE)🔘 make clean" "$(END)"
