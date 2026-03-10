@@ -44,7 +44,7 @@ class	ExceptionSignal : public std::exception
 
 class ExceptionParsingError : public std::exception
 {
-	private:
+	public:
 		const char*	what() const throw();
 };
 

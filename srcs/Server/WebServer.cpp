@@ -174,8 +174,8 @@ void	WebServer::_processRequest(pollfd &request)
 	try {
 		currRequest.recvRequest(request.fd);
 	}
-	catch (std::exception &e) {
-		std::cerr << RED << "Error receiving request on fd " << request.fd << ": " << e.what() << END << std::endl;
+	catch (ExceptionParsingError &e) {
+		std::cerr << RED << "Invalid request on fd " << request.fd << ": " << e.what() << END << std::endl;
 		_closeConnection(request, _pollfds);
 		return;
 	}
