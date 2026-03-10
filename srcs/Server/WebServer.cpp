@@ -104,6 +104,8 @@ void	WebServer::_processConnections(int masterSocket, const Server &currServ)
 		_connectionsCount ++;
 		
 		Request req(currServ);
+		// if (req.getRequestSuccess() == false)
+		// 	_closeConnection();
 		std::pair<int, Request> p = std::make_pair(socketFd, req);
 		_requestsMap.insert(p);
 	}

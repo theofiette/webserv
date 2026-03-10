@@ -9,10 +9,12 @@
 
 
 class Request;
-// class Response;
 class Server;
 class Location;
-// class Cgi;
+
+typedef std::multimap<std::string, std::string> multimap;
+typedef std::map<string, Location>::const_reverse_iterator mc_sL_rite;
+
 struct SentResponse;
 
 enum ErrorCode{
@@ -38,53 +40,52 @@ typedef struct SentResponse
 class Response
 {
 	private:
-		int _statusCode;
-		std::multimap<std::string, std::string> _header;
-		std::string _body;
+		int 				_statusCode;
+		multimap			 _header;
+		std::string 		_body;
 
-		std::string				_rawResponse;
-		size_t					_bytesSent;
-		int						_headerLength;
-		int						_contentLength;
+		std::string			_rawResponse;
+		size_t				_bytesSent;
+		int					_headerLength;
+		int					_contentLength;
 		
-		Location _currLocation;
-		const Server &_currServ;
-		const Request &_request;
-		// const Cgi _cgi;
+		Location 			_currLocation;
+		const Server 		&_currServ;
+		const Request		&_request;
 		
-		static const std::map<int, std::string> _statusMap;
-		static const std::string methods[METHODS_COUNT];
-		static const std::string mimeTable[MIME_SIZE];
+		static const 		std::map<int, std::string> _statusMap;
+		static const 		std::string methods[METHODS_COUNT];
+		static const 		std::string mimeTable[MIME_SIZE];
 
-		std::string intToString(int);
-		std::string MIMEtable(std::string);
-		std::string buildLocalPath();
+		std::string			intToString(int);
+		std::string			MIMEtable(std::string);
+		std::string			buildLocalPath();
 
-		std::map<string, Location>::const_reverse_iterator findBestLocation(const std::string &);
-		void validateMethodAllowed(const Location &);
-		void appendIndexToDirectory(std::string &, const Location &);
+		mc_sL_rite			findBestLocation(const std::string &);
+		void 				validateMethodAllowed(const Location &);
+		void 				appendIndexToDirectory(std::string &, const Location &);
 
-		void	insertCookieHeader(std::string);
+		void 				insertCookieHeader(std::string);
 
-		void checkFileAccess(std::string &, int);
-		bool readFileContent(const std::string &, size_t);
-		void parseFormData(std::map<std::string, std::string> &);
+		void 				checkFileAccess(std::string &, int);
+		bool 				readFileContent(const std::string &, size_t);
+		void 				parseFormData(std::map<std::string, std::string> &);
 
 	public:
-		Response(const Request &, const Server &);
-		~Response();
+							Response(const Request &, const Server &);
+							~Response();
 
-		void setStatusCode();
-		void setCurrLocation(const Location &);
-		void setErrorResponse(std::string&, std::map<int, std::string> const&, std::string const&);
-		void addHeader(std::string, std::string);
+		void				setStatusCode();
+		void				setCurrLocation(const Location &);
+		void				setErrorResponse(std::string&, std::map<int, std::string> const&, std::string const&);
+		void 				addHeader(std::string, std::string);
 
-		void pickMethod();
+		void 				pickMethod();
 
-		void handleGet();
-		void handlePost();
-		void handleDelete();
-		void handleCgi(Request const&);
+		void			 	handleGet();
+		void			 	handlePost();
+		void			 	handleDelete();
+		void			 	handleCgi(Request const&);
 
 		void 				buildRawResponse();
 		std::string 		getChunckResp(int);

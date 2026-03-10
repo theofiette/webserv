@@ -13,7 +13,7 @@ class Request
 {
 	private:
 		size_t								_totalBytes;
-		std::map<std::string, std::string>	_reqMap;
+		std::map<std::string, std::string>	_requestHeader;
 		std::string 						_rawRequest;
 		std::string 						_body;
 		bool								_requestSuccess;
@@ -21,13 +21,15 @@ class Request
 
 		const Server &_currServ;
 
-		void 	setFirstLine(std::string);
+		bool 	setFirstLine(std::string);
 
 	public:
 		Request(const Server &);
 		~Request();
 
-		int			parseRequest(std::string);
+		bool 		stateRequestValidity();
+		bool 		fillHeader(std::stringstream &, std::string &);
+		void		parseRequest(std::string);
 		void		recvRequest(int);		
 		// // TEMPORAIRE
 		void displayInfos() const;

@@ -26,7 +26,7 @@ std::string extractContentLength(std::string buffer)
 		if (end != std::string::npos)
 			contentLength = buffer.substr(pos, end - pos);
 		else
-			throw ExceptionParsingError();
+			throw ExceptionParsingError(); // todo: fix 
 	}
 	else
 	{
@@ -73,55 +73,72 @@ void Request::recvRequest(int socketFd)
 
 void Request::displayInfos() const
 {
-	std::map<std::string, std::string>::const_iterator it = _reqMap.begin();
-	for (; it != _reqMap.end(); it++)
+	std::map<std::string, std::string>::const_iterator it = _requestHeader.begin();
+	for (; it != _requestHeader.end(); it++)
 		std::cout << it->first << " : " << it->second << "\n";
 }
 
-void Request::setFirstLine(std::string tmp)
+bool Request::setFirstLine(std::string buffer)
 {
-    std::istringstream iss(tmp);
+    std::istringstream iss(buffer);
     std::string method, path, protocol;
 
 	if (!(iss >> method >> path >> protocol)) 
-		throw ExceptionParsingError();
+		return (false);
 	if (!protocol.empty() && protocol[protocol.size() - 1] == '\r')
 		protocol[protocol.size() - 1] = 0;
-    _reqMap["Method"] = method;
-    _reqMap["Path"] = path;
-    _reqMap["Protocol"] = protocol;
+    _requestHeader["Method"] = method;
+    _requestHeader["Path"] = path;
+    _requestHeader["Protocol"] = protocol;
+	return (true);
 }
 
-int Request::parseRequest(std::string request)
-{
-	std::string tmp;
-	std::stringstream reqF(request, std::ios_base::in);
 
-	try {
-		std::getline(reqF, tmp, '\n');
-		setFirstLine(tmp);
-		while (std::getline(reqF, tmp, '\n'))
+bool Request::fillHeader(std::stringstream &requestStream, std::string &buffer) 
+{
+	while (std::getline(requestStream, buffer, '\n'))
+	{
+		if (buffer.empty() || buffer[0] == '\r')
+			break;
+		std::pair<std::string, std::string> pair;
+		size_t sep = buffer.find(": ");
+		if (sep == std::string::npos)
 		{
-			if (tmp.empty() || tmp[0] == '\r')
-				break;
-			std::pair<std::string, std::string> pair;
-			size_t sep = tmp.find(": ");
-			if (sep == std::string::npos)
-				throw ExceptionParsingError();
-			pair.first = tmp.substr(0, sep);
-			size_t end = tmp.find('\r');
-			if (end == std::string::npos)
-				throw ExceptionParsingError();
-			sep += 2; // SKIP ": " 
-			pair.second = tmp.substr(sep, end - sep);
-			_reqMap.insert(pair);
+			_requestSuccess = false;
+			return (false);
 		}
+		pair.first = buffer.substr(0, sep);
+		size_t end = buffer.find('\r');
+		if (end == std::string::npos)
+		{
+			_requestSuccess = false;
+			return (false);
+		}
+		sep += 2;
+		pair.second = buffer.substr(sep, end - sep);
+		_requestHeader.insert(pair);
 	}
-	catch (std::exception &e){
-		std::cout << "EXCEPTION IS: " <<  e.what() << "\n";
-		throw ExceptionParsingError();
-	}
-	return (1);
+	return (true);
+}
+
+bool Request::stateRequestValidity()
+{
+	//TODO: if POST and no content length its invalid? 
+	// if () 
+}
+
+void Request::parseRequest(std::string request)
+{
+	std::string buffer;
+	std::stringstream requestStream(request, std::ios_base::in);
+
+	std::getline(requestStream, buffer, '\n');
+	if (setFirstLine(buffer) == false || fillHeader(requestStream, buffer) == false)
+		return ;
+
+	if (stateRequestValidity() == false)
+		return ;
+	_requestSuccess = true;
 }
 
 const Server &	Request::getServer() const
@@ -136,7 +153,7 @@ const std::string& Request::getBody() const
 
 const std::map<std::string, std::string>& Request::getMap() const
 {
-	return (_reqMap);
+	return (_requestHeader);
 }
 
 const std::string& Request::getRawRequest() const
