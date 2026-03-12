@@ -38,6 +38,13 @@ ExceptionBadInit::ExceptionBadInit(std::string str) throw() : _precision(str)
 ExceptionBadInit::~ExceptionBadInit() throw()
 {}
 
+
+const char* ExceptionRequest::what() const throw()
+{
+	return ("Request not valid.");
+}
+
+
 const char* ExceptionSignal::what() const throw()
 {
 	return ("Caught a signal.");
@@ -65,4 +72,14 @@ const char*	ExceptionMethodError::what() const throw()
 const char*	ExceptionCgiPipeError::what() const throw()
 {
 	return ("Cgi: Pipe Error detected.\n"); // A approfondir 
+}
+
+const char*	ExceptionReadError::what() const throw()
+{
+	return ("Read Error detected.\n");
+}
+
+const char*	ExceptionWriteError::what() const throw()
+{
+	return ("Write Error detected.\n");
 }

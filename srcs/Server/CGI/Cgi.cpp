@@ -26,6 +26,28 @@ Cgi::Cgi(const Request &request)
 	_metaVariables["extension-var-name"] = "";
 }
 
+void Cgi::cgiChildProcess(int pipe_in[2], int pipe_out[2]){
+	close(pipe_in[1]);
+	close(pipe_out[0]);
+
+	dup2(pipe_in[0], STDIN_FILENO); //pour lire le contenu du POST? ou directement depuis pipein[0]
+	if (dup2(pipe_out[1], STDOUT_FILENO) == -1)
+	{
+		close(pipe_in[0]);
+		close(pipe_out[1]);
+		exit(1);
+	}
+	std::string file = "./" + (getMetaVars().find("SCRIPT_NAME")->second).substr(1);
+	
+	char **tmp;
+	tmp = new char*[2];
+	tmp[0] = strdup(file.c_str());
+	tmp[1] = NULL;
+	execve(tmp[0], tmp, getEnv());
+	perror("execve");
+	exit(errno);
+}
+
 Cgi::Cgi()
 {
 

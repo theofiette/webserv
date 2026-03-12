@@ -177,6 +177,11 @@ const std::string& Location::getRoot() const
 	return (_root);
 }
 
+const std::vector<std::string>& Location::getCgi() const
+{
+	return (_cgi);
+}
+
 const std::map<int, std::string>& Location::getErrors() const
 {
 	return (_errors);

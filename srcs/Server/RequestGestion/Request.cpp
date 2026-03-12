@@ -26,7 +26,7 @@ std::string extractContentLength(std::string buffer)
 		if (end != std::string::npos)
 			contentLength = buffer.substr(pos, end - pos);
 		else
-			throw ExceptionRuntime("Didn't find CR in header, request invalid!\n"); // todo: fix 
+			throw ExceptionRuntime("Didn't find CR in header, request invalid! (Impossible to reach -> see line 62)\n"); // todo: fix 
 	}
 	else
 		return ("-1");
@@ -54,7 +54,7 @@ void Request::recvRequest(int socketFd)
 	ssize_t bytesRead = recv(socketFd, buffer, SEND_SIZE - 1, 0);
 
 	if (bytesRead < 0)
-		throw ExceptionRuntime("recv() error");
+		throw ExceptionReadError();
 
 	_totalBytes += bytesRead;
 	_rawRequest += buffer;
@@ -64,13 +64,11 @@ void Request::recvRequest(int socketFd)
 		t_bzero(&buffer, sizeof(buffer));
 		return ;
 	}
+	if (getRequestSuccess() == false)
+		return ;
 	int contentLength = stringToInt(extractContentLength(_rawRequest));  // TODO: verify that we have correctly took the content
 	if (contentLength <= 0)
-	{
 		_requestComplete = true; // if i dont find content length and im not a get, it fucks 
-		if (contentLength < 0)
-			_requestSuccess = false;
-	}
 	else if (contentLength > 0)
 		extractBody(contentLength, headerEnd);
 }
@@ -139,9 +137,6 @@ void Request::parseRequest(std::string request)
 	std::getline(requestStream, buffer, '\n');
 	setFirstLine(buffer);
 	fillHeader(requestStream, buffer);
-	if (getRequestSuccess() == false)
-		return ;
-	// _requestSuccess = true;
 }
 
 const Server &	Request::getServer() const
@@ -164,12 +159,12 @@ const std::string& Request::getRawRequest() const
 	return (_rawRequest);
 }
 
-bool &Request::isRequestComplete()
+const bool &Request::isRequestComplete()
 {
 	return (_requestComplete);
 }
 
-bool &Request::getRequestSuccess()
+const bool &Request::getRequestSuccess() const
 {
 	return (_requestSuccess);
 }

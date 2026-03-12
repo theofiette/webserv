@@ -24,9 +24,11 @@ enum ErrorCode{
 	MOVED_PERMANENTLY = 301,
 	FOUND = 302,
 	SEE_OTHER = 303,
+	BAD_REQUEST = 400,
 	FORBIDDEN = 403,
 	NOT_FOUND = 404,
 	NOT_ALLOWED = 405,
+	LENGTH_REQUIRED = 413,
 	CONTENT_TOO_LARGE = 413
 };
 
@@ -69,8 +71,7 @@ class Response
 
 		void 				checkFileAccess(std::string &, int);
 		bool 				readFileContent(const std::string &, size_t);
-		void 				parseFormData(std::map<std::string, std::string> &);
-
+		void 				parseFormData(std::map<std::string, std::string> &);	void 				handleResponsesError();
 	public:
 							Response(const Request &, const Server &);
 							~Response();
@@ -85,12 +86,14 @@ class Response
 		void			 	handleGet();
 		void			 	handlePost();
 		void			 	handleDelete();
-		void			 	handleCgi(Request const&);
+		void			 	handleCgi();
 
+		void				cgiMainProcess(int[2], int[2], Cgi&, int);
 		void 				buildRawResponse();
 		std::string 		getChunckResp(int);
 		void				updateBytesSent(int);
 		bool				isSent();
+		bool 				isCgi();
 
 		const std::string&	getRawResponse() const;
 		int					getHeaderLength() const;

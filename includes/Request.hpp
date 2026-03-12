@@ -34,12 +34,12 @@ class Request
 		void		recvRequest(int);		
 		// // TEMPORAIRE
 		void 				displayInfos() const;
-		bool &				isRequestComplete();
+		const bool &		isRequestComplete();
 		
 		const std::string& 	getRawRequest() const;
 		const std::string&	getBody() const;
 		const Server &		getServer() const;
-		bool &				getRequestSuccess();
+		const bool &		getRequestSuccess() const;
 		
 		const std::map<std::string, std::string>& getMap() const;
 	};
