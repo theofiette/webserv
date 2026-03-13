@@ -50,6 +50,7 @@ $(BUILD_DIR)/%.o: %.cpp
 c clean:
 	@echo "$(GREEN) $(TITLE)🔘 make clean" "$(END)"
 	@rm -f $(OBJ) && echo "   $(GREEN)⤷ $(END)Removed object files"
+	@rm -rf $(BUILD_DIR)
 
 fc fclean: clean
 	@echo "$(GREEN) $(TITLE)🔘 make fclean" "$(END)"

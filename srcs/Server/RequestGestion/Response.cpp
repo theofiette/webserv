@@ -75,10 +75,9 @@ void Response::pickMethod()
 		&Response::handlePost,
 		&Response::handleDelete
 	};
-	if (_request.getMap().at("Method") == "HEAD") //TEMPORAIRE
-		handleGet();
-	
-	if (_request.getMap().at("Path").find(".cgi") != std::string::npos) //TODO: aller cher dans la loc
+	// if (_request.getMap().at("Method") == "HEAD") //TEMPORAIRE
+	// 	handleGet();
+	if (isCgi() == true)
 	{
 		handleCgi();
 		return ;
@@ -206,7 +205,7 @@ std::string Response::buildLocalPath()
 	std::string uriPath = _request.getMap().at("Path");
 	std::map<string, Location>::const_reverse_iterator bestMatch = findBestLocation(uriPath);
 	
-	// validateMethodAllowed(bestMatch->second);
+	validateMethodAllowed(bestMatch->second);
 	
 	std::string localPath = bestMatch->second.getRoot() + uriPath;
 	appendIndexToDirectory(localPath, bestMatch->second);
@@ -313,7 +312,6 @@ void Response::handleGet()
 
 void Response::handlePost()
 {
-	//TODO: RECUPER DYNAMIQUEMENT SUCCESS HTML via GLOBALSERVER ou REDIR (build full path...)
 	if (_statusCode != OK)
 	{
 		handleResponsesError();
@@ -321,6 +319,7 @@ void Response::handlePost()
 	}
 	struct stat s;
 	std::string localPath = "html/success.html";
+	//TODO: RECUPER DYNAMIQUEMENT SUCCESS HTML via GLOBALSERVER ou REDIR (build full path...)
 	// std::string localPath = getSuccessPath();
 
 	if (stat(localPath.c_str(), &s) == -1)
@@ -372,7 +371,7 @@ void Response::cgiMainProcess(int pipe_in[2], int pipe_out[2], Cgi &cgi, int pid
 
 	waitpid(pid, NULL, 0);
 
-	char buffer[4096];
+	char buffer[4096] = {0};
 	int bytesRead;
 
 	while ((bytesRead = read(pipe_out[0], buffer, sizeof(buffer))) > 0)
@@ -387,17 +386,19 @@ bool Response::isCgi(){
 	std::string uriPath = _request.getMap().at("Path");
 	std::map<string, Location>::const_reverse_iterator loc = findBestLocation(uriPath);
 	Location location = loc->second;
-	std::string suffix = uriPath.substr(uriPath.find("."));
+	size_t suffixPos = uriPath.find(".");
+	if (suffixPos == std::string::npos)
+		return (false);
+	std::string suffix = uriPath.substr(suffixPos);
 	std::vector<std::string>::const_iterator it = location.getCgi().begin();
-	for (; it != location.getCgi().end(); it++)
-		if (it->find(suffix))
+	for (; it != location.getCgi().end(); it++){
+		if (*it == suffix)
 			return (true);
+	}
 	return (false);
 }
 
 void Response::handleCgi(){
-	if (isCgi() == false)
-		return ;
 	Cgi cgi(_request);
 
 	int pipe_in[2];
@@ -439,7 +440,7 @@ void Response::buildRawResponse()
 	if (_request.getMap().find("Protocol") == _request.getMap().end())
 		_rawResponse += "HTTP/1.1\r\n";
 	else
-		_rawResponse += _request.getMap().at("Protocol") + " ";
+		_rawResponse += _request.getMap().at("Protocol") + "\r\n";
 	_rawResponse += intToString(_statusCode) + " " + _statusMap.at(_statusCode) + "\r\n";
 
 	for (; it != _header.end(); it++)
