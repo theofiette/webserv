@@ -13,7 +13,7 @@ int stringToInt(const std::string &num)
 	int value = -1;
 
 	if (!(ss >> value))
-			return (-1);
+		return (-1);
 	return (value);
 }
 
@@ -73,7 +73,7 @@ bool Request::finalizeWithoutBody(int contentLength)
 		_requestComplete = true;
 		return (true);
 	}
-	if (contentLength > _currServ.getMaxBody())
+	if (contentLength > _currServ.getMaxBody()) // TODO: faier remonter lerror
 	{
 		_requestComplete = true;
 		return (true);
@@ -95,6 +95,7 @@ void Request::setBody(size_t bodyStart, int contentLength)
 		return ;
 	}
 	_body = _rawRequest.substr(bodyStart);
+	
 }
 
 
