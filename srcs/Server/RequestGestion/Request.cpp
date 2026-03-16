@@ -3,72 +3,117 @@
 #include <map>
 #include <sstream>
 
-Request::Request(const Server &server) : _totalBytes(0), _requestSuccess(false), _requestComplete(false), _currServ(server) {}
+Request::Request(const Server &server) : _totalBytes(0), _requestSuccess(true), _requestComplete(false), _currServ(server) {}
 
 Request::~Request(){}
 
-int stringToInt(std::string num)
+int stringToInt(const std::string &num)
 {
-    std::stringstream ss(num);
-    int value;
-	ss >> value;
-    return (value);
+	std::stringstream ss(num);
+	int value = -1;
+
+	if (!(ss >> value))
+			return (-1);
+	return (value);
 }
 
-std::string extractContentLength(std::string buffer)
+std::string extractContentLength(const std::string &buffer)
 {
 	std::string contentLength;
 	size_t pos = buffer.find("Content-Length:");
-	if (pos != std::string::npos)
-	{
-		pos += 16;
-		size_t end = buffer.find("\r", pos);
-		if (end != std::string::npos)
-			contentLength = buffer.substr(pos, end - pos);
-		else
-			throw ExceptionParsingError(); // todo: fix 
-	}
-	else
-	{
+	if (pos == std::string::npos)
 		return ("-1");
-	}
+
+	pos += 15;
+	while (pos < buffer.size() && (buffer[pos] == ' ' || buffer[pos] == '\t'))
+		pos++;
+
+	size_t end = buffer.find("\r", pos);
+	if (end == std::string::npos || end == pos)
+		throw ExceptionParsingError();
+
+	contentLength = buffer.substr(pos, end - pos);
+	if (stringToInt(contentLength) < 0)
+		throw ExceptionParsingError();
+
 	return (contentLength);
 }
 
-void Request::recvRequest(int socketFd)
+ssize_t Request::readSocketChunk(int socketFd, char *buffer, size_t bufferSize)
 {
-	char buffer[SEND_SIZE] = {0};
-	ssize_t bytesRead = recv(socketFd, buffer, SEND_SIZE - 1, 0);
+	ssize_t bytesRead = recv(socketFd, buffer, bufferSize, 0);
 
 	if (bytesRead < 0)
 		throw ExceptionRuntime("recv() error");
+	if (bytesRead == 0)
+	{
+		_requestComplete = true;
+		return (0);
+	}
 
 	_totalBytes += bytesRead;
-	_rawRequest += buffer;
-	size_t headerEnd = _rawRequest.find(CRLF) + CRLF_SIZE;
+	_rawRequest.append(buffer, bytesRead);
+	return (bytesRead);
+}
+
+bool Request::findBodyStart(size_t &bodyStart) const
+{
+	size_t headerEnd = _rawRequest.find(CRLFCRLF);
+
 	if (headerEnd == std::string::npos)
+		return (false);
+	bodyStart = headerEnd + CRLF_SIZE;
+	return (true);
+}
+
+bool Request::finalizeWithoutBody(int contentLength)
+{
+	if (contentLength <= 0)
 	{
-		t_bzero(&buffer, sizeof(buffer));
+		_requestComplete = true;
+		return (true);
+	}
+	if (contentLength > _currServ.getMaxBody())
+	{
+		_requestComplete = true;
+		return (true);
+	}
+	return (false);
+}
+
+void Request::setBody(size_t bodyStart, int contentLength)
+{
+	if (_rawRequest.size() <= bodyStart)
+	{
+		_body.clear();
 		return ;
 	}
-	int contentLength = stringToInt(extractContentLength(_rawRequest));  // TODO: verify that we have correctly took the content
-	if (contentLength <= 0)
-		_requestComplete = true; // if i dont find content length and im not a get, it fucks 
-	else if (contentLength > 0)
+	if (_body.size() >= static_cast<size_t>(contentLength))
 	{
-		if (contentLength > _currServ.getMaxBody())
-		{
-			_requestComplete = true;
-			return ;
-		}
-		_body += _rawRequest.substr(headerEnd + _body.size());
-		if (_body.size() == static_cast<size_t>(contentLength))
-		{
-			std::cout << "BODY RECEIVED COMPLETE\n\n";
-			_requestComplete = true;
-			return ;
-		}
+		_body.erase(contentLength);
+		_requestComplete = true;
+		return ;
 	}
+	_body = _rawRequest.substr(bodyStart);
+}
+
+
+void Request::receiveRequestChunk(int socketFd)
+{
+	char buffer[SEND_SIZE] = {0};
+
+	if (readSocketChunk(socketFd, buffer, SEND_SIZE) == 0)
+		return ;
+
+	size_t bodyStart = 0;
+	if (findBodyStart(bodyStart) == false)
+		return ;
+
+	int contentLength = stringToInt(extractContentLength(_rawRequest));
+	if (finalizeWithoutBody(contentLength) == true)
+		return ;
+
+	setBody(bodyStart, contentLength);
 }
 
 void Request::displayInfos() const
@@ -90,9 +135,9 @@ bool Request::setFirstLine(std::string buffer)
     _requestHeader["Method"] = method;
     _requestHeader["Path"] = path;
     _requestHeader["Protocol"] = protocol; //TODO: check if correct ?? 
+
 	return (true);
 }
-
 
 bool Request::fillHeader(std::stringstream &requestStream, std::string &buffer) 
 {
@@ -121,11 +166,16 @@ bool Request::fillHeader(std::stringstream &requestStream, std::string &buffer)
 	return (true);
 }
 
-bool Request::stateRequestValidity()
+void Request::stateRequestValidity()
 {
 	//TODO: if POST and no content length its invalid? 
-	// if () 
-	return (1);
+	// if (_requestHeader["Protocol"] != "HTTP/1.0")
+	// {
+	// 	_requestSuccess = false;
+	// 	return ;
+	// }
+	
+	_requestSuccess = true;
 }
 
 void Request::parseRequest(std::string request)
@@ -137,9 +187,7 @@ void Request::parseRequest(std::string request)
 	if (setFirstLine(buffer) == false || fillHeader(requestStream, buffer) == false)
 		return ;
 
-	if (stateRequestValidity() == false)
-		return ;
-	_requestSuccess = true;
+	stateRequestValidity();
 }
 
 const Server &	Request::getServer() const

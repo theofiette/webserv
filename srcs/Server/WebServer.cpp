@@ -104,8 +104,8 @@ void	WebServer::_processConnections(int masterSocket, const Server &currServ)
 		_connectionsCount ++;
 		
 		Request req(currServ);
-		// if (req.getRequestSuccess() == false)
-		// 	_closeConnection();
+		if (req.getRequestSuccess() == false)
+			_closeConnection(_pollfds[_connectionsCount], _pollfds);
 		std::pair<int, Request> p = std::make_pair(socketFd, req);
 		_requestsMap.insert(p);
 	}
@@ -130,7 +130,10 @@ void	WebServer::loop()
 				std::cout << RED << "\nListening to connections on server: " << i + 1 << " (fd: " << currRequest.fd << ")" << std::endl;
 				_processConnections(_masterSockets[i], _config.servers[i]);
 			}
-			// TODO: POLLHUP POLLERR
+			else if ((currRequest.revents & POLLHUP) || (currRequest.revents & POLLERR))
+			{
+				_closeConnection(currRequest, _pollfds);
+			}
 			else if (currRequest.revents & POLLIN)
 			{
 				if (!processingReq)
@@ -175,7 +178,7 @@ void	WebServer::_processRequest(pollfd &request)
 	Request currRequest = _requestsMap.at(request.fd);
 
 	try {
-		currRequest.recvRequest(request.fd);
+		currRequest.receiveRequestChunk(request.fd);
 	}
 	catch (ExceptionParsingError &e) {
 		std::cerr << RED << "Invalid request on fd " << request.fd << ": " << e.what() << END << std::endl;
@@ -211,7 +214,7 @@ void	WebServer::_sendResponse(pollfd &request)
 	int bytesSent = send(request.fd, chunckedStr.c_str(), chunckedStr.size(), 0);
 	// if (bytesSent == -1)
 	// ;
-	std::cout << GREEN << chunckedStr.c_str();
+	// std::cout << GREEN << chunckedStr.c_str();
 	currResponse.updateBytesSent(bytesSent);
 }
 

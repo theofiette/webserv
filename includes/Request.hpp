@@ -22,15 +22,20 @@ class Request
 		const Server &_currServ;
 
 		bool 	setFirstLine(std::string);
+		ssize_t	readSocketChunk(int, char *, size_t);
+
+		bool	findBodyStart(size_t &) const;
+		bool	finalizeWithoutBody(int);
+		void	setBody(size_t, int);
 
 	public:
 		Request(const Server &);
 		~Request();
 
-		bool 		stateRequestValidity();
+		void 		stateRequestValidity();
 		bool 		fillHeader(std::stringstream &, std::string &);
 		void		parseRequest(std::string);
-		void		recvRequest(int);		
+		void		receiveRequestChunk(int);		
 		// // TEMPORAIRE
 		void displayInfos() const;
 		bool &				isRequestComplete();
@@ -43,5 +48,5 @@ class Request
 		const std::map<std::string, std::string>& getMap() const;
 	};
 
-std::string extractContentLength(std::string buffer);
-int stringToInt(std::string num);
+std::string extractContentLength(const std::string &buffer);
+int stringToInt(const std::string &num);
