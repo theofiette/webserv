@@ -89,7 +89,7 @@ bool Request::setFirstLine(std::string buffer)
 		protocol[protocol.size() - 1] = 0;
     _requestHeader["Method"] = method;
     _requestHeader["Path"] = path;
-    _requestHeader["Protocol"] = protocol;
+    _requestHeader["Protocol"] = protocol; //TODO: check if correct ?? 
 	return (true);
 }
 
@@ -125,6 +125,7 @@ bool Request::stateRequestValidity()
 {
 	//TODO: if POST and no content length its invalid? 
 	// if () 
+	return (1);
 }
 
 void Request::parseRequest(std::string request)

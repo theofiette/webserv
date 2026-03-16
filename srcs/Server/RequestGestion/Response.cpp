@@ -142,7 +142,7 @@ void Response::setErrorResponse(std::string &localPath, std::map<int, std::strin
 	}
 	else
 	{
-		_statusCode = OK;
+		_statusCode = OK; // TODO: ??  404 ?
 		errPage = _currServ.getErrorsServer().find(_statusCode);
 		if (errPage != _currServ.getErrorsServer().end())
 		{
@@ -365,7 +365,7 @@ void Response::handleCgi(Request const& request){
 		tmp[0] = strdup(file.c_str());
 		tmp[1] = NULL;
 		execve(tmp[0], tmp, cgi.getEnv());
-		perror("execve");
+		strerror(errno);
 		exit(0);
 	}
 	else
@@ -431,6 +431,7 @@ void Response::buildRawResponse()
 
 	_headerLength = _rawResponse.size();
 	_rawResponse += _body;
+	std::cout << ORANGE << _statusCode << END << std::endl;
 }
 
 //*********************************************************************************************/

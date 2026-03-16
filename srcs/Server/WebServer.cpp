@@ -130,6 +130,7 @@ void	WebServer::loop()
 				std::cout << RED << "\nListening to connections on server: " << i + 1 << " (fd: " << currRequest.fd << ")" << std::endl;
 				_processConnections(_masterSockets[i], _config.servers[i]);
 			}
+			// TODO: POLLHUP POLLERR
 			else if (currRequest.revents & POLLIN)
 			{
 				if (!processingReq)
@@ -182,7 +183,7 @@ void	WebServer::_processRequest(pollfd &request)
 		return;
 	}
 	
-	// std::cout << BLUE BOLD <<  currRequest.getRawRequest() << END << "\n";
+	std::cout << BLUE BOLD <<  currRequest.getRawRequest() << END << "\n";
 	if (currRequest.isRequestComplete() == false)
 		return ;
 	
@@ -210,6 +211,7 @@ void	WebServer::_sendResponse(pollfd &request)
 	int bytesSent = send(request.fd, chunckedStr.c_str(), chunckedStr.size(), 0);
 	// if (bytesSent == -1)
 	// ;
+	std::cout << GREEN << chunckedStr.c_str();
 	currResponse.updateBytesSent(bytesSent);
 }
 

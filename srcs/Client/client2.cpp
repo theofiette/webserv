@@ -22,7 +22,7 @@ int main()
             sizeof(serverAddress));
 
     // sending data
-    const char* message = "DELETE /todelete.html HTTP/1.1\r\nHost: localhost:8080\r\n\r\n";
+    const char* message = "GET /methods.html HTTP/3.0\r\nHost: localhost:8080\r\n\r\n";
     send(clientSocket, message, strlen(message), 0);
 
     // closing socket
