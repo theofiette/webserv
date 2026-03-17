@@ -10,10 +10,10 @@ CFLAGS      = -Wall -Wextra -Werror -std=c++98
 
 SRC         =	srcs/main.cpp \
 				srcs/exceptions/exceptions.cpp \
-				srcs/Server/Request_gestion/Request.cpp \
-				srcs/Server/Request_gestion/Response.cpp \
-				srcs/Server/Request_gestion/Session.cpp \
-				srcs/Server/Request_gestion/SessionManager.cpp \
+				srcs/Server/RequestGestion/Request.cpp \
+				srcs/Server/RequestGestion/Response.cpp \
+				srcs/Server/RequestGestion/Session.cpp \
+				srcs/Server/RequestGestion/SessionManager.cpp \
 				srcs/Server/WebServer.cpp \
 				srcs/Server/config/Redir.cpp \
 				srcs/Server/config/Location.cpp \
