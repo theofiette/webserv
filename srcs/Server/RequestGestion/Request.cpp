@@ -126,7 +126,7 @@ void Request::setFirstLine(std::string buffer)
     std::istringstream iss(buffer);
     std::string method, path, protocol;
 
-	if (!(iss >> method >> path >> protocol))
+	if (!(iss >> method >> path >> protocol) || buffer.find("\r") == std::string::npos)
 	{
 		_requestSuccess = false;
 		return ;
@@ -194,7 +194,7 @@ const std::string Request::getCookieValue(const std::string & cookie_name) const
 	size_t		pos;
 	size_t		comma_pos;
 
-	std::cout << "COOKIE NAME : " << cookie_name_updated << std::endl;
+	// std::cout << "COOKIE NAME : " << cookie_name_updated << std::endl;
 
 	if (cookie_name.length() == 0)
 		return ("");
@@ -209,12 +209,12 @@ const std::string Request::getCookieValue(const std::string & cookie_name) const
 	if (comma_pos == std::string::npos)
 	{
 		cookie_value = cookies.substr(pos);
-		std::cout << "COOKIE VALUE : " << cookie_value << std::endl;
+		// std::cout << "COOKIE VALUE : " << cookie_value << std::endl;
 	}
 	else
 	{
 		cookie_value = cookies.substr(pos, comma_pos - pos);
-		std::cout << "COOKIE VALUE : " << cookie_value << std::endl;
+		// std::cout << "COOKIE VALUE : " << cookie_value << std::endl;
 	}
 
 	return (cookie_value);

@@ -31,8 +31,9 @@ enum ErrorCode{
 	FORBIDDEN = 403,
 	NOT_FOUND = 404,
 	NOT_ALLOWED = 405,
-	LENGTH_REQUIRED = 413,
-	CONTENT_TOO_LARGE = 413
+	LENGTH_REQUIRED = 411,
+	CONTENT_TOO_LARGE = 413,
+	INTERNAL_SERVER_ERROR = 500
 };
 
 typedef struct SentResponse 
@@ -86,7 +87,6 @@ class Response
 		Response(const Request &, const Server &, Session &);
 		~Response();
 
-		void				setStatusCode();
 		void				setCurrLocation(const Location &);
 		void 				addHeader(std::string, std::string);
 
@@ -103,6 +103,7 @@ class Response
 		void				updateBytesSent(int);
 		bool				isSent();
 		bool 				isCgi();
+		bool 				checkRequestValidity();
 
 		const std::string&	getRawResponse() const;
 		int					getHeaderLength() const;

@@ -29,6 +29,7 @@ static std::map<int, std::string> initStatusMap()
 	m[405] = "Not allowed";
 	m[411] = "Length Required";
 	m[413] = "Content too large";
+	m[500] = "Internal server error";
 	return (m);
 }
 
@@ -38,6 +39,18 @@ const std::map<int, std::string> Response::_statusMap = initStatusMap();
 /*										CONSTRUCTORS										  */
 //*********************************************************************************************/
 
+bool Response::checkRequestValidity()
+{
+	if (_request.getRequestSuccess() == false)
+		_statusCode = BAD_REQUEST;
+	if (_request.getMap().find("Content-Length") != _request.getMap().end() && 
+		stringToInt(_request.getMap().at("Content-Length")) > _currServ.getMaxBody())
+		_statusCode = CONTENT_TOO_LARGE;
+	if (_statusCode != OK)
+		return (false);
+	return (true);
+}
+
 Response::Response(const Request &request, const Server &server, Session &session) : 
 _statusCode(200), _bytesSent(0), _currServ(server), _request(request), _session(session)
 {
@@ -46,18 +59,10 @@ _statusCode(200), _bytesSent(0), _currServ(server), _request(request), _session(
 		insertCookieHeader("SessionId=" + session.getId());
 		session.setConnected(true);
 	}
-
-	_session.display();
-	// _request.displayInfos();
-	if (_request.getRequestSuccess() == false)
-		_statusCode = BAD_REQUEST;
-	if (_request.getMap().find("Content-Length") != _request.getMap().end() && 
-		stringToInt(_request.getMap().at("Content-Length")) > _currServ.getMaxBody())
-		_statusCode = CONTENT_TOO_LARGE;
-	if (_statusCode != OK)
-		handleResponsesError();
-	else
+	if (checkRequestValidity() == true)
 		pickMethod();
+	else
+		handleResponsesError();
 	buildRawResponse();
 }
 
@@ -86,17 +91,8 @@ void Response::pickMethod()
 	{
 		for (int i = 0; i < METHODS_COUNT; i++)
 			if (_request.getMap().at("Method") == Response::methods[i])
-			{
-				try {
-					(this->*methods[i])();
-					return ;
-				}
-				catch (ExceptionPathError &e){
-					return ;
-				}
-			}
+				(this->*methods[i])();
 	}
-	throw ExceptionParsingError(); // nouvelle class exception ? 
 }
 
 std::string Response::MIMEtable(std::string localPath)
@@ -111,11 +107,6 @@ std::string Response::MIMEtable(std::string localPath)
 //*********************************************************************************************/
 /*										SETTERS											  	  */
 //*********************************************************************************************/
-
-void Response::setStatusCode()
-{
-	;
-}
 
 void Response::addHeader(std::string key, std::string value)
 {
@@ -215,7 +206,6 @@ std::string Response::buildLocalPath()
 	validateMethodAllowed(bestMatch->second);
 	
 	std::string localPath = location.getRoot() + uriPath;
-	std::cerr << GREEN ITALIC BOLD << "path: " << localPath << "\n" << std::endl;
 
 	if (location.isCookie())
 		buildLocalPathFromCookie(localPath, location);
@@ -228,7 +218,6 @@ std::string Response::buildLocalPath()
 //*********************************************************************************************/
 /*										UTILS											  	  */
 //*********************************************************************************************/
-
 
 void	Response::insertCookieHeader(std::string cookie)
 {
@@ -300,33 +289,11 @@ void Response::handleResponsesError()
 		_body += _statusMap.at(_statusCode) + "</h1>";
 		_body += "<p>An error occurred while processing your request.</p></body></html>";
 	}
+	std::cout << "local " << localPath << "\n\n";
 	
 	addHeader("Content-Type", "text/html");
 	addHeader("Content-Length", intToString(_body.length()));
 }
-
-// void Response::setErrorResponse(std::string &localPath, std::map<int, std::string> const& errMapLocation, std::string const& root)
-// {
-// 	// Regarder la gestion du bloc LOCATION
-// 	// Si pas preciser rediriger vers ERROR PAGE par defaut
-// 	mc_is_ite errPage = errMapLocation.find(_statusCode);
-// 	if (errPage != errMapLocation.end())
-// 	{
-// 		localPath = root + "/" + errPage->second;
-// 		_statusCode = MOVED_PERMANENTLY;
-// 	}
-// 	else
-// 	{
-// 		errPage = _currServ.getErrorsServer().find(_statusCode);
-// 		if (errPage != _currServ.getErrorsServer().end())
-// 		{
-// 			localPath = errPage->second;
-// 		}
-// 		else{
-// 			localPath = _currServ.getErrorsServer().find(0)->second;
-// 		}
-// 	}
-// }
 
 //*********************************************************************************************/
 /*										HANDLERS											  */
@@ -337,36 +304,27 @@ void Response::handleGet()
 	std::string localPath;
 	struct stat s;
 
-	if (_statusCode != OK)
-	{
-		handleResponsesError();
-		return ;
-	}
-	
 	localPath = buildLocalPath();
 	checkFileAccess(localPath, R_OK);
-	if ((stat(localPath.c_str(), &s) == -1))
+	if ((stat(localPath.c_str(), &s) == -1) || _statusCode != OK)
 		return ;
 	readFileContent(localPath, s.st_size);
 	addHeader("Content-Type", MIMEtable(localPath));
 	addHeader("Content-Length", intToString(_body.length()));
-	for(multimap::iterator it = _header.begin(); it != _header.end(); it++)
-		std::cout << it->first << ": " << it->second << "\n";
-	
 }
 
 void Response::handlePost()
 {
 	struct stat s;
 	std::string localPath = "html/success.html"; // SUCCES PAGE IN CONFIG
-	if (_statusCode != OK || stat(localPath.c_str(), &s) == -1)
+	if (stat(localPath.c_str(), &s) == -1)
 	{
 		handleResponsesError();
 		return ;
 	}
 	//TODO: RECUPER DYNAMIQUEMENT SUCCESS HTML via GLOBALSERVER ou REDIR (build full path...)
 	// std::string localPath = getSuccessPath();
-	std::map<std::string, std::string> formData; // TODO: utiliser cette data? Du coup on appelera parseform avec &data de la class
+	std::map<std::string, std::string> formData; // TODO: utiliser cette data
 	parseFormData(formData);
 
 	_statusCode = SEE_OTHER;
@@ -378,17 +336,15 @@ void Response::handleDelete()
 {
 	std::string localPath = buildLocalPath();
 
-	if (_statusCode != OK)
-	{
-		handleResponsesError();
-		return ;
-	}
-
     checkFileAccess(localPath, W_OK);
 	
-	remove(localPath.c_str()); // TODO: securise
-	_statusCode = NO_CONTENT;
-	addHeader("Content-Length", "0");
+	if (_statusCode == OK)
+	{
+		if (remove(localPath.c_str()) != -1)
+			_statusCode = NO_CONTENT;
+		else
+			_statusCode = INTERNAL_SERVER_ERROR;
+	}
 }
 
 void Response::cgiMainProcess(int pipe_in[2], int pipe_out[2], Cgi &cgi, int pid){
