@@ -29,6 +29,7 @@ class WebServer
 
 		struct addrinfo 			*_gaiPtr;
 
+		bool						_decrement;
 		std::map<int, Request> 		_requestsMap;
 		std::map<int, Response> 	_responsesMap;
 

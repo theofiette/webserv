@@ -100,7 +100,7 @@ void	WebServer::_processConnections(int masterSocket, const Server &currServ)
 			break ;
 		std::cout << YELLOW << "Connected to client " << _connectionsCount << " on fd " << socketFd << std::endl << END;
 		_pollfds[_connectionsCount].fd = socketFd; 
-		_pollfds[_connectionsCount].revents = POLLIN;
+		_pollfds[_connectionsCount].events = POLLIN;
 		_connectionsCount ++;
 		
 		Request req(currServ);
@@ -111,50 +111,28 @@ void	WebServer::_processConnections(int masterSocket, const Server &currServ)
 
 void	WebServer::loop()
 {
-	bool processingReq;
-	bool sendingResp;
-
 	while (1) 
 	{
-		processingReq = false;
-		sendingResp = false;
 		_awaitRequests();
-		std::cerr << BLUE ITALIC << "\n--> The server received a request, loop initiated. " << END << "\n";
 		for (int i = 0; i < _connectionsCount ; i++)
 		{
 			pollfd &currRequest = _pollfds[i];
+			_decrement = false;
 			if (i < _serverCount)
 			{
-				std::cout << RED << "\nListening to connections on server: " << i + 1 << " (fd: " << currRequest.fd << ")" << std::endl;
 				_processConnections(_masterSockets[i], _config.servers[i]);
-			}
-			else if ((currRequest.revents & POLLHUP) || (currRequest.revents & POLLERR))
-			{
-				_closeConnection(currRequest, _pollfds);
 			}
 			else if (currRequest.revents & POLLIN)
 			{
-				if (!processingReq)
-				{
-					std::cout << RED << "\nStarting to process requests: " << END << std::endl;
-					processingReq = true;
-				}
-				std::cout << YELLOW << "Processing request from fd " << END << currRequest.fd << std::endl;
 				_processRequest(currRequest);
 			}
 			else if (currRequest.revents & POLLOUT)
 			{
-				if (!sendingResp)
-				{
-					std::cout << RED << "\nStarting to send responses: " << END << std::endl;
-					sendingResp = true;
-				}
 				_sendResponse(currRequest);
 				if (_responsesMap.find(currRequest.fd)->second.isSent())
-				{
 					_closeConnection(currRequest, _pollfds);
+				if (_decrement == true)
 					i--;
-				}
 			}
 		}
 	}
@@ -169,25 +147,20 @@ void	WebServer::display()
 		it->display();
 }
 
-void	WebServer::_processRequest(pollfd &request) // TODO: split in two blocs
+void	WebServer::_processRequest(pollfd &request)
 {
 	if (_requestsMap.find(request.fd) == _requestsMap.end())
-		throw (ExceptionRuntime("Can't find corresponding request"));
-	Request currRequest = _requestsMap.at(request.fd);
+		throw (ExceptionRuntime("Can't find corresponding request."));
+	Request &currRequest = _requestsMap.at(request.fd);
 
-	try {
-		currRequest.receiveRequestChunk(request.fd);
-	}
-	catch (ExceptionParsingError &e) {
-		std::cerr << RED << "Invalid request on fd " << request.fd << ": " << e.what() << END << std::endl;
-		_closeConnection(request, _pollfds);
-		return;
-	}
-	
-	std::cout << BLUE BOLD <<  currRequest.getRawRequest() << END << "\n";
-	if (currRequest.isRequestComplete() == false)
+	currRequest.receiveRequestChunk(request.fd);
+	if (currRequest.isRequestComplete() == false) // Loop again to finish recv
+	{
+		std::cout << RED << "REQUEST" << YELLOW << "IS" << GREEN << "NOT" << BLUE << "COMPLETED\n";
 		return ;
+	}
 	
+	std::cout << BLUE << "REQUETE: " << currRequest.getRawRequest() << END << std::endl;
 	try {
 		currRequest.parseRequest(currRequest.getRawRequest());
 		Response resp(currRequest, currRequest.getServer());
@@ -204,14 +177,21 @@ void	WebServer::_processRequest(pollfd &request) // TODO: split in two blocs
 void	WebServer::_sendResponse(pollfd &request)
 {
 	if (_responsesMap.find(request.fd) == _responsesMap.end())
-		throw (ExceptionRuntime("Can't find corresponding response"));
-	
-	std::cout << RED BOLD "TRYING TO SEND \n\n";
+		throw (ExceptionRuntime("Can't find corresponding response."));
+	Response &currResponse = _responsesMap.at(request.fd);
 
-	Response		&currResponse = _responsesMap.at(request.fd);
-	std::string		chunckedStr = currResponse.getChunckResp(SEND_SIZE);
-	int				bytesSent = send(request.fd, chunckedStr.c_str(), chunckedStr.size(), 0);
-
+	std::string chunckedStr = currResponse.getChunckResp(SEND_SIZE);
+	int bytesSent;
+	std::cout << chunckedStr << "\n";
+	try
+	{
+		bytesSent = Send(request.fd, chunckedStr);
+	}
+	catch (std::exception &e){
+		std::cerr << RED "Write Error in sendResponse." << std::endl;
+		_closeConnection(request, _pollfds);
+		return ;
+	}
 	currResponse.updateBytesSent(bytesSent);
 }
 
@@ -228,6 +208,7 @@ void	WebServer::_awaitRequests()
 
 void	WebServer::_closeConnection(pollfd &request, pollfd *fds)
 {
+	_decrement = true;
 	request.revents = 0;
 	std::cout << RED ITALIC << "Closing fd " << request.fd << END << std::endl;
 	if (_responsesMap.find(request.fd) != _responsesMap.end())

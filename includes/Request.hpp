@@ -21,10 +21,10 @@ class Request
 
 		const Server &_currServ;
 
-		bool 	setFirstLine(std::string);
+		void 	setFirstLine(std::string);
 		ssize_t	readSocketChunk(int, char *, size_t);
 
-		bool	findBodyStart(size_t &) const;
+		bool	findBodyStart(size_t &);
 		bool	finalizeWithoutBody(int);
 		void	setBody(size_t, int);
 
@@ -32,18 +32,18 @@ class Request
 		Request(const Server &);
 		~Request();
 
-		void 		stateRequestValidity();
-		bool 		fillHeader(std::stringstream &, std::string &);
-		void		parseRequest(std::string);
-		void		receiveRequestChunk(int);		
+		void 				stateRequestValidity();
+		void 				fillHeader(std::stringstream &, std::string &);
+		void				parseRequest(std::string);
+		void				receiveRequestChunk(int);		
 		// // TEMPORAIRE
-		void displayInfos() const;
-		bool &				isRequestComplete();
+		void 				displayInfos() const;
+		const bool &		isRequestComplete();
 		
 		const std::string& 	getRawRequest() const;
 		const std::string&	getBody() const;
 		const Server &		getServer() const;
-		bool &				getRequestSuccess();
+		const bool &		getRequestSuccess() const;
 		
 		const std::map<std::string, std::string>& getMap() const;
 	};

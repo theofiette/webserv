@@ -20,6 +20,5 @@ class Cgi
 		const std::string& getBodyMessage() const;
 
 		void setBodyMessage(const std::string &body);
-
-
+		void cgiChildProcess(int[2], int[2]);
 };

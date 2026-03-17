@@ -23,11 +23,12 @@ static std::map<int, std::string> initStatusMap()
 	m[301] = "Move permanently";
 	m[302] = "Found";
 	m[303] = "See other";
+	m[400] = "Bad Request";
 	m[403] = "Forbidden";
 	m[404] = "Not found";
 	m[405] = "Not allowed";
+	m[411] = "Length Required";
 	m[413] = "Content too large";
-	
 	return (m);
 }
 
@@ -37,17 +38,19 @@ const std::map<int, std::string> Response::_statusMap = initStatusMap();
 /*										CONSTRUCTORS										  */
 //*********************************************************************************************/
 
-Response::Response(const Request &request, const Server &server) : _statusCode(200),  _bytesSent(0), _headerLength(0), _contentLength(0), 
+Response::Response(const Request &request, const Server &server) : _statusCode(200), _bytesSent(0), _headerLength(0), _contentLength(0),
 _currServ(server), _request(request)
 {
-	_request.displayInfos();
-	if (_request.getMap().find("Method") == _request.getMap().end())
-		throw (ExceptionRuntime("Invalid request for response constructor (Content Length)"));
-	if (_request.getMap().find("Content-Length") != _request.getMap().end() && stringToInt(_request.getMap().at("Content-Length")) > _currServ.getMaxBody())
+	if (_request.getRequestSuccess() == false)
+		_statusCode = BAD_REQUEST;
+	if (_request.getMap().find("Content-Length") != _request.getMap().end() && 
+		stringToInt(_request.getMap().at("Content-Length")) > _currServ.getMaxBody())
 		_statusCode = CONTENT_TOO_LARGE;
-	pickMethod();
+	if (_statusCode != OK)
+		handleResponsesError();
+	else
+		pickMethod();
 	buildRawResponse();
-	_bytesSent = 0;
 }
 
 Response::~Response(){}
@@ -71,15 +74,11 @@ void Response::pickMethod()
 		&Response::handlePost,
 		&Response::handleDelete
 	};
-	if (_request.getMap().find("Method") == _request.getMap().end())
-		throw (ExceptionRuntime("Invalid pick method for response (Method)"));
-	if (_request.getMap().at("Method") == "HEAD")
-		handleGet();
-	if (_request.getMap().find("Path") == _request.getMap().end())
-		throw (ExceptionRuntime("Invalid pick method for response (Path)"));
-	if (_request.getMap().at("Path").find(".cgi") != std::string::npos) //TODO: aller cher dans la loc
+	// if (_request.getMap().at("Method") == "HEAD") //TEMPORAIRE
+	// 	handleGet();
+	if (isCgi() == true)
 	{
-		// handleCgi();
+		handleCgi();
 		return ;
 	}
 	else
@@ -120,30 +119,6 @@ void Response::setStatusCode()
 void Response::addHeader(std::string key, std::string value)
 {
 	_header.insert(std::pair<string, string>(key, value));
-}
-
-void Response::setErrorResponse(std::string &localPath, std::map<int, std::string> const& errMapLocation, std::string const& root)
-{
-	// Regarder la gestion du bloc LOCATION
-	// Si pas preciser rediriger vers ERROR PAGE par defaut
-	mc_is_ite errPage = errMapLocation.find(_statusCode);
-	if (errPage != errMapLocation.end())
-	{
-		localPath = root + "/" + errPage->second;
-		_statusCode = MOVED_PERMANENTLY;
-	}
-	else
-	{
-		errPage = _currServ.getErrorsServer().find(_statusCode);
-		if (errPage != _currServ.getErrorsServer().end())
-		{
-			localPath = errPage->second;
-		}
-		else{
-			localPath = _currServ.getErrorsServer().find(0)->second;
-		}
-	}
-	std::cout << "LOCALPATH : " << localPath << "\n";
 }
 //*********************************************************************************************/
 /*										BUILDERS											  */
@@ -204,7 +179,7 @@ std::string Response::buildLocalPath()
 	std::string uriPath = _request.getMap().at("Path");
 	std::map<string, Location>::const_reverse_iterator bestMatch = findBestLocation(uriPath);
 	
-	// validateMethodAllowed(bestMatch->second);
+	validateMethodAllowed(bestMatch->second);
 	
 	std::string localPath = bestMatch->second.getRoot() + uriPath;
 	appendIndexToDirectory(localPath, bestMatch->second);
@@ -227,11 +202,11 @@ void Response::checkFileAccess(std::string &localPath, int requiredAccess)
 	struct stat s;
 	if (stat(localPath.c_str(), &s) == -1) {
 		_statusCode = NOT_FOUND;
-		setErrorResponse(localPath, _currLocation.getErrors(), _currLocation.getRoot());
+		handleResponsesError();
 	}
 	else if (!S_ISREG(s.st_mode) || access(localPath.c_str(), requiredAccess) == -1) {
 		_statusCode = FORBIDDEN;
-		setErrorResponse(localPath, _currLocation.getErrors(), _currLocation.getRoot());
+		handleResponsesError();
 	}
 }
 
@@ -260,6 +235,54 @@ void Response::parseFormData(std::map<std::string, std::string> &data)
 	}
 }
 
+void Response::handleResponsesError()
+{
+	std::string localPath;
+	struct stat s;
+	
+	mc_is_ite errPage = _currServ.getErrorsServer().find(_statusCode);
+	if (errPage != _currServ.getErrorsServer().end())
+		localPath = errPage->second;
+	else
+		localPath = _currServ.getErrorsServer().find(0)->second;
+	
+	if (stat(localPath.c_str(), &s) != -1 && access(localPath.c_str(), R_OK) != -1)
+		readFileContent(localPath, s.st_size);
+	else
+	{
+		_body = "<html><head><title>Error " + intToString(_statusCode) + "</title></head>";
+		_body += "<body><h1>Error " + intToString(_statusCode);
+		_body += _statusMap.at(_statusCode) + "</h1>";
+		_body += "<p>An error occurred while processing your request.</p></body></html>";
+	}
+	
+	addHeader("Content-Type", "text/html");
+	addHeader("Content-Length", intToString(_body.length()));
+}
+
+// void Response::setErrorResponse(std::string &localPath, std::map<int, std::string> const& errMapLocation, std::string const& root)
+// {
+// 	// Regarder la gestion du bloc LOCATION
+// 	// Si pas preciser rediriger vers ERROR PAGE par defaut
+// 	mc_is_ite errPage = errMapLocation.find(_statusCode);
+// 	if (errPage != errMapLocation.end())
+// 	{
+// 		localPath = root + "/" + errPage->second;
+// 		_statusCode = MOVED_PERMANENTLY;
+// 	}
+// 	else
+// 	{
+// 		errPage = _currServ.getErrorsServer().find(_statusCode);
+// 		if (errPage != _currServ.getErrorsServer().end())
+// 		{
+// 			localPath = errPage->second;
+// 		}
+// 		else{
+// 			localPath = _currServ.getErrorsServer().find(0)->second;
+// 		}
+// 	}
+// }
+
 //*********************************************************************************************/
 /*										HANDLERS											  */
 //*********************************************************************************************/
@@ -269,35 +292,36 @@ void Response::handleGet()
 	std::string localPath;
 	struct stat s;
 
-	if (_statusCode == CONTENT_TOO_LARGE)
+	if (_statusCode != OK)
 	{
-		mc_is_ite errPage = _currServ.getErrorsServer().find(_statusCode);
-		if (errPage != _currServ.getErrorsServer().end())
-			localPath = errPage->second;
-		else{
-			localPath = _currServ.getErrorsServer().find(0)->second;
-		}
+		handleResponsesError();
+		return ;
 	}
-	else 
-		localPath = buildLocalPath();
+	
+	localPath = buildLocalPath();
 	checkFileAccess(localPath, R_OK);
 	if ((stat(localPath.c_str(), &s) == -1))
 		return ;
+	std::cout << "OUT HERE\n\n";
 	readFileContent(localPath, s.st_size);
 	addHeader("Content-Type", MIMEtable(localPath));
 	addHeader("Content-Length", intToString(_body.length()));
+	for(multimap::iterator it = _header.begin(); it != _header.end(); it++)
+		std::cout << it->first << ": " << it->second << "\n";
+	
 }
 
 void Response::handlePost()
 {
-	//TODO: RECUPER DYNAMIQUEMENT SUCCESS HTML via GLOBALSERVER ou REDIR (build full path...)
 	struct stat s;
-	std::string localPath = "html/success.html";
-	// std::string localPath = getSuccessPath();
-
-	if (stat(localPath.c_str(), &s) == -1)
+	std::string localPath = "html/success.html"; // SUCCES PAGE IN CONFIG
+	if (_statusCode != OK || stat(localPath.c_str(), &s) == -1)
+	{
+		handleResponsesError();
 		return ;
-
+	}
+	//TODO: RECUPER DYNAMIQUEMENT SUCCESS HTML via GLOBALSERVER ou REDIR (build full path...)
+	// std::string localPath = getSuccessPath();
 	std::map<std::string, std::string> formData; // TODO: utiliser cette data? Du coup on appelera parseform avec &data de la class
 	parseFormData(formData);
 
@@ -309,12 +333,10 @@ void Response::handlePost()
 void Response::handleDelete()
 {
 	std::string localPath = buildLocalPath();
-	struct stat s;
 
-	if (stat(localPath.c_str(), &s) == -1)
+	if (_statusCode != OK)
 	{
-		_statusCode = NOT_FOUND;
-		setErrorResponse(localPath, _currLocation.getErrors(), _currLocation.getRoot());
+		handleResponsesError();
 		return ;
 	}
 
@@ -325,8 +347,54 @@ void Response::handleDelete()
 	addHeader("Content-Length", "0");
 }
 
-void Response::handleCgi(Request const& request){
-	Cgi cgi(request);
+void Response::cgiMainProcess(int pipe_in[2], int pipe_out[2], Cgi &cgi, int pid){
+	close(pipe_in[0]);
+	close(pipe_out[1]);
+
+	if (_request.getMap().find("Method")->second == "POST")
+	{
+		cgi.setBodyMessage(_request.getBody()); //write in stdout
+		if (write(pipe_in[1], cgi.getBodyMessage().c_str(), cgi.getBodyMessage().size()) == -1)
+		{
+			close(pipe_in[1]);
+			close(pipe_out[0]);			
+			throw ExceptionWriteError();
+		}
+	}
+
+	close(pipe_in[1]);
+
+	waitpid(pid, NULL, 0);
+
+	char buffer[4096] = {0};
+	int bytesRead;
+
+	while ((bytesRead = read(pipe_out[0], buffer, sizeof(buffer))) > 0)
+		_rawResponse += buffer;
+
+	close(pipe_out[0]);
+	if (bytesRead == -1)
+		throw ExceptionReadError(); // vrai error
+}
+
+bool Response::isCgi(){
+	std::string uriPath = _request.getMap().at("Path");
+	std::map<string, Location>::const_reverse_iterator loc = findBestLocation(uriPath);
+	Location location = loc->second;
+	size_t suffixPos = uriPath.find(".");
+	if (suffixPos == std::string::npos)
+		return (false);
+	std::string suffix = uriPath.substr(suffixPos);
+	std::vector<std::string>::const_iterator it = location.getCgi().begin();
+	for (; it != location.getCgi().end(); it++){
+		if (*it == suffix)
+			return (true);
+	}
+	return (false);
+}
+
+void Response::handleCgi(){
+	Cgi cgi(_request);
 
 	int pipe_in[2];
 	int pipe_out[2];
@@ -334,61 +402,16 @@ void Response::handleCgi(Request const& request){
 	if (pipe(pipe_in) == -1 || pipe(pipe_out) == -1)
 		throw ExceptionCgiPipeError();
 	
-	// write()
 	pid_t pid = fork();
 	if (!pid)
-	{
-		close(pipe_in[1]);
-		close(pipe_out[0]);
-	
-		dup2(pipe_in[0], STDIN_FILENO); //pour lire le contenu du POST? ou directement depuis pipein[0]
-
-		if (dup2(pipe_out[1], STDOUT_FILENO) == -1)
-		{
-			close(pipe_in[0]);
-			close(pipe_out[1]);
-			exit(1);
-		}
-		std::string file = "./" + (cgi.getMetaVars().find("SCRIPT_NAME")->second).substr(1);
-		
-		char **tmp;
-		tmp = new char*[2];
-		tmp[0] = strdup(file.c_str());
-		tmp[1] = NULL;
-		execve(tmp[0], tmp, cgi.getEnv());
-		strerror(errno);
-		exit(0);
-	}
+		cgi.cgiChildProcess(pipe_in, pipe_out);
 	else
-	{
-		close(pipe_in[0]);
-		close(pipe_out[1]);
-		if (_request.getMap().find("Method")->second == "POST")
-		{
-			cgi.setBodyMessage(_request.getBody()); //write in stdout
-			write(pipe_in[1], cgi.getBodyMessage().c_str(), cgi.getBodyMessage().size());
-		}
-		close(pipe_in[1]);
-		waitpid(pid, NULL, 0); //ADD TIMEOUT TO AVOID ZOMBIE PROCESS?
-
-		char buffer[4096];
-		int bytesRead;
-
-		while ((bytesRead = read(pipe_out[0], buffer, sizeof(buffer))) > 0){
-			_rawResponse += buffer;
-		}
-		close(pipe_out[0]);
-		if (bytesRead == -1)
-		{
-			throw ExceptionCgiPipeError(); // vrai error
-		}
-	}
+		cgiMainProcess(pipe_in, pipe_out, cgi, pid);
 }
 
 std::string Response::getChunckResp(int bytes)
 {
 	std::string chunckResp;
-	std::cout << "RAW RESP == " << _rawResponse << "\n";
 
 	chunckResp = _rawResponse.substr(_bytesSent, bytes);
 	return (chunckResp);
@@ -407,11 +430,12 @@ bool	Response::isSent()
 
 void Response::buildRawResponse()
 {
-	std::map<std::string, std::string>::iterator it 		= _header.begin();
+	std::map<std::string, std::string>::iterator it = _header.begin();
 
 	if (_request.getMap().find("Protocol") == _request.getMap().end())
-		throw (ExceptionRuntime("Invalid request for build constructor (Method)"));
-	_rawResponse += _request.getMap().at("Protocol") + " ";
+		_rawResponse += "HTTP/1.1 ";
+	else
+		_rawResponse += _request.getMap().at("Protocol") + " ";
 	_rawResponse += intToString(_statusCode) + " " + _statusMap.at(_statusCode) + "\r\n";
 
 	for (; it != _header.end(); it++)
@@ -423,7 +447,6 @@ void Response::buildRawResponse()
 
 	_headerLength = _rawResponse.size();
 	_rawResponse += _body;
-	std::cout << ORANGE << _statusCode << END << std::endl;
 }
 
 //*********************************************************************************************/

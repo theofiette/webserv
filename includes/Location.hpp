@@ -49,6 +49,7 @@ class Location
 		~Location();						//Destructor
 
 		const std::string&					getRoot() const;
+		const std::vector<std::string>&		getCgi() const;
 		const std::map<int, std::string>&	getErrors() const;
 		const std::string& 					getIndex() const;
 		const std::vector<bool>&			getMethods() const;

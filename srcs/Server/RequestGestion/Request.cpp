@@ -56,12 +56,15 @@ ssize_t Request::readSocketChunk(int socketFd, char *buffer, size_t bufferSize)
 	return (bytesRead);
 }
 
-bool Request::findBodyStart(size_t &bodyStart) const
+bool Request::findBodyStart(size_t &bodyStart)
 {
 	size_t headerEnd = _rawRequest.find(CRLFCRLF);
 
 	if (headerEnd == std::string::npos)
-		return (false);
+	{
+		_requestSuccess = false;
+		return (true);
+	}
 	bodyStart = headerEnd + CRLF_SIZE;
 	return (true);
 }
@@ -71,12 +74,6 @@ bool Request::finalizeWithoutBody(int contentLength)
 	if (contentLength <= 0)
 	{
 		_requestComplete = true;
-		return (true);
-	}
-	if (contentLength > _currServ.getMaxBody()) // TODO: faier remonter lerror correctement ??
-	{
-		_requestComplete = true;
-		// _requestSuccess = false;
 		return (true);
 	}
 	return (false);
@@ -89,13 +86,14 @@ void Request::setBody(size_t bodyStart, int contentLength)
 		_body.clear();
 		return ;
 	}
-	if (_body.size() >= static_cast<size_t>(contentLength))
+	size_t bodyBytesReceived = _rawRequest.size() - bodyStart;
+	if (bodyBytesReceived >= static_cast<size_t>(contentLength))
 	{
-		_body.erase(contentLength);
+		_body = _rawRequest.substr(bodyStart, contentLength);
 		_requestComplete = true;
 		return ;
 	}
-	_body = _rawRequest.substr(bodyStart);
+	_body = _rawRequest.substr(bodyStart, bodyBytesReceived);
 }
 
 void Request::receiveRequestChunk(int socketFd)
@@ -112,6 +110,11 @@ void Request::receiveRequestChunk(int socketFd)
 	int contentLength = stringToInt(extractContentLength(_rawRequest));
 	if (finalizeWithoutBody(contentLength) == true)
 		return ;
+	if (contentLength > _currServ.getMaxBody())
+	{
+		_requestComplete = true;
+		return ;
+	}
 
 	setBody(bodyStart, contentLength);
 }
@@ -123,23 +126,24 @@ void Request::displayInfos() const
 		std::cout << it->first << " : " << it->second << "\n";
 }
 
-bool Request::setFirstLine(std::string buffer)
+void Request::setFirstLine(std::string buffer)
 {
     std::istringstream iss(buffer);
     std::string method, path, protocol;
 
-	if (!(iss >> method >> path >> protocol)) 
-		return (false);
+	if (!(iss >> method >> path >> protocol))
+	{
+		_requestSuccess = false;
+		return ;
+	}
 	if (!protocol.empty() && protocol[protocol.size() - 1] == '\r')
 		protocol[protocol.size() - 1] = 0;
     _requestHeader["Method"] = method;
     _requestHeader["Path"] = path;
     _requestHeader["Protocol"] = protocol; //TODO: check if correct ?? 
-
-	return (true);
 }
 
-bool Request::fillHeader(std::stringstream &requestStream, std::string &buffer) 
+void Request::fillHeader(std::stringstream &requestStream, std::string &buffer) 
 {
 	while (std::getline(requestStream, buffer, '\n'))
 	{
@@ -150,20 +154,19 @@ bool Request::fillHeader(std::stringstream &requestStream, std::string &buffer)
 		if (sep == std::string::npos)
 		{
 			_requestSuccess = false;
-			return (false);
+			return ;
 		}
 		pair.first = buffer.substr(0, sep);
 		size_t end = buffer.find('\r');
 		if (end == std::string::npos)
 		{
 			_requestSuccess = false;
-			return (false);
+			return ;
 		}
 		sep += 2;
 		pair.second = buffer.substr(sep, end - sep);
 		_requestHeader.insert(pair);
 	}
-	return (true);
 }
 
 void Request::stateRequestValidity()
@@ -184,10 +187,8 @@ void Request::parseRequest(std::string request)
 	std::stringstream requestStream(request, std::ios_base::in);
 
 	std::getline(requestStream, buffer, '\n');
-	if (setFirstLine(buffer) == false || fillHeader(requestStream, buffer) == false)
-		return ;
-
-	stateRequestValidity();
+	setFirstLine(buffer);
+	fillHeader(requestStream, buffer);
 }
 
 const Server &	Request::getServer() const
@@ -210,12 +211,12 @@ const std::string& Request::getRawRequest() const
 	return (_rawRequest);
 }
 
-bool &Request::isRequestComplete()
+const bool &Request::isRequestComplete()
 {
 	return (_requestComplete);
 }
 
-bool &Request::getRequestSuccess()
+const bool &Request::getRequestSuccess() const
 {
 	return (_requestSuccess);
 }

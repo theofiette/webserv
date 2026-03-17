@@ -66,3 +66,11 @@ void	Listen(int fd, int n)
 	if (errCheck == -1)
 		throw(ExceptionBadInit(strerror(errno)));
 }
+
+int Send(int &fd, std::string const& chunckedStr)
+{
+	int bytesSent = send(fd, chunckedStr.c_str(), chunckedStr.size(), 0);
+	if (bytesSent == -1)
+		throw (ExceptionWriteError());
+	return (bytesSent);
+}

@@ -9,3 +9,4 @@ void	Getaddrinfo(const std::string name, const std::string service,
 void	Setsockopt(int fd, int level, int optname);
 void	Bind(int fd, const sockaddr *addr, socklen_t len);
 void	Listen(int fd, int n);
+int		Send(int &fd, std::string const& chunckedStr);

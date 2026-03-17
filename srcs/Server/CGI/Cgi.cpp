@@ -24,6 +24,36 @@ Cgi::Cgi(const Request &request)
 	_metaVariables["scheme"] = "";
 	_metaVariables["protocol-var-name"] = "";
 	_metaVariables["extension-var-name"] = "";
+	_cgiEnv = new char*[rm.size()];
+	int i = 0;
+	for (std::map<std::string, std::string>::iterator it = _metaVariables.begin(); it != _metaVariables.end(); it++)
+	{
+		std::string metaVar = it->first + "=" + it->second;
+		_cgiEnv[i] = strdup(metaVar.c_str());
+		i++;
+	}
+	_cgiEnv[i] = NULL;
+}
+
+void Cgi::cgiChildProcess(int pipe_in[2], int pipe_out[2]){
+	close(pipe_in[1]);
+	close(pipe_out[0]);
+
+	dup2(pipe_in[0], STDIN_FILENO); //pour lire le contenu du POST? ou directement depuis pipein[0]
+	if (dup2(pipe_out[1], STDOUT_FILENO) == -1)
+	{
+		close(pipe_in[0]);
+		close(pipe_out[1]);
+		exit(1);
+	}
+	std::string file = "./" + (getMetaVars().find("SCRIPT_NAME")->second).substr(1);
+	
+	char **tmp = new char*[2];
+	tmp[0] = strdup(file.c_str());
+	tmp[1] = NULL;
+	execve(tmp[0], tmp, getEnv());
+	perror("execve");
+	exit(0);
 }
 
 Cgi::Cgi()
@@ -33,7 +63,12 @@ Cgi::Cgi()
 
 Cgi::~Cgi()
 {
-
+	if (_cgiEnv)
+	{
+		for (int i = 0; _cgiEnv[i] != NULL; i++)
+			free(_cgiEnv[i]);
+		delete[] _cgiEnv;
+	}
 }
 
 const std::map<std::string, std::string>& Cgi::getMetaVars() const{

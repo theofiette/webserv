@@ -65,3 +65,22 @@ class ExceptionCgiPipeError : public std::exception
 	private:
 		const char*	what() const throw();
 };
+
+class ExceptionRequest : public std::exception
+{
+	private:
+		const char* what() const throw();
+};
+
+class ExceptionReadError : public std::exception
+{
+	private:
+		const char* what() const throw();
+};
+
+class ExceptionWriteError : public std::exception
+{
+	private:
+		const char* what() const throw();
+};
+
