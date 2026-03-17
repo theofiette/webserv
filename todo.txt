@@ -1,5 +1,0 @@
-1) on process request:
-	a) check if cookie : session-id is set
-
-	y : gg
-	n : create session with an id, set-cookie session-id=id
