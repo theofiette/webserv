@@ -121,31 +121,6 @@ void Response::addHeader(std::string key, std::string value)
 {
 	_header.insert(std::pair<string, string>(key, value));
 }
-
-void Response::setErrorResponse(std::string &localPath, std::map<int, std::string> const& errMapLocation, std::string const& root)
-{
-	// Regarder la gestion du bloc LOCATION
-	// Si pas preciser rediriger vers ERROR PAGE par defaut
-	mc_is_ite errPage = errMapLocation.find(_statusCode);
-	if (errPage != errMapLocation.end())
-	{
-		localPath = root + "/" + errPage->second;
-		_statusCode = MOVED_PERMANENTLY;
-	}
-	else
-	{
-		_statusCode = OK;
-		errPage = _currServ.getErrorsServer().find(_statusCode);
-		if (errPage != _currServ.getErrorsServer().end())
-		{
-			localPath = errPage->second;
-		}
-		else{
-			localPath = _currServ.getErrorsServer().find(0)->second;
-		}
-	}
-	std::cout << "LOCALPATH : " << localPath << "\n";
-}
 //*********************************************************************************************/
 /*										BUILDERS											  */
 //*********************************************************************************************/
@@ -228,11 +203,11 @@ void Response::checkFileAccess(std::string &localPath, int requiredAccess)
 	struct stat s;
 	if (stat(localPath.c_str(), &s) == -1) {
 		_statusCode = NOT_FOUND;
-		setErrorResponse(localPath, _currLocation.getErrors(), _currLocation.getRoot());
+		handleResponsesError();
 	}
 	else if (!S_ISREG(s.st_mode) || access(localPath.c_str(), requiredAccess) == -1) {
 		_statusCode = FORBIDDEN;
-		setErrorResponse(localPath, _currLocation.getErrors(), _currLocation.getRoot());
+		handleResponsesError();
 	}
 }
 
@@ -286,6 +261,29 @@ void Response::handleResponsesError()
 	addHeader("Content-Length", intToString(_body.length()));
 }
 
+// void Response::setErrorResponse(std::string &localPath, std::map<int, std::string> const& errMapLocation, std::string const& root)
+// {
+// 	// Regarder la gestion du bloc LOCATION
+// 	// Si pas preciser rediriger vers ERROR PAGE par defaut
+// 	mc_is_ite errPage = errMapLocation.find(_statusCode);
+// 	if (errPage != errMapLocation.end())
+// 	{
+// 		localPath = root + "/" + errPage->second;
+// 		_statusCode = MOVED_PERMANENTLY;
+// 	}
+// 	else
+// 	{
+// 		errPage = _currServ.getErrorsServer().find(_statusCode);
+// 		if (errPage != _currServ.getErrorsServer().end())
+// 		{
+// 			localPath = errPage->second;
+// 		}
+// 		else{
+// 			localPath = _currServ.getErrorsServer().find(0)->second;
+// 		}
+// 	}
+// }
+
 //*********************************************************************************************/
 /*										HANDLERS											  */
 //*********************************************************************************************/
@@ -305,26 +303,26 @@ void Response::handleGet()
 	checkFileAccess(localPath, R_OK);
 	if ((stat(localPath.c_str(), &s) == -1))
 		return ;
+	std::cout << "OUT HERE\n\n";
 	readFileContent(localPath, s.st_size);
 	addHeader("Content-Type", MIMEtable(localPath));
 	addHeader("Content-Length", intToString(_body.length()));
+	for(multimap::iterator it = _header.begin(); it != _header.end(); it++)
+		std::cout << it->first << ": " << it->second << "\n";
+	
 }
 
 void Response::handlePost()
 {
-	if (_statusCode != OK)
+	struct stat s;
+	std::string localPath = "html/success.html"; // SUCCES PAGE IN CONFIG
+	if (_statusCode != OK || stat(localPath.c_str(), &s) == -1)
 	{
 		handleResponsesError();
 		return ;
 	}
-	struct stat s;
-	std::string localPath = "html/success.html";
 	//TODO: RECUPER DYNAMIQUEMENT SUCCESS HTML via GLOBALSERVER ou REDIR (build full path...)
 	// std::string localPath = getSuccessPath();
-
-	if (stat(localPath.c_str(), &s) == -1)
-		return ;
-
 	std::map<std::string, std::string> formData; // TODO: utiliser cette data? Du coup on appelera parseform avec &data de la class
 	parseFormData(formData);
 
@@ -336,12 +334,10 @@ void Response::handlePost()
 void Response::handleDelete()
 {
 	std::string localPath = buildLocalPath();
-	struct stat s;
 
-	if (stat(localPath.c_str(), &s) == -1)
+	if (_statusCode != OK)
 	{
-		_statusCode = NOT_FOUND;
-		setErrorResponse(localPath, _currLocation.getErrors(), _currLocation.getRoot());
+		handleResponsesError();
 		return ;
 	}
 
@@ -438,9 +434,9 @@ void Response::buildRawResponse()
 	std::map<std::string, std::string>::iterator it = _header.begin();
 
 	if (_request.getMap().find("Protocol") == _request.getMap().end())
-		_rawResponse += "HTTP/1.1\r\n";
+		_rawResponse += "HTTP/1.1 ";
 	else
-		_rawResponse += _request.getMap().at("Protocol") + "\r\n";
+		_rawResponse += _request.getMap().at("Protocol") + " ";
 	_rawResponse += intToString(_statusCode) + " " + _statusMap.at(_statusCode) + "\r\n";
 
 	for (; it != _header.end(); it++)

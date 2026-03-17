@@ -197,6 +197,7 @@ void	WebServer::_sendResponse(pollfd &request)
 
 	std::string chunckedStr = currResponse.getChunckResp(SEND_SIZE);
 	int bytesSent;
+	std::cout << chunckedStr << "\n";
 	try
 	{
 		bytesSent = Send(request.fd, chunckedStr);

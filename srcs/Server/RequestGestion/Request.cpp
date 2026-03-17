@@ -35,6 +35,7 @@ std::string extractContentLength(std::string buffer)
 
 void Request::extractBody(int contentLength, size_t headerEnd)
 {
+	// CHUNCKED RECEIVING HERE
 	if (contentLength > _currServ.getMaxBody())
 	{
 		_requestComplete = true;
