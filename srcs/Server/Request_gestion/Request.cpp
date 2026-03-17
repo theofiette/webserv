@@ -3,7 +3,9 @@
 #include <map>
 #include <sstream>
 
-Request::Request(const Server &server) : _totalBytes(0), _requestComplete(false), _currServ(server) {}
+Request::Request(const Server &server, unsigned int serverIndex) : 
+_totalBytes(0), _requestComplete(false), _serverIndex(serverIndex), _currServ(server)
+{}
 
 Request::~Request(){}
 
@@ -70,10 +72,46 @@ void Request::recvRequest(int socketFd)
 
 void Request::displayInfos() const
 {
+	std::cout << "Displaying request info: \n";
 	std::map<std::string, std::string>::const_iterator it = _reqMap.begin();
 	for (; it != _reqMap.end(); it++)
 		std::cout << it->first << " : " << it->second << "\n";
 }
+
+const std::string Request::getCookieValue(const std::string & cookie_name) const
+{
+	std::string	cookies;
+	std::string	cookie_value;
+	std::string cookie_name_updated = cookie_name + "=";
+	size_t		pos;
+	size_t		comma_pos;
+
+	std::cout << "COOKIE NAME : " << cookie_name_updated << std::endl;
+
+	if (cookie_name.length() == 0)
+		return ("");
+	if (_reqMap.find("Cookie") == _reqMap.end())
+		return ("");
+	cookies = _reqMap.find("Cookie")->second;
+	pos = cookies.find(cookie_name_updated);
+	if (pos == std::string::npos)
+		return ("");
+	pos += cookie_name_updated.size();
+	comma_pos = cookies.find(';', pos);
+	if (comma_pos == std::string::npos)
+	{
+		cookie_value = cookies.substr(pos);
+		std::cout << "COOKIE VALUE : " << cookie_value << std::endl;
+	}
+	else
+	{
+		cookie_value = cookies.substr(pos, comma_pos - pos);
+		std::cout << "COOKIE VALUE : " << cookie_value << std::endl;
+	}
+
+	return (cookie_value);
+}
+
 
 void Request::setFirstLine(std::string tmp)
 {
@@ -120,11 +158,15 @@ int Request::parseRequest(std::string request)
 	return (1);
 }
 
+unsigned int	Request::getServerIndex() const
+{
+	return (_serverIndex);
+}
+
 const Server &	Request::getServer() const
 {
 	return (_currServ);
 }
-
 
 const std::string& Request::getBody() const
 {

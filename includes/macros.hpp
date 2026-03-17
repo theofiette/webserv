@@ -14,6 +14,8 @@
 
 typedef std::string string;
 
+# define SESSION_PREFIXE	"session_"
+
 #define BACKLOG_SIZE	1024
 
 # define CRLF_SIZE	4

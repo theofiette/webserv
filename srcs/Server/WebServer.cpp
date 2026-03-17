@@ -30,7 +30,7 @@ void	WebServer::_initCreateMasterSocket(
 	Getaddrinfo(currentServer.getServerName(), currentServer.getListen(), &hints, &_gaiPtr);
 	Setsockopt(newSocket, SOL_SOCKET, SO_REUSEADDR);
 	Bind(newSocket, _gaiPtr->ai_addr, _gaiPtr->ai_addrlen);
-	Listen(newSocket, BACKLOG_SIZE); // ici taille max de la backlog
+	Listen(newSocket, 1024); // ici taille max de la backlog
 
 	freeaddrinfo(_gaiPtr);
 	_gaiPtr = NULL;
@@ -90,7 +90,7 @@ void	WebServer::_initPollFds()
 	}
 }
 
-void	WebServer::_processConnections(int masterSocket, const Server &currServ)
+void	WebServer::_processConnections(int masterSocket, const Server &currServ, unsigned int serverIndex)
 {
 	int	socketFd;
 
@@ -111,26 +111,29 @@ void	WebServer::_processConnections(int masterSocket, const Server &currServ)
 		_size++;
 		_tempSize++;
 		
-		Request req(currServ);
+		std::cout << BOLD GREEN << "CREATING REQUEST FOR SERVER INDEX " << serverIndex << "\n";
+		Request req(currServ, serverIndex);
 		std::pair<int, Request> p = std::make_pair(socketFd, req);
+		//TODO: not necessary after clean connexion
+		if (_requestsMap.find(socketFd) != _requestsMap.end())
+			_requestsMap.erase(_requestsMap.find(socketFd));
 		_requestsMap.insert(p);
 	}
 }
 
 void	WebServer::_loopUpdate()
 {
-	if (_size != _tempSize) // not finished + don't like
+	if (_size != _tempSize) 
 	{
 		for (int i = 0; i < _tempSize; i++)
 		{
 			if (_pollfds[i].fd == -1)
 			{
 				std::cerr << RED ITALIC << "Cleaned a client: " << i << END << "\n";
-				for (int j = i; j < _size - 1; j++)
+				for (int j = i; j < _tempSize - 1; j++)
 				{
 					_pollfds[j] = _pollfds[j + 1];
 				}
-
 				_tempSize--;
 				i--;
 			}
@@ -151,13 +154,13 @@ void	WebServer::loop()
 
 		_awaitRequests();
 		std::cerr << BLUE ITALIC << "\n--> The server received a request, loop initiated. " << END << "\n";
-		for (int i = 0; i < _size; i++)
+		for (int i = 0; i < _tempSize; i++)
 		{
 			pollfd &currRequest = _pollfds[i];
 			if (i < _serverCount)
 			{
 				std::cout << RED << "\nListening to connections on server: " << i + 1 << " (fd: " << currRequest.fd << ")" << std::endl;
-				_processConnections(_masterSockets[i], _config.servers[i]);
+				_processConnections(_masterSockets[i], _config.servers[i], i);
 			}
 			else if (currRequest.revents & POLLIN)
 			{
@@ -180,6 +183,50 @@ void	WebServer::loop()
 			}
 		}
 		_loopUpdate();
+		display_connection();
+		// display_pollfds();
+	}
+}
+
+void	WebServer::display_connection()
+{
+	std::cout << GREEN BOLD << "\n\n--DISPLAY CONNECTION--\n\n" << END;
+	std::cout << GREEN ITALIC << "There is currently " << _size << " sockets open\n";
+	std::cout << "server number : " << _serverCount << " | _size : " << _size << " | _tempSize : " << _tempSize << END << "\n\n";
+
+	for (int i = _serverCount; i < _size; i++)
+	{
+		std::cout << BOLD << "client n " << i - _serverCount << " : " << END << "\n";
+		std::cout << "fd : " << _pollfds[i].fd << "\n";
+		std::cout << "request : ";
+		if (_requestsMap.find(_pollfds[i].fd) == _requestsMap.end())
+			std::cout << "is not found \n";
+		else
+			std::cout << "exist" << "\n";
+		std::cout << "response : ";
+		if (_responsesMap.find(_pollfds[i].fd) == _responsesMap.end())
+			std::cout << "is not found \n";
+		else
+			std::cout << "exist" << "\n";
+		std::cout << "______________\n\n";
+	}
+}
+
+void	WebServer::display_pollfds()
+{
+	std::cout << GREEN BOLD << "\n\n--DISPLAY POLLFDS--\n\n" << END;
+
+	std::cout << GREEN ITALIC << "There are " << _serverCount << " master sockets open\n" << END;
+	for (int i = 0; i < _serverCount; i++)
+	{
+		std::cout << "Master " << i << " : " << _pollfds[i].fd << "\n";
+	}
+	for (int i = _serverCount; i < _pollSize; i++)
+	{
+		if (i >= _size)
+			std::cout << RED ITALIC;
+		std::cout << "pollfd[" << i << "] : " << _pollfds[i].fd << "\n";
+		std::cout << END;
 	}
 }
 
@@ -199,13 +246,17 @@ void	WebServer::_processRequest(pollfd &request)
 	Request currRequest = _requestsMap.at(request.fd);
 
 	currRequest.recvRequest(request.fd);
-	// std::cout << BLUE BOLD <<  currRequest.getRawRequest() << END << "\n";
 	if (currRequest.isRequestComplete() == false)
 		return ;
 	//si pas fini de read la request return ;
+
 	currRequest.parseRequest(currRequest.getRawRequest());
 	
-	Response resp(currRequest, currRequest.getServer());
+	Session &currSession = _sessionManager.accessSession(currRequest.getCookieValue("SessionId"), currRequest.getServerIndex());
+
+	currSession.display();
+
+	Response resp(currRequest, currRequest.getServer(), currSession);
 
 	std::pair<int, Response> r = std::make_pair(request.fd, resp); // TODO: choose an other way or keep 
 	_responsesMap.insert(r);
@@ -227,9 +278,9 @@ void	WebServer::_sendResponse(pollfd &request)
 	currResponse.updateBytesSent(bytesSent);
 	if (currResponse.isSent())
 	{
-		request.revents = 0;
+		request.events = 0;
 		std::cout << RED ITALIC << "Closing fd " << request.fd << END << std::endl;
-		_responsesMap.erase(_responsesMap.find(request.fd)); // I THINK PROBLEM HERE
+		_responsesMap.erase(_responsesMap.find(request.fd)); 
 		close(request.fd);
 		request.fd = -1;
 		_size--;
@@ -251,7 +302,10 @@ void	WebServer::_awaitRequests()
 
 WebServer::WebServer(const WebServerConfig &config) : 
 _config(config), _serverCount(0), _tempSize(0), _size(0), _pollfds(NULL), _pollSize(0), _gaiPtr(NULL)
-{}
+{
+	_sessionManager.setServerCount(_config.servers.size());
+	_sessionManager.initServerSessions();
+}
 
 // DESTRUCTOR
 

@@ -7,12 +7,11 @@
 
 # include "Server.hpp"
 # include "WebServerConfig.hpp"
-# include "Session.hpp"
+# include "SessionManager.hpp"
 # include "signal.hpp"
 
 class Request;
 class Response;
-class SessionManager;
 
 struct SentResponse;
 
@@ -43,7 +42,7 @@ class WebServer
 		int		_initGetPollSize();
 
 		void	_awaitRequests();
-		void	_processConnections(int masterSocket, const Server &currServ);
+		void	_processConnections(int masterSocket, const Server &currServ, unsigned int serverIndex);
 		void	_processRequest(pollfd &);
 		void	_sendResponse(pollfd &);	
 
@@ -55,6 +54,10 @@ class WebServer
 		void	init();
 		void	loop();
 		void	display();
+
+		void	display_connection();
+		void	display_pollfds();
+
 
 		WebServer(const WebServerConfig &config);
 		~WebServer();

@@ -13,6 +13,7 @@ SRC         =	srcs/main.cpp \
 				srcs/Server/Request_gestion/Request.cpp \
 				srcs/Server/Request_gestion/Response.cpp \
 				srcs/Server/Request_gestion/Session.cpp \
+				srcs/Server/Request_gestion/SessionManager.cpp \
 				srcs/Server/WebServer.cpp \
 				srcs/Server/config/Redir.cpp \
 				srcs/Server/config/Location.cpp \

@@ -5,11 +5,13 @@
 # define LOC_DF_METHOD	true
 # define LOC_DF_ROOT	"html"
 # define LOC_DF_IDX		"index.html"
+# define LOC_DF_COOKIE	false
 # define LOC_DF_AIDX	false
 
 bool	Location::_df_method	= LOC_DF_METHOD;
 string	Location::_df_root		= LOC_DF_ROOT;
 string	Location::_df_index		= LOC_DF_IDX;
+bool	Location::_df_cookie	= LOC_DF_COOKIE;
 bool	Location::_df_autoIndex	= LOC_DF_AIDX;
 
 bool	Location::registerCgi(std::string cgi)
@@ -34,6 +36,7 @@ void	Location::clear()
 	_root = _df_root;
 	_index = _df_index;
 	_autoIndex = _df_autoIndex;
+	_cookie = _df_cookie;
 	_cgi = std::vector<std::string>();
 	_methods = std::vector<bool>();
 	for (int i = 0; i < METHODS_COUNT; i++)
@@ -62,6 +65,11 @@ void	Location::setIndex(string value)
 	_index = value;
 }
 
+void	Location::setCookie(bool value)
+{
+	_cookie = value;
+}
+
 void	Location::setAutoIndex(bool value)
 {
 	_autoIndex = value;
@@ -81,6 +89,11 @@ void	Location::set_df_root(string value)
 void	Location::set_df_index(string value)
 {
 	Location::_df_index = value;
+}
+
+void	Location::set_df_cookie(bool value)
+{
+	Location::_df_cookie = value;
 }
 
 void	Location::set_df_autoIndex(bool value)
@@ -131,6 +144,7 @@ void	Location::display() const
 	std::cout << "root is " << _root << "\n";
 	std::cout << "index is " << _index << "\n";
 	std::cout << "autoindex option is set as: " << std::boolalpha << _autoIndex << "\n";
+	std::cout << "cookie option is set as : " << std::boolalpha << _cookie << "\n";
 	if (_cgi.size())
 	{
 		std::cout << "cgi: " << "\n";
@@ -154,7 +168,7 @@ void	Location::display() const
 // CONSTRUCTORS
 
 Location::Location() :
-_root(_df_root), _index(_df_index), _autoIndex(_df_autoIndex)
+_root(_df_root), _index(_df_index), _autoIndex(_df_autoIndex), _cookie(_df_cookie)
 {
 	for (int i = 0; i < METHODS_COUNT; i++)
 		_methods.push_back(_df_method);
@@ -188,12 +202,17 @@ const std::vector<bool>&	Location::getMethods() const
 	return (_methods);
 }
 
-const std::string& 		Location::getIndex() const
+const std::string&	Location::getIndex() const
 {
 	return (_index);
 }
 
-const Redir&				Location::getRedir() const
+const Redir&	Location::getRedir() const
 {
 	return (_redir);
+}
+
+bool Location::isCookie() const
+{
+	return (_cookie);
 }

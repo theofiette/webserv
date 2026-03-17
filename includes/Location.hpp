@@ -14,6 +14,7 @@ class Location
 		static	bool	_df_method;
 		static	string	_df_root;
 		static	string	_df_index;
+		static	bool	_df_cookie;
 		static	bool	_df_autoIndex;
 
 		std::vector<bool>			_methods;
@@ -22,6 +23,7 @@ class Location
 		std::string					_root;
 		std::string					_index;
 		bool						_autoIndex;
+		bool						_cookie;
 		Redir						_redir;
 
 	public:
@@ -37,11 +39,13 @@ class Location
 		static	void	set_df_method(bool value);
 		static	void	set_df_root(string value);
 		static	void	set_df_index(string value);
+		static	void	set_df_cookie(bool value);
 		static	void	set_df_autoIndex(bool value);
 
 		void	setMethod(bool value, int index);
 		void	setRoot(string value);
 		void	setIndex(string value);
+		void	setCookie(bool value);
 		void	setAutoIndex(bool value);
 
 		// Orthodox Canonical Form
@@ -53,5 +57,6 @@ class Location
 		const std::string& 					getIndex() const;
 		const std::vector<bool>&			getMethods() const;
 		const Redir&						getRedir() const;
+		bool								isCookie() const;
 	};
 

@@ -288,6 +288,11 @@ void	ConfigParser::_PARAM_location_index()
 	Location::set_df_index(_token);
 }
 
+void	ConfigParser::_PARAM_location_cookie()
+{
+	Location::set_df_cookie(_safeStob(_token));
+}
+
 void	ConfigParser::_PARAM_location_autoindex()
 {
 	Location::set_df_autoIndex(_safeStob(_token));
@@ -412,6 +417,11 @@ void	ConfigParser::_PARAM_index()
 	_Location.second.setIndex(_token);
 }
 
+void	ConfigParser::_PARAM_cookie()
+{
+	_Location.second.setCookie(_safeStob(_token));
+}
+
 void	ConfigParser::_PARAM_autoindex()
 {
 	_Location.second.setAutoIndex(_safeStob(_token));
@@ -445,6 +455,7 @@ void	ConfigParser::_initLookUpParamFunctionTable(
 	table.insert(pairParam("location_method",		&ConfigParser::_PARAM_location_method));
 	table.insert(pairParam("location_root",			&ConfigParser::_PARAM_location_root));
 	table.insert(pairParam("location_index",		&ConfigParser::_PARAM_location_index));
+	table.insert(pairParam("location_cookie",		&ConfigParser::_PARAM_location_cookie));
 	table.insert(pairParam("location_autoindex",	&ConfigParser::_PARAM_location_autoindex));
 	table.insert(pairParam("redir_valid", 			&ConfigParser::_PARAM_redir_valid));
 	table.insert(pairParam("redir_errorcode", 		&ConfigParser::_PARAM_redir_errorcode));
@@ -459,6 +470,7 @@ void	ConfigParser::_initLookUpParamFunctionTable(
 	table.insert(pairParam("error",					&ConfigParser::_PARAM_error));
 	table.insert(pairParam("root",					&ConfigParser::_PARAM_root));
 	table.insert(pairParam("index",					&ConfigParser::_PARAM_index));
+	table.insert(pairParam("cookie",				&ConfigParser::_PARAM_cookie));
 	table.insert(pairParam("autoindex",				&ConfigParser::_PARAM_autoindex));
 	table.insert(pairParam("return",				&ConfigParser::_PARAM_return));
 }
@@ -474,6 +486,7 @@ void	ConfigParser::_initLookUpParamValidityTable(std::map<string, int> &table)
 	table.insert(std::pair<string, int>("location_method",		GLOBAL));
 	table.insert(std::pair<string, int>("location_root",		GLOBAL));
 	table.insert(std::pair<string, int>("location_index",		GLOBAL));
+	table.insert(std::pair<string, int>("location_cookie",		GLOBAL));
 	table.insert(std::pair<string, int>("location_autoindex",	GLOBAL));
 	table.insert(std::pair<string, int>("redir_valid",			GLOBAL));
 	table.insert(std::pair<string, int>("redir_errorcode",		GLOBAL));
@@ -488,6 +501,7 @@ void	ConfigParser::_initLookUpParamValidityTable(std::map<string, int> &table)
 	table.insert(std::pair<string, int>("error",	 			LOCATION));
 	table.insert(std::pair<string, int>("root", 				LOCATION));
 	table.insert(std::pair<string, int>("index", 				LOCATION));
+	table.insert(std::pair<string, int>("cookie",				LOCATION));
 	table.insert(std::pair<string, int>("autoindex", 			LOCATION));
 	table.insert(std::pair<string, int>("return", 				LOCATION));
 }

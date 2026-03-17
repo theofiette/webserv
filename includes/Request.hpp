@@ -9,6 +9,8 @@
 
 #include "Server.hpp"
 
+typedef std::map<std::string, std::string>::iterator _req_map_it;
+
 class Request
 {
 	private:
@@ -17,13 +19,14 @@ class Request
 		std::string 						_rawRequest;
 		std::string 						_body;
 		bool								_requestComplete;
+		int									_serverIndex;
 
 		const Server &_currServ;
 
 		void 	setFirstLine(std::string);
 
 	public:
-		Request(const Server &);
+		Request(const Server &, unsigned int);
 		~Request();
 
 		int		parseRequest(std::string);
@@ -31,7 +34,9 @@ class Request
 		const std::string& getRawRequest() const;
 		void recvRequest(int);
 		bool &isRequestComplete();
-		const std::map<std::string, std::string>& getMap() const;
+		const std::map<std::string, std::string>&	getMap() const;
+		const std::string	getCookieValue(const std::string &) const;
+		unsigned int getServerIndex() const;
 	
 	// TEMPORAIRE
 	void displayInfos() const;
@@ -41,4 +46,3 @@ class Request
 };
 
 std::string extractContentLength(std::string buffer);
-int stringToInt(std::string num);

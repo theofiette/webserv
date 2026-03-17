@@ -35,9 +35,16 @@ const std::map<int, std::string> Response::_statusMap = initStatusMap();
 /*										CONSTRUCTORS										  */
 //*********************************************************************************************/
 
-Response::Response(const Request &request, const Server &server) : _statusCode(200), 
-_currServ(server), _request(request)
+Response::Response(const Request &request, const Server &server, Session &session) : 
+_statusCode(200), _currServ(server), _request(request), _session(session)
 {
+	if (!session.isConnected())
+	{
+		insertCookieHeader("SessionId=" + session.getId());
+		session.setConnected(true);
+	}
+
+	_session.display();
 	// _request.displayInfos();
 	if (_request.getMap().at("Method") == "POST")
 	{
@@ -59,12 +66,13 @@ Response::~Response(){}
 /*										METHODS											  	  */
 //*********************************************************************************************/
 
-std::string Response::intToString(int num)
-{
-    std::stringstream ss;
-    ss << num;
-    return (ss.str());
-}
+// moved to util
+// std::string Response::intToString(int num)
+// {
+//     std::stringstream ss;
+//     ss << num;
+//     return (ss.str());
+// }
 
 void Response::pickMethod()
 {
@@ -186,6 +194,7 @@ void Response::validateMethodAllowed(const Location &location)
 	}
 }
 
+//TODO: Envoyer directement la string plutot que la location, pour ne pas faire une fonction speciale cookies
 void Response::appendIndexToDirectory(std::string &localPath, const Location &location)
 {
 	struct stat s;
@@ -198,16 +207,52 @@ void Response::appendIndexToDirectory(std::string &localPath, const Location &lo
 		localPath += index;
 	}
 }
+void Response::appendCookieIndexToDirectory(
+	std::string &localPath, const std::string &cookie_value)
+{
+	struct stat s;
+
+	if (stat(localPath.c_str(), &s) != -1 && S_ISDIR(s.st_mode))
+	{
+		std::string index = cookie_value + ".css";
+		if (localPath[localPath.size() - 1] != '/')
+			localPath += "/";
+		localPath += index;
+	}
+}
+
+void	Response::buildLocalPathFromCookie(std::string &localPath, const Location & location)
+{
+	size_t	pos = localPath.rfind('/');
+
+	if (pos == std::string::npos)
+		appendIndexToDirectory(localPath, location);
+	pos++;
+	
+	std::string cookie_name = localPath.substr(pos);
+	std::string cookie_value = _request.getCookieValue(cookie_name);
+
+	if (!cookie_value.empty())
+		appendCookieIndexToDirectory(localPath, cookie_value);
+	else
+		appendIndexToDirectory(localPath, location);
+}
 
 std::string Response::buildLocalPath()
 {
 	std::string uriPath = _request.getMap().at("Path");
 	std::map<string, Location>::const_reverse_iterator bestMatch = findBestLocation(uriPath);
+	const Location	&location = bestMatch->second;
 	
 	// validateMethodAllowed(bestMatch->second);
 	
-	std::string localPath = bestMatch->second.getRoot() + uriPath;
-	appendIndexToDirectory(localPath, bestMatch->second);
+	std::string localPath = location.getRoot() + uriPath;
+	std::cerr << GREEN ITALIC BOLD << "path: " << localPath << "\n" << std::endl;
+
+	if (location.isCookie())
+		buildLocalPathFromCookie(localPath, location);
+	else
+		appendIndexToDirectory(localPath, location);
 	
 	return (localPath);
 }
@@ -255,6 +300,13 @@ void Response::parseFormData(std::map<std::string, std::string> &data)
 			endPos = _request.getBody().find("\r\n\r\n");
 		std::string key = _request.getBody().substr((lastPos == 0 ? lastPos : lastPos + 1), i - (lastPos + (lastPos != 0))); // 🤮🤮🤮
 		std::string val = _request.getBody().substr(i + 1, endPos - (i + 1));
+
+		if (key.find(SESSION_PREFIXE))
+		{
+			key = key.substr(std::string(SESSION_PREFIXE).length());
+			_session.insertCookieFromPair(std::pair<string, string>(key, val));
+		}
+		
 		data.insert(std::make_pair(key, val));
 		lastPos = endPos;
 	}
@@ -280,6 +332,9 @@ void Response::handleGet()
 	}
 	else 
 		localPath = buildLocalPath();
+
+	std::cerr << RED BOLD << localPath << std::endl;
+
 	checkFileAccess(localPath, R_OK);
 	if ((stat(localPath.c_str(), &s) == -1))
 		return ;

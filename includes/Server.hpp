@@ -18,11 +18,11 @@ class Server
 		static int		_df_clientBodyMax;
 		static string	_df_errorPath;
 
-		string	_listen;
-		string	_serverName;
-		bool	_sendFile;
-		int		_clientBodyMax;
-		string	_errorPage;
+		string			_listen;
+		string			_serverName;
+		bool			_sendFile;
+		int				_clientBodyMax;
+		string			_errorPage;
 
 		std::map<int, string>		_errors;
 		std::map<string, Location>	_locations;
