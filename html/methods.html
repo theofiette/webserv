@@ -1,71 +1,29 @@
 <!DOCTYPE html>
 <html lang="fr">
 	<head>
+		<link rel="stylesheet" href="css/style/">
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title>Webserv de la TeamRequette - Methods</title>
-		<style>
-			* {
-				margin: 0;
-				padding: 0;
-				box-sizing: border-box;
-			}
-			h1 {
-				color: #333;
-				font-size: 2.5em;
-				margin-bottom: 20px;
-				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-				-webkit-background-clip: text;
-				-webkit-text-fill-color: transparent;
-				background-clip: text;
-			}
-			body{
-				background: linear-gradient(135deg, #c90000 0%, #764ba2 100%);
-				display: flex;
-				align-items: center;
-				min-height: 100vh;
-				justify-content: center;
-			}
-			.container {
-				text-align: center;
-				background: white;
-				padding: 50px;
-				border-radius: 10px;
-				box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-				max-width: 600px;
-			}
-			.button{
-				background: linear-gradient(135deg, #764ba2 0%, #c90000 100%);
-				display: inline-block;
-				padding: 12px 30px;
-				text-decoration: none;
-				color: white;
-				border-radius: 5px;
-				transition: transform 0.3s, box-shadow 0.3s;
-				margin: 10px;
-			}
-			.button:active{
-				background: linear-gradient(135deg, #303030 0%, #fefefe 100%);
-			}
-			.button:visited{
-				background: linear-gradient(135deg, #303030 0%, #fefefe 100%);
-			}
-			.button:hover{
-				background: linear-gradient(135deg, #303030 20%, #fefefe 100%);
-				box-shadow: 0 5px 15px #c90000;
-				color:#303030;
-				transform: translateY(-4px);
-			}
-		</style>
 	</head>
 	<body>
 		<div class="container">
 			<h1>
+				<a href="index.html">
 				🖥️​​ Methods:
+				</a>
 			</h1>
-			<a href="/get.html" class="button">Get</a>
-			<a href="/post.html" class="button">Post</a>
-			<a href="/delete.html" class="button">Delete</a>
+			<div class="container2">
+				<a href="/get.html" class="button">Get</a>
+				<a href="/post.html" class="button">Post</a>
+				<a href="/delete.html" class="button">Delete</a>
+			</div>
+			<p class="check"><bold>segfault</bold></p>
+			<label class="switch">
+			  <input type="checkbox" name="segfault">
+			  <span class="slider round"></span>
+			</label>
 		</div>
 	</body>
+	<!-- Rounded switch -->
 </html>

@@ -3,7 +3,7 @@
 #include <map>
 #include <sstream>
 
-Request::Request(const Server &server) : _totalBytes(0), _requestSuccess(true), _requestComplete(false), _currServ(server) {}
+Request::Request(const Server &server, unsigned) : _totalBytes(0), _requestSuccess(true), _requestComplete(false), _currServ(server) {}
 
 Request::~Request(){}
 

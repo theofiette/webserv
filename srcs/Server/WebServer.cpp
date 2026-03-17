@@ -30,7 +30,7 @@ void	WebServer::_initCreateMasterSocket(
 	Getaddrinfo(currentServer.getServerName(), currentServer.getListen(), &hints, &_gaiPtr);
 	Setsockopt(newSocket, SOL_SOCKET, SO_REUSEADDR);
 	Bind(newSocket, _gaiPtr->ai_addr, _gaiPtr->ai_addrlen);
-	Listen(newSocket, BACKLOG_SIZE); // ici taille max de la backlog
+	Listen(newSocket, 1024); // ici taille max de la backlog
 
 	freeaddrinfo(_gaiPtr);
 	_gaiPtr = NULL;
@@ -89,7 +89,7 @@ void	WebServer::_initPollFds()
 	}
 }
 
-void	WebServer::_processConnections(int masterSocket, const Server &currServ)
+void	WebServer::_processConnections(int masterSocket, const Server &currServ, unsigned int serverIndex)
 {
 	int	socketFd;
 
@@ -103,8 +103,12 @@ void	WebServer::_processConnections(int masterSocket, const Server &currServ)
 		_pollfds[_connectionsCount].events = POLLIN;
 		_connectionsCount ++;
 		
-		Request req(currServ);
+		std::cout << BOLD GREEN << "CREATING REQUEST FOR SERVER INDEX " << serverIndex << "\n";
+		Request req(currServ, serverIndex);
 		std::pair<int, Request> p = std::make_pair(socketFd, req);
+		//TODO: not necessary after clean connexion
+		if (_requestsMap.find(socketFd) != _requestsMap.end())
+			_requestsMap.erase(_requestsMap.find(socketFd));
 		_requestsMap.insert(p);
 	}
 }
@@ -120,7 +124,7 @@ void	WebServer::loop()
 			_decrement = false;
 			if (i < _serverCount)
 			{
-				_processConnections(_masterSockets[i], _config.servers[i]);
+				_processConnections(_masterSockets[i], _config.servers[i], i);
 			}
 			else if (currRequest.revents & POLLIN)
 			{
@@ -154,24 +158,22 @@ void	WebServer::_processRequest(pollfd &request)
 	Request &currRequest = _requestsMap.at(request.fd);
 
 	currRequest.receiveRequestChunk(request.fd);
-	if (currRequest.isRequestComplete() == false) // Loop again to finish recv
-	{
-		std::cout << RED << "REQUEST" << YELLOW << "IS" << GREEN << "NOT" << BLUE << "COMPLETED\n";
+	if (currRequest.isRequestComplete() == false)
 		return ;
-	}
+
+	currRequest.parseRequest(currRequest.getRawRequest());
+
+	Session &currSession = _sessionManager.accessSession(currRequest.getCookieValue("SessionId"), currRequest.getServerIndex());
+
+	currSession.display();
+
+	Response resp(currRequest, currRequest.getServer(), currSession);
+
+	std::pair<int, Response> r = std::make_pair(request.fd, resp); // TODO: choose an other way or keep
 	
-	std::cout << BLUE << "REQUETE: " << currRequest.getRawRequest() << END << std::endl;
-	try {
-		currRequest.parseRequest(currRequest.getRawRequest());
-		Response resp(currRequest, currRequest.getServer());
-		std::pair<int, Response> r = std::make_pair(request.fd, resp); // TODO: choose an other way or keep 
-		_responsesMap.insert(r);
-		request.events = POLLOUT;
-	}
-	catch (std::exception &e) {
-		std::cerr << RED << "Error processing request on fd " << request.fd << ": " << e.what() << END << std::endl;
-		_closeConnection(request, _pollfds);
-	}
+	_responsesMap.insert(r);
+
+	request.events = POLLOUT; // on set le fd ready to send
 }
 
 void	WebServer::_sendResponse(pollfd &request)
@@ -224,7 +226,10 @@ void	WebServer::_closeConnection(pollfd &request, pollfd *fds)
 
 WebServer::WebServer(const WebServerConfig &config) : 
 _config(config), _serverCount(0), _connectionsCount(0), _pollfds(NULL), _pollSize(0), _gaiPtr(NULL)
-{}
+{
+	_sessionManager.setServerCount(_config.servers.size());
+	_sessionManager.initServerSessions();
+}
 
 // DESTRUCTOR
 

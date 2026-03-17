@@ -53,6 +53,7 @@ class ConfigParser
 		void	_PARAM_location_method();
 		void	_PARAM_location_root();
 		void	_PARAM_location_index();
+		void	_PARAM_location_cookie();
 		void	_PARAM_location_autoindex();
 		void	_PARAM_redir_valid();
 		void	_PARAM_redir_errorcode();
@@ -67,6 +68,7 @@ class ConfigParser
 		void	_PARAM_error();
 		void	_PARAM_root();
 		void	_PARAM_index();
+		void	_PARAM_cookie();
 		void	_PARAM_autoindex();
 		void	_PARAM_return();
 

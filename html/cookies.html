@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+	<head>
+		<link rel="stylesheet" href="css/style/">
+		<meta charset="UTF-8">
+		<title>TeamRequette's Webserv - Cookies</title>
+	</head>
+	<body>
+		<div>
+			<div class="container">
+				<h1>Theme</h1>
+				<button class="button" onclick="setThemeDefault()"> reset theme</button>
+				<button class="button" onclick="setThemeDark()"> dark theme</button>
+				<button class="button" onclick="setThemeWhite()"> white theme</button>
+				<button class="button" onclick="setThemeYellow()"> yellow theme</button>
+			</div>
+
+			<div class="container">
+				<h1>Font</h1>
+				<button class="button" onclick="setFontDefault()"> reset font</button>
+				<button class="button" onclick="setFontArial()"> arial font</button>
+			</div>
+
+			<h1><br></h1>
+
+			<div class="container"><a class="button" href="/index.html"> back</a></div>
+		</div>
+	</body>
+
+	<script> 
+
+		function setThemeDefault() {
+		console.log(document.cookie = "theme=theme;"); 
+		console.log(location.reload()); }
+
+		function setThemeDark() {
+		console.log(document.cookie = "theme=dark;"); 
+		console.log(location.reload());}
+
+		function setThemeWhite() {
+		console.log(document.cookie = "theme=white;"); 
+		console.log(location.reload());}
+
+		function setThemeYellow() {
+		console.log(document.cookie = "theme=yellow;"); 
+		console.log(location.reload());}
+
+		function setFontDefault() {
+		console.log(document.cookie = "font=font;"); 
+		console.log(location.reload()); }
+
+		function setFontArial() {
+		console.log(document.cookie = "font=arial;"); 
+		console.log(location.reload());}
+
+	</script>
+
+</html>

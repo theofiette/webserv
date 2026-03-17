@@ -1,6 +1,30 @@
 #include "webserv.hpp"
 #include "Session.hpp"
 
+void Session::display()
+{
+	std::cout << "Displaying infos for session " << _id << "\n";
+
+	std::map<string, string>::iterator it, ite;
+	it	= _cookies.begin();
+	ite	= _cookies.end();
+	for (; it != ite; it++)
+	{
+		std::cout << "Cookie: " << it->first << " | " << it->second << "\n";
+	}
+	std::cout << std::endl;
+}
+
+void Session::setConnected(bool value)
+{
+	_connected = value;
+}
+
+bool Session::isConnected()
+{
+	return (_connected);
+}
+
 std::pair<string, string> Session::_getCookieInfo(std::string str, bool &errorCheck)
 {
 	size_t offset		= str.find(' ');
@@ -12,42 +36,50 @@ std::pair<string, string> Session::_getCookieInfo(std::string str, bool &errorCh
 		errorCheck = true;
 		return (std::pair<string, string>());
 	}
+
 	std::string key		= str.substr(offset, equal_pos - offset);
 	std::string value;
+	
 	if (comma_pos == std::string::npos)
 		value	= str.substr(equal_pos + 1);
 	else
 		value	= str.substr(equal_pos + 1, comma_pos);
+
 	return (std::pair<string, string>(key, value)) ;
 }
 
 void	Session::insertCookieFromString(std::string str)
 {
-	std::pair<string, string> 	cookie;
-	bool						errorCheck;
+	std::pair<string, string> 			cookie;
+	bool								errorCheck;
 	
 	cookie = _getCookieInfo(str, errorCheck);
 	if (errorCheck)
 		return ;
-	std::cout << "key is : " << cookie.first << " | " << "value is :" << cookie.second << std::endl;
+	insertCookieFromPair(cookie);
 }
 
-SessionManager::SessionManager()
+void	Session::insertCookieFromPair(std::pair<string, string> cookie)
 {
+	std::map<string, string>::iterator	it;
 
+	it = _cookies.find(cookie.first);
+	if (it == _cookies.end())
+		_cookies.insert(cookie);
+	else
+		it->second = cookie.second;
 }
 
-SessionManager::~SessionManager()
-{
 
+const std::string &	Session::getId()
+{
+	return (_id);
 }
 
-Session::Session()
+Session::Session(const std::string &id) : _id(id), _connected(false)
 {
-
 }
 
 Session::~Session()
 {
-
 }

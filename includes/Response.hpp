@@ -6,7 +6,10 @@
 #include "exception.hpp"
 #include "Location.hpp"
 #include "Cgi.hpp"
+#include "safemath.hpp"
 
+
+typedef std::multimap<std::string, std::string>::iterator _header_it;
 
 class Request;
 class Server;
@@ -51,23 +54,28 @@ class Response
 		int					_headerLength;
 		int					_contentLength;
 		
-		Location 			_currLocation;
-		const Server 		&_currServ;
-		const Request		&_request;
+		Location 				_currLocation;
+		const Server 			&_currServ;
+		const Request 			&_request;
+		Session					&_session;
+
+		// const Cgi _cgi;
 		
 		static const 		std::map<int, std::string> _statusMap;
 		static const 		std::string methods[METHODS_COUNT];
 		static const 		std::string mimeTable[MIME_SIZE];
 
-		std::string			intToString(int);
 		std::string			MIMEtable(std::string);
 		std::string			buildLocalPath();
 
 		mc_sL_rite			findBestLocation(const std::string &);
 		void 				validateMethodAllowed(const Location &);
-		void 				appendIndexToDirectory(std::string &, const Location &);
 
+		void 				appendIndexToDirectory(std::string &, const Location &);
+		void				appendCookieIndexToDirectory(std::string &, const std::string &);
 		void 				insertCookieHeader(std::string);
+		void				buildLocalPathFromCookie(std::string &localPath, const Location & location);
+
 
 		void 				checkFileAccess(std::string &, int);
 		bool 				readFileContent(const std::string &, size_t);
@@ -75,8 +83,8 @@ class Response
 		void 				handleResponsesError();
 
 	public:
-							Response(const Request &, const Server &);
-							~Response();
+		Response(const Request &, const Server &, Session &);
+		~Response();
 
 		void				setStatusCode();
 		void				setCurrLocation(const Location &);
