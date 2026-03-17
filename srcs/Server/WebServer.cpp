@@ -104,8 +104,6 @@ void	WebServer::_processConnections(int masterSocket, const Server &currServ)
 		_connectionsCount ++;
 		
 		Request req(currServ);
-		if (req.getRequestSuccess() == false)
-			_closeConnection(_pollfds[_connectionsCount], _pollfds);
 		std::pair<int, Request> p = std::make_pair(socketFd, req);
 		_requestsMap.insert(p);
 	}
@@ -171,10 +169,10 @@ void	WebServer::display()
 		it->display();
 }
 
-void	WebServer::_processRequest(pollfd &request)
+void	WebServer::_processRequest(pollfd &request) // TODO: split in two blocs
 {
 	if (_requestsMap.find(request.fd) == _requestsMap.end())
-		throw (ExceptionRuntime("Can't find corresponding request."));
+		throw (ExceptionRuntime("Can't find corresponding request"));
 	Request currRequest = _requestsMap.at(request.fd);
 
 	try {
@@ -205,16 +203,15 @@ void	WebServer::_processRequest(pollfd &request)
 
 void	WebServer::_sendResponse(pollfd &request)
 {
-	std::cout << "REQUEST FD " << request.fd << "\n";
 	if (_responsesMap.find(request.fd) == _responsesMap.end())
-		throw (ExceptionRuntime("Can't find corresponding response."));
-	Response &currResponse = _responsesMap.at(request.fd);
+		throw (ExceptionRuntime("Can't find corresponding response"));
+	
+	std::cout << RED BOLD "TRYING TO SEND \n\n";
 
-	std::string chunckedStr = currResponse.getChunckResp(SEND_SIZE);
-	int bytesSent = send(request.fd, chunckedStr.c_str(), chunckedStr.size(), 0);
-	// if (bytesSent == -1)
-	// ;
-	// std::cout << GREEN << chunckedStr.c_str();
+	Response		&currResponse = _responsesMap.at(request.fd);
+	std::string		chunckedStr = currResponse.getChunckResp(SEND_SIZE);
+	int				bytesSent = send(request.fd, chunckedStr.c_str(), chunckedStr.size(), 0);
+
 	currResponse.updateBytesSent(bytesSent);
 }
 

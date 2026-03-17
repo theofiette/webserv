@@ -27,6 +27,7 @@ static std::map<int, std::string> initStatusMap()
 	m[404] = "Not found";
 	m[405] = "Not allowed";
 	m[413] = "Content too large";
+	
 	return (m);
 }
 
@@ -36,23 +37,14 @@ const std::map<int, std::string> Response::_statusMap = initStatusMap();
 /*										CONSTRUCTORS										  */
 //*********************************************************************************************/
 
-Response::Response(const Request &request, const Server &server) : _statusCode(200), 
+Response::Response(const Request &request, const Server &server) : _statusCode(200),  _bytesSent(0), _headerLength(0), _contentLength(0), 
 _currServ(server), _request(request)
 {
-	// _request.displayInfos();
+	_request.displayInfos();
 	if (_request.getMap().find("Method") == _request.getMap().end())
-		throw (ExceptionRuntime("Invalid request for response constructor (Method)"));
-	if (_request.getMap().at("Method") == "POST")
-	{
-		if (_request.getMap().find("Method") == _request.getMap().end())
-			throw (ExceptionRuntime("Invalid request for response constructor (Content Length)"));
-		if (stringToInt(_request.getMap().at("Content-Length")) > _currServ.getMaxBody())
-		{
-			_statusCode = CONTENT_TOO_LARGE;
-			handleGet();
-			return ;
-		}
-	}
+		throw (ExceptionRuntime("Invalid request for response constructor (Content Length)"));
+	if (_request.getMap().find("Content-Length") != _request.getMap().end() && stringToInt(_request.getMap().at("Content-Length")) > _currServ.getMaxBody())
+		_statusCode = CONTENT_TOO_LARGE;
 	pickMethod();
 	buildRawResponse();
 	_bytesSent = 0;
@@ -142,7 +134,6 @@ void Response::setErrorResponse(std::string &localPath, std::map<int, std::strin
 	}
 	else
 	{
-		_statusCode = OK; // TODO: ??  404 ?
 		errPage = _currServ.getErrorsServer().find(_statusCode);
 		if (errPage != _currServ.getErrorsServer().end())
 		{
@@ -397,6 +388,7 @@ void Response::handleCgi(Request const& request){
 std::string Response::getChunckResp(int bytes)
 {
 	std::string chunckResp;
+	std::cout << "RAW RESP == " << _rawResponse << "\n";
 
 	chunckResp = _rawResponse.substr(_bytesSent, bytes);
 	return (chunckResp);

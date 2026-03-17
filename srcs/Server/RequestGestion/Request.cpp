@@ -73,9 +73,10 @@ bool Request::finalizeWithoutBody(int contentLength)
 		_requestComplete = true;
 		return (true);
 	}
-	if (contentLength > _currServ.getMaxBody()) // TODO: faier remonter lerror
+	if (contentLength > _currServ.getMaxBody()) // TODO: faier remonter lerror correctement ??
 	{
 		_requestComplete = true;
+		// _requestSuccess = false;
 		return (true);
 	}
 	return (false);
@@ -95,9 +96,7 @@ void Request::setBody(size_t bodyStart, int contentLength)
 		return ;
 	}
 	_body = _rawRequest.substr(bodyStart);
-	
 }
-
 
 void Request::receiveRequestChunk(int socketFd)
 {
