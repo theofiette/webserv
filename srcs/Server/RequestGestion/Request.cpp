@@ -1,21 +1,16 @@
 #include "webserv.hpp"
 #include "Request.hpp"
+#include "safemath.hpp"
 #include <map>
 #include <sstream>
 
-Request::Request(const Server &server, unsigned) : _totalBytes(0), _requestSuccess(true), _requestComplete(false), _currServ(server) {}
+Request::Request(const Server &server, unsigned int serverIndex) : 
+_totalBytes(0), _requestSuccess(true), _requestComplete(false), _serverIndex(serverIndex), _currServ(server)
+{}
 
 Request::~Request(){}
 
-int stringToInt(const std::string &num)
-{
-	std::stringstream ss(num);
-	int value = -1;
 
-	if (!(ss >> value))
-		return (-1);
-	return (value);
-}
 
 std::string extractContentLength(const std::string &buffer)
 {
@@ -189,6 +184,45 @@ void Request::parseRequest(std::string request)
 	std::getline(requestStream, buffer, '\n');
 	setFirstLine(buffer);
 	fillHeader(requestStream, buffer);
+}
+
+const std::string Request::getCookieValue(const std::string & cookie_name) const
+{
+	std::string	cookies;
+	std::string	cookie_value;
+	std::string cookie_name_updated = cookie_name + "=";
+	size_t		pos;
+	size_t		comma_pos;
+
+	std::cout << "COOKIE NAME : " << cookie_name_updated << std::endl;
+
+	if (cookie_name.length() == 0)
+		return ("");
+	if (_requestHeader.find("Cookie") == _requestHeader.end())
+		return ("");
+	cookies = _requestHeader.find("Cookie")->second;
+	pos = cookies.find(cookie_name_updated);
+	if (pos == std::string::npos)
+		return ("");
+	pos += cookie_name_updated.size();
+	comma_pos = cookies.find(';', pos);
+	if (comma_pos == std::string::npos)
+	{
+		cookie_value = cookies.substr(pos);
+		std::cout << "COOKIE VALUE : " << cookie_value << std::endl;
+	}
+	else
+	{
+		cookie_value = cookies.substr(pos, comma_pos - pos);
+		std::cout << "COOKIE VALUE : " << cookie_value << std::endl;
+	}
+
+	return (cookie_value);
+}
+
+unsigned int	Request::getServerIndex() const
+{
+	return (_serverIndex);
 }
 
 const Server &	Request::getServer() const

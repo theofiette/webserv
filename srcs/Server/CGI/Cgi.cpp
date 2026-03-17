@@ -8,7 +8,7 @@ Cgi::Cgi(const Request &request)
 	_metaVariables["CONTENT_LENGTH"] = (rm.find("Content-length") != rm.end() ? rm.find("Content-length")->second : "");
 	_metaVariables["CONTENT_TYPE"] = (rm.find("Content-type") != rm.end() ? rm.find("Content-type")->second : "");
 	_metaVariables["GATEWAY_INTERFACE"] = "CGI/1.1";
-	// _metaVariables["PATH_INFO"] = "";
+	_metaVariables["PATH_INFO"] = "";
 	// _metaVariables["PATH_TRANSLATED"] = "";
 	// _metaVariables["QUERY_STRING"] = (rm.find("Path") != rm.end() ? rm.find("Path")->second : "");
 	// _metaVariables["REMOTE_ADDR"] = "";
@@ -49,7 +49,8 @@ void Cgi::cgiChildProcess(int pipe_in[2], int pipe_out[2]){
 	std::string file = "./" + (getMetaVars().find("SCRIPT_NAME")->second).substr(1);
 	
 	char **tmp = new char*[2];
-	tmp[0] = strdup(file.c_str());
+	// tmp[0] = strdup(file.c_str());
+	tmp[0] = strdup((std::string("cgi_tester")).c_str());
 	tmp[1] = NULL;
 	execve(tmp[0], tmp, getEnv());
 	perror("execve");

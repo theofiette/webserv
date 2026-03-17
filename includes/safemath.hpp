@@ -1,5 +1,6 @@
 #pragma once
+#include <iostream>
 
-unsigned int	safeAddition(int a, int b);
+unsigned int	safeAddition(int, int);
 std::string		intToString(int);
-int 			stringToInt(std::string num);
+int 			stringToInt(const std::string&);

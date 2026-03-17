@@ -52,10 +52,6 @@ class Request
 		const std::string							getCookieValue(const std::string &) const;
 		unsigned int								getServerIndex() const;
 	
-	// TEMPORAIRE
-
-	const std::string& getBody() const;
-	const Server &getServer() const;
 };
 
-std::string extractContentLength(std::string buffer);
+std::string extractContentLength(const std::string&);

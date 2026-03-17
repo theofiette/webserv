@@ -39,7 +39,7 @@ const std::map<int, std::string> Response::_statusMap = initStatusMap();
 //*********************************************************************************************/
 
 Response::Response(const Request &request, const Server &server, Session &session) : 
-_statusCode(200), _currServ(server), _request(request), _session(session)
+_statusCode(200), _bytesSent(0), _currServ(server), _request(request), _session(session)
 {
 	if (!session.isConnected())
 	{
@@ -269,7 +269,7 @@ void Response::parseFormData(std::map<std::string, std::string> &data)
 		std::string key = _request.getBody().substr((lastPos == 0 ? lastPos : lastPos + 1), i - (lastPos + (lastPos != 0))); // 🤮🤮🤮
 		std::string val = _request.getBody().substr(i + 1, endPos - (i + 1));
 
-		if (key.find(SESSION_PREFIXE))
+		if (key.find(SESSION_PREFIXE) != std::string::npos)
 		{
 			key = key.substr(std::string(SESSION_PREFIXE).length());
 			_session.insertCookieFromPair(std::pair<string, string>(key, val));
@@ -370,7 +370,7 @@ void Response::handlePost()
 	parseFormData(formData);
 
 	_statusCode = SEE_OTHER;
-	addHeader("Location", "http://localhost:8080/success.html");
+	addHeader("Location", "/success.html");
 	addHeader("Content-Length", "0");
 }
 

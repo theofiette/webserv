@@ -16,3 +16,13 @@ std::string intToString(int num)
     ss << num;
     return (ss.str());
 }
+
+int stringToInt(const std::string &num)
+{
+	std::stringstream ss(num);
+	int value = -1;
+
+	if (!(ss >> value))
+		return (-1);
+	return (value);
+}
