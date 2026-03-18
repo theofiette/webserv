@@ -31,9 +31,10 @@ typedef std::string string;
 
 #define MIME_SIZE 7
 
-#define	METHODS_COUNT	3
+#define	METHODS_COUNT	4
 enum	E_METHODS
 {
+	HEAD,
 	GET,
 	POST,
 	DELETE

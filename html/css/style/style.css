@@ -8,12 +8,14 @@
 	}
 
 	body {
-		/* font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; */
-		/* background: linear-gradient(135deg, #c90000 0%, #764ba2 100%); */
 		min-height: 100vh;
 		display: flex;
 		align-items: center;
-		justify-content: center;
+		min-height: 100vh;
+		flex-direction: column;
+		justify-content: center;	
+		padding: 50px 20px;
+		
 	}
 
 	label, input {
@@ -27,7 +29,8 @@
 		padding: 50px;
 		border-radius: 10px;
 		box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-		max-width: 600px;
+		max-width: 1000px;
+		margin: auto;
 	}
 
 	h1 {
@@ -65,6 +68,58 @@
 		box-shadow: 0 5px 15px #303030;
 	}
 
+	.button2 {
+		display: block;
+		width: fit-content;
+		padding: 12px 30px;
+		background: linear-gradient(135deg, #27182a 0%, #3d1e1e 100%);
+		color: white;
+		text-decoration: none;
+		border-radius: 5px;
+		transition: transform 0.3s, box-shadow 0.3s;
+		margin: 10px auto;
+	}
+	.button2:hover {
+		display: inline-block;
+		padding: 12px 30px;
+		background: linear-gradient(135deg, #3a342b 0%, #3d1e1e 100%);
+		color: white;
+		text-decoration: none;
+		border-radius: 5px;
+		transition: transform 0.3s, box-shadow 0.3s;
+		margin: 10px;
+	}
+
 	.uploadDiv {
 		margin-left: 100px;
+	}
+
+	img {
+		margin: auto;
+		margin-left: 20px;
+		width: 400px;
+		height: 400px;
+		animation: spin 3s linear infinite;
+
+	}
+	@keyframes spin{
+		from{
+			transform: rotate(0deg);
+		}
+		to{
+			transform: rotate(360deg);
+		}
+	}
+
+	.hbox {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		flex-direction: row;
+	}
+
+	.centerbox {
+		display: flex;
+		justify-content: center;
+		margin-top: 150px;
 	}

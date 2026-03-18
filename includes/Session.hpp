@@ -16,9 +16,11 @@ class Session
 
 		void				insertCookieFromString(std::string str);
 		void				insertCookieFromPair(std::pair<string, string> cookie);
-		const std::string &	getId();
-		bool				isConnected();
-		void				setConnected(bool value);
+
+		const std::string &				getId() const;
+		const std::map<string, string>	&getCookies() const;
+		bool							isConnected() const;
+		void							setConnected(bool value);
 
 		void				display();
 

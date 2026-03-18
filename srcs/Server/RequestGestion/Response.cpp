@@ -394,7 +394,7 @@ bool Response::isCgi(){
 }
 
 void Response::handleCgi(){
-	Cgi cgi(_request);
+	Cgi cgi(_request, _session);
 
 	int pipe_in[2];
 	int pipe_out[2];

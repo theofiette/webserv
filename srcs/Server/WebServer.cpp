@@ -164,9 +164,11 @@ void	WebServer::_processRequest(pollfd &request)
 	std::cout << GREEN << currRequest.getRawRequest() << std::endl << END;
 	currRequest.parseRequest(currRequest.getRawRequest());
 
+
 	Session &currSession = _sessionManager.accessSession(currRequest.getCookieValue("SessionId"), currRequest.getServerIndex());
 
 	currSession.display();
+
 
 	Response resp(currRequest, currRequest.getServer(), currSession);
 

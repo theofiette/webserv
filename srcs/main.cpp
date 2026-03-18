@@ -18,7 +18,7 @@ void exceptionManager(std::exception *e, int &returnValue)
 	std::cerr << BOLD << e->what() << END << std::endl;
 }
 
-#define CONFIG_PATH "./config"
+#define CONFIG_PATH "./config/default.conf"
 
 int main(int argc, char *argv[])
 {	

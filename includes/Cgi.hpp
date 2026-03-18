@@ -2,6 +2,7 @@
 
 #include "WebServer.hpp"
 #include "Request.hpp"
+#include "Session.hpp"
 
 class Cgi
 {
@@ -11,7 +12,7 @@ class Cgi
 		char**								_cgiEnv;
 	public:
 		Cgi();
-		Cgi(const Request &);
+		Cgi(const Request &, const Session &);
 		~Cgi();
 		
 		void setupCgiFrame();

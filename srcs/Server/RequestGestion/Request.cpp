@@ -10,8 +10,6 @@ _totalBytes(0), _requestSuccess(true), _requestComplete(false), _serverIndex(ser
 
 Request::~Request(){}
 
-
-
 std::string extractContentLength(const std::string &buffer)
 {
 	std::string contentLength;

@@ -61,8 +61,6 @@ class Response
 		Session				&_session;
 
 		std::string			_boundary;
-
-		// const Cgi _cgi;
 		
 		static const 		std::map<int, std::string> _statusMap;
 		static const 		std::string methods[METHODS_COUNT];
@@ -78,7 +76,6 @@ class Response
 		void				appendCookieIndexToDirectory(std::string &, const std::string &);
 		void 				insertCookieHeader(std::string);
 		void				buildLocalPathFromCookie(std::string &localPath, const Location & location);
-
 
 		void 				checkFileAccess(std::string &, int);
 		bool 				readFileContent(const std::string &, size_t);

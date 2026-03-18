@@ -1,6 +1,6 @@
 #include "Cgi.hpp"
 
-Cgi::Cgi(const Request &request)
+Cgi::Cgi(const Request &request, const Session &session)
 {
 	std::map<std::string, std::string> rm = request.getMap();
 
@@ -24,6 +24,16 @@ Cgi::Cgi(const Request &request)
 	_metaVariables["scheme"] = "";
 	_metaVariables["protocol-var-name"] = "";
 	_metaVariables["extension-var-name"] = "";
+
+	std::map<string, string>::const_iterator it, ite;
+	it	= session.getCookies().begin();
+	ite	= session.getCookies().end();
+
+	for (; it != ite; it++)
+	{
+		_metaVariables[it->first] = it->second;
+	}
+
 	_cgiEnv = new char*[rm.size()];
 	int i = 0;
 	for (std::map<std::string, std::string>::iterator it = _metaVariables.begin(); it != _metaVariables.end(); it++)
@@ -49,8 +59,7 @@ void Cgi::cgiChildProcess(int pipe_in[2], int pipe_out[2]){
 	std::string file = "./" + (getMetaVars().find("SCRIPT_NAME")->second).substr(1);
 	
 	char **tmp = new char*[2];
-	// tmp[0] = strdup(file.c_str());
-	tmp[0] = strdup((std::string("cgi_tester")).c_str());
+	tmp[0] = strdup(file.c_str());
 	tmp[1] = NULL;
 	execve(tmp[0], tmp, getEnv());
 	perror("execve");

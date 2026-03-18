@@ -383,23 +383,34 @@ void	ConfigParser::_PARAM_error()
 
 void	ConfigParser::_PARAM_methods()
 {
-	int i;
+	std::vector<int> vec;
+	std::vector<int>::iterator it;
+	bool value;
 
 	while (1)
 	{
-		i = METHODS_COUNT ;
-		if (_token == "GET")
-			i = GET;
+		if (_token == "HEAD")
+			vec.push_back(HEAD);
+		else if (_token == "GET")
+			vec.push_back(GET);
 		else if (_token == "POST")
-			i = POST;
+			vec.push_back(POST);
 		else if (_token == "DELETE")
-			i = DELETE;
+			vec.push_back(DELETE);
+		else if ((_token == "on" || _token == "off") && !vec.empty())
+		{
+			value = _safeStob(_token);
+			for (it = vec.begin(); it != vec.end(); it++)
+				_Location.second.setMethod(value, *it);
+			vec = std::vector<int>();
+		}
 		else
 			_parseError("Invalid method.");
-		_Location.second.setMethod(true, i);
 		_extractToken();
 		if (_token == ";")
 		{
+			if (!vec.empty())
+				_parseError("Invalid method.");
 			_stream.clear();
 			_stream.str(";");
 			return ;
