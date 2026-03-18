@@ -11,7 +11,7 @@
 #include <sys/wait.h>
 
 const std::string Response::methods[METHODS_COUNT] = {"GET", "POST", "DELETE"};
-const std::string Response::mimeTable[MIME_SIZE] = {"html", "css", "png", "ico", "gif", "plain"};
+const std::string Response::mimeTable[MIME_SIZE] = {"html", "css", "png", "ico", "gif", "plain", "multipart/form-data"};
 
 static std::map<int, std::string> initStatusMap() 
 {
@@ -98,7 +98,7 @@ void Response::pickMethod()
 std::string Response::MIMEtable(std::string localPath)
 {
 	int i = 0;
-	for (; i < 5; i++)
+	for (; i < MIME_SIZE; i++)
 		if (localPath.find("." + mimeTable[i]) != std::string::npos) // TODO: securise
 			break ;
 	return ("text/" + mimeTable[i]);

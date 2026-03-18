@@ -47,7 +47,7 @@ class Response
 {
 	private:
 		int 				_statusCode;
-		multimap			 _header;
+		multimap			_header;
 		std::string 		_body;
 
 		std::string			_rawResponse;
@@ -55,10 +55,12 @@ class Response
 		int					_headerLength;
 		int					_contentLength;
 		
-		Location 				_currLocation;
-		const Server 			&_currServ;
-		const Request 			&_request;
-		Session					&_session;
+		Location 			_currLocation;
+		const Server 		&_currServ;
+		const Request 		&_request;
+		Session				&_session;
+
+		std::string			_boundary;
 
 		// const Cgi _cgi;
 		
