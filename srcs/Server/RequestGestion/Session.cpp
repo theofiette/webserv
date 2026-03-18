@@ -20,7 +20,7 @@ void Session::setConnected(bool value)
 	_connected = value;
 }
 
-bool Session::isConnected()
+bool Session::isConnected() const
 {
 	return (_connected);
 }
@@ -70,8 +70,13 @@ void	Session::insertCookieFromPair(std::pair<string, string> cookie)
 		it->second = cookie.second;
 }
 
+const std::map<string, string> &	Session::getCookies() const
+{
+	return (_cookies);
+}
 
-const std::string &	Session::getId()
+
+const std::string &	Session::getId() const
 {
 	return (_id);
 }

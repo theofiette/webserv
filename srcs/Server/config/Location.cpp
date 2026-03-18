@@ -39,6 +39,7 @@ void	Location::clear()
 	_cookie = _df_cookie;
 	_cgi = std::vector<std::string>();
 	_methods = std::vector<bool>();
+	_methods.reserve(METHODS_COUNT);
 	for (int i = 0; i < METHODS_COUNT; i++)
 		_methods.push_back(_df_method);
 	_redir.clear();
@@ -52,6 +53,8 @@ Redir & Location::getRedir()
 //TODO int check ?
 void	Location::setMethod(bool value, int index)
 {
+	// std::cout << BLUE << value << " | " << index << END << std::endl;
+	// std::cout << "method size is " << _methods.size() << std::endl;
 	_methods[index] = value;
 }
 
@@ -133,7 +136,7 @@ bool	Location::checkErrorsValidity()
 
 void	Location::display() const
 {
-	std::cout << "methods : G | P | D \n          ";
+	std::cout << "methods : H | G | P | D \n          ";
 	for (int i = 0; i < METHODS_COUNT; i++)
 	{
 		std::cout << std::noboolalpha << _methods[i];
@@ -170,6 +173,7 @@ void	Location::display() const
 Location::Location() :
 _root(_df_root), _index(_df_index), _autoIndex(_df_autoIndex), _cookie(_df_cookie)
 {
+	_methods.reserve(METHODS_COUNT);
 	for (int i = 0; i < METHODS_COUNT; i++)
 		_methods.push_back(_df_method);
 	// std::cout

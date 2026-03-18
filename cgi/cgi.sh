@@ -1,3 +1,0 @@
-#!/bin/bash
-
-echo "GET / HTTP/1.1\r\nHost: localhost:8080\r\n\r\n";
