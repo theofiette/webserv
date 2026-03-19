@@ -54,4 +54,4 @@ class Request
 	
 };
 
-std::string extractContentLength(const std::string&);
+int extractContentLength(const std::string&);

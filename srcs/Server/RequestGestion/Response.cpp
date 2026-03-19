@@ -10,7 +10,7 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 
-const std::string Response::methods[METHODS_COUNT] = {"GET", "POST", "DELETE"};
+const std::string Response::methods[METHODS_COUNT] = {"HEAD", "GET", "POST", "DELETE"};
 const std::string Response::mimeTable[MIME_SIZE] = {"html", "css", "png", "ico", "gif", "plain"};
 
 static std::map<int, std::string> initStatusMap() 
@@ -71,12 +71,11 @@ void Response::pickMethod()
 {
 	static void (Response::*methods[])() = 
 	{
+		&Response::handleHead,
 		&Response::handleGet,
 		&Response::handlePost,
 		&Response::handleDelete
 	};
-	// if (_request.getMap().at("Method") == "HEAD") //TEMPORAIRE
-	// 	handleGet();
 	if (isCgi() == true)
 	{
 		handleCgi();
@@ -92,11 +91,14 @@ void Response::pickMethod()
 					return ;
 				}
 				catch (ExceptionPathError &e){
+					std::cerr << RED BOLD << "ExceptionParsingError\n" << END;
 					return ;
 				}
 			}
 	}
-	throw ExceptionParsingError(); // nouvelle class exception ? 
+	std::cerr << RED BOLD << "Can't read method\n" << END;
+	// throw ExceptionParsingError(); // on devrait pas throw, juste close connection
+	// sauf qu'on peut pas parceque la fonction est dans webserv
 }
 
 std::string Response::MIMEtable(std::string localPath)
@@ -285,11 +287,11 @@ void Response::handleResponsesError()
 	std::string localPath;
 	struct stat s;
 	
-	mc_is_ite errPage = _currServ.getErrorsServer().find(_statusCode);
-	if (errPage != _currServ.getErrorsServer().end())
+	mc_is_ite errPage = _currServ.getServerErrors().find(_statusCode);
+	if (errPage != _currServ.getServerErrors().end())
 		localPath = errPage->second;
 	else
-		localPath = _currServ.getErrorsServer().find(0)->second;
+		localPath = _currServ.getServerErrors().find(0)->second;
 	
 	if (stat(localPath.c_str(), &s) != -1 && access(localPath.c_str(), R_OK) != -1)
 		readFileContent(localPath, s.st_size);
@@ -317,13 +319,13 @@ void Response::handleResponsesError()
 // 	}
 // 	else
 // 	{
-// 		errPage = _currServ.getErrorsServer().find(_statusCode);
-// 		if (errPage != _currServ.getErrorsServer().end())
+// 		errPage = _currServ.getServerErrors().find(_statusCode);
+// 		if (errPage != _currServ.getServerErrors().end())
 // 		{
 // 			localPath = errPage->second;
 // 		}
 // 		else{
-// 			localPath = _currServ.getErrorsServer().find(0)->second;
+// 			localPath = _currServ.getServerErrors().find(0)->second;
 // 		}
 // 	}
 // }
@@ -331,6 +333,30 @@ void Response::handleResponsesError()
 //*********************************************************************************************/
 /*										HANDLERS											  */
 //*********************************************************************************************/
+
+void	Response::handleHead()
+{
+	std::string localPath;
+	struct stat	s;
+
+	if (_statusCode != OK)
+	{
+		handleResponsesError();
+		_body.clear();
+		return ;
+	}
+
+	localPath = buildLocalPath();
+	checkFileAccess(localPath, R_OK);
+	if ((stat(localPath.c_str(), &s) == -1))
+		return ;
+	readFileContent(localPath, s.st_size);
+	addHeader("Content-Type", MIMEtable(localPath));
+	addHeader("Content-Length", intToString(_body.length()));
+	_body.clear();
+	for(multimap::iterator it = _header.begin(); it != _header.end(); it++)
+		std::cout << it->first << ": " << it->second << "\n";
+}
 
 void Response::handleGet()
 {
@@ -350,9 +376,6 @@ void Response::handleGet()
 	readFileContent(localPath, s.st_size);
 	addHeader("Content-Type", MIMEtable(localPath));
 	addHeader("Content-Length", intToString(_body.length()));
-	for(multimap::iterator it = _header.begin(); it != _header.end(); it++)
-		std::cout << it->first << ": " << it->second << "\n";
-	
 }
 
 void Response::handlePost()
@@ -486,8 +509,6 @@ void Response::buildRawResponse()
 		_rawResponse += it->first + ": " + it->second + "\r\n";
 	
 	_rawResponse += "\r\n";
-
-	_contentLength = stringToInt(extractContentLength(_rawResponse));
 
 	_headerLength = _rawResponse.size();
 	_rawResponse += _body;

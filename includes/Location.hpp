@@ -16,6 +16,8 @@ class Location
 		static	string	_df_index;
 		static	bool	_df_cookie;
 		static	bool	_df_autoIndex;
+		static	bool	_df_upload;
+		static	string	_df_upload_dir;
 
 		std::vector<bool>			_methods;
 		std::vector<std::string>	_cgi;
@@ -24,6 +26,8 @@ class Location
 		std::string					_index;
 		bool						_autoIndex;
 		bool						_cookie;
+		bool						_upload;
+		string						_uploadDir;
 		Redir						_redir;
 
 	public:
@@ -40,6 +44,8 @@ class Location
 		static	void	set_df_root(string value);
 		static	void	set_df_index(string value);
 		static	void	set_df_cookie(bool value);
+		static	void	set_df_upload(bool value);
+		static	void	set_df_upload_dir(string value);
 		static	void	set_df_autoIndex(bool value);
 
 		void	setMethod(bool value, int index);
@@ -47,6 +53,8 @@ class Location
 		void	setIndex(string value);
 		void	setCookie(bool value);
 		void	setAutoIndex(bool value);
+		void	setUpload(bool value);
+		void	setUploadDir(string value);
 
 		// Orthodox Canonical Form
 		Location(); 						//Default constructor
@@ -58,6 +66,8 @@ class Location
 		const std::string& 					getIndex() const;
 		const std::vector<bool>&			getMethods() const;
 		const Redir&						getRedir() const;
+		const string						getUploadDir() const;
+		bool								getUpload() const;
 		bool								isCookie() const;
 	};
 

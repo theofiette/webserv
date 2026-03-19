@@ -10,14 +10,13 @@ _totalBytes(0), _requestSuccess(true), _requestComplete(false), _serverIndex(ser
 
 Request::~Request(){}
 
-
-
-std::string extractContentLength(const std::string &buffer)
+int extractContentLength(const std::string &buffer)
 {
-	std::string contentLength;
+	int contentLength;
 	size_t pos = buffer.find("Content-Length:");
+
 	if (pos == std::string::npos)
-		return ("-1");
+		return (-1);
 
 	pos += 15;
 	while (pos < buffer.size() && (buffer[pos] == ' ' || buffer[pos] == '\t'))
@@ -25,12 +24,9 @@ std::string extractContentLength(const std::string &buffer)
 
 	size_t end = buffer.find("\r", pos);
 	if (end == std::string::npos || end == pos)
-		throw ExceptionParsingError();
+		return (-1);
 
-	contentLength = buffer.substr(pos, end - pos);
-	if (stringToInt(contentLength) < 0)
-		throw ExceptionParsingError();
-
+	contentLength = stringToInt(buffer.substr(pos, end - pos));
 	return (contentLength);
 }
 
@@ -101,8 +97,9 @@ void Request::receiveRequestChunk(int socketFd)
 	size_t bodyStart = 0;
 	if (findBodyStart(bodyStart) == false)
 		return ;
+	std::cout << YELLOW << this->getRawRequest() << END << std::endl;
 
-	int contentLength = stringToInt(extractContentLength(_rawRequest));
+	int contentLength = extractContentLength(_rawRequest);
 	if (finalizeWithoutBody(contentLength) == true)
 		return ;
 	if (contentLength > _currServ.getMaxBody())

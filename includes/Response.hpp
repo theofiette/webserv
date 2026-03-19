@@ -76,7 +76,6 @@ class Response
 		void 				insertCookieHeader(std::string);
 		void				buildLocalPathFromCookie(std::string &localPath, const Location & location);
 
-
 		void 				checkFileAccess(std::string &, int);
 		bool 				readFileContent(const std::string &, size_t);
 		void 				parseFormData(std::map<std::string, std::string> &);
@@ -92,6 +91,7 @@ class Response
 
 		void 				pickMethod();
 
+		void				handleHead();
 		void			 	handleGet();
 		void			 	handlePost();
 		void			 	handleDelete();
