@@ -202,7 +202,7 @@ std::string Response::buildLocalPath()
 	std::string uriPath = _request.getMap().at("Path");
 	std::map<string, Location>::const_reverse_iterator bestMatch = findBestLocation(uriPath);
 	const Location	&location = bestMatch->second;
-	
+
 	validateMethodAllowed(bestMatch->second);
 	
 	std::string localPath = location.getRoot() + uriPath;
@@ -319,8 +319,6 @@ void	Response::handleHead()
 	addHeader("Content-Type", MIMEtable(localPath));
 	addHeader("Content-Length", intToString(_body.length()));
 	_body.clear();
-	for(multimap::iterator it = _header.begin(); it != _header.end(); it++)
-		std::cout << it->first << ": " << it->second << "\n";
 }
 
 void Response::handleGet()
@@ -339,51 +337,51 @@ void Response::handleGet()
 
 void Response::handlePost()
 {
-	// std::map<std::string, std::string>::const_iterator contentTypePos = _request.getMap().find("Content-Type");
-	// if (contentTypePos != _request.getMap().end() && contentTypePos->second.find("application/octet-stream") != std::string::npos)
-	// {
-	// 	std::string uploadDir;
-	// 	UploadHandler upload(_request, uploadDir);
+	struct stat	s;
+	std::map<std::string, std::string>::const_iterator contentTypePos = _request.getMap().find("Content-Type");
 
-	// 	UploadResult uploadResult = upload.processUpload();
-	// 	if (uploadResult.statusCode != CREATED)
-	// 	{
-	// 		_statusCode = uploadResult.statusCode;
-	// 		handleResponsesError();
-	// 		return ;
-	// 	}
-		// std::string uriPath = _request.getMap().at("Path");
-		// mc_sL_rite bestMatch = findBestLocation(uriPath);
-		// if (bestMatch == _currServ.getLocations().rend())
-		// {
-		// 	_statusCode = NOT_FOUND;
-		// 	handleResponsesError();
+	if ((_currLocation.getUpload() == true) && contentTypePos != _request.getMap().end() 
+	&& contentTypePos->second.find("application/octet-stream") != std::string::npos)
+	{
+		std::string localPath = buildLocalPath();
+		checkFileAccess(localPath, R_OK);
+		if ((stat(localPath.c_str(), &s) == -1) || _statusCode != OK)
+			return ;
+		std::string uploadDirectory = _currLocation.getUploadDir();
+		// std::string fullPath = localPath + "/" + uploadDirectory;
+		// std::cout << "FULLPATH is " << fullPath << std::endl;
+		// if ((stat(fullPath.c_str(), &s) == -1))
 		// 	return ;
-		// }
-		// validateMethodAllowed(bestMatch->second);
-		// std::string uploadDir = bestMatch->second.getRoot() + uriPath;
-		// struct stat uploadPathStat;
-		// if (stat(uploadDirectory.c_str(), &uploadPathStat) != 0 || !S_ISDIR(uploadPathStat.st_mode))
-		// 	uploadDirectory = "html/upload";
-	// }
-	// else
-	// {
-	// 	struct stat s;
-	// 	std::string localPath = "html/success.html"; // SUCCES PAGE IN CONFIG
-	// 	if (stat(localPath.c_str(), &s) == -1)
-	// 	{
-	// 		handleResponsesError();
-	// 		return ;
-	// 	}
-	// 	//TODO: RECUPER DYNAMIQUEMENT SUCCESS HTML via GLOBALSERVER ou REDIR (build full path...)
-	// 	// std::string localPath = getSuccessPath();
-	// 	std::map<std::string, std::string> formData; // TODO: utiliser cette data
-	// 	parseFormData(formData);
-	// }
 
-	// _statusCode = SEE_OTHER;
-	// addHeader("Location", "/success.html");
-	// addHeader("Content-Length", "0");
+		UploadHandler handler(_request, uploadDirectory);
+
+		int uploadStatus = handler.processUpload();
+		if (uploadStatus != CREATED)
+		{
+		std::cout << "HERE3\n";
+
+			_statusCode = uploadStatus;
+			handleResponsesError();
+			return ;
+		}
+	}
+	else
+	{
+		std::string localPath = "html/success.html"; // SUCCES PAGE IN CONFIG
+		if (stat(localPath.c_str(), &s) == -1)
+		{
+			handleResponsesError();
+			return ;
+		}
+		//TODO: RECUPER DYNAMIQUEMENT SUCCESS HTML via GLOBALSERVER ou REDIR (build full path...)
+		// std::string localPath = getSuccessPath();
+		std::map<std::string, std::string> formData; // TODO: utiliser cette data
+		parseFormData(formData);
+	}
+
+	_statusCode = SEE_OTHER;
+	addHeader("Location", "/success.html");
+	addHeader("Content-Length", "0"); // TODO: 0 ou body size si upload ?
 }
 
 void Response::handleDelete()

@@ -166,7 +166,6 @@ void	WebServer::_processRequest(pollfd &request)
 	if (currRequest.isRequestComplete() == false)
 		return ;
 
-	std::cout << GREEN << currRequest.getRawRequest() << std::endl << END;
 	currRequest.parseRequest(currRequest.getRawRequest());
 
 
@@ -192,7 +191,7 @@ void	WebServer::_sendResponse(pollfd &request)
 
 	std::string chunckedStr = currResponse.getChunckResp(SEND_SIZE);
 	int bytesSent;
-	std::cout << chunckedStr << "\n";
+	// std::cout << ITALIC  BLUE << chunckedStr << "\n";
 	try
 	{
 		bytesSent = Send(request.fd, chunckedStr);

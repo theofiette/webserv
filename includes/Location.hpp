@@ -66,7 +66,7 @@ class Location
 		const std::string& 					getIndex() const;
 		const std::vector<bool>&			getMethods() const;
 		const Redir&						getRedir() const;
-		const string						getUploadDir() const;
+		const string&						getUploadDir() const;
 		bool								getUpload() const;
 		bool								isCookie() const;
 	};

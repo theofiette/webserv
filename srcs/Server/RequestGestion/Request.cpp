@@ -97,7 +97,7 @@ void Request::receiveRequestChunk(int socketFd)
 	size_t bodyStart = 0;
 	if (findBodyStart(bodyStart) == false)
 		return ;
-	std::cout << YELLOW << this->getRawRequest() << END << std::endl;
+	// std::cout << GREEN << this->getRawRequest() << END << std::endl;
 
 	int contentLength = extractContentLength(_rawRequest);
 	if (finalizeWithoutBody(contentLength) == true)
