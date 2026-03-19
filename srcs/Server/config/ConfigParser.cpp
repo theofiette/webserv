@@ -258,11 +258,6 @@ void	ConfigParser::_PARAM_server_name()
 	Server::set_df_serverName(_token);
 }
 
-void	ConfigParser::_PARAM_server_sendfile()
-{
-	Server::set_df_sendFile(_safeStob(_token));
-}
-
 void	ConfigParser::_PARAM_server_clientbodymax()
 {
 	Server::set_df_clientBodyMax(_safeStoi(_token));
@@ -313,9 +308,18 @@ void	ConfigParser::_PARAM_redir_path()
 	Redir::set_df_redirPath(_token);
 }
 
-void	ConfigParser::_PARAM_sendfile()
+void	ConfigParser::_PARAM_upload()
 {
-	_currentServer.set_df_sendFile(_safeStob(_token));
+	_Location.second.setUpload(true);
+	if (_token == ";")
+	{
+		_stream.clear();
+		_stream.str(";");
+	}
+	else
+	{
+		_Location.second.setUploadDir(_token);
+	}
 }
 
 void	ConfigParser::_PARAM_error_page()
@@ -460,7 +464,6 @@ void	ConfigParser::_initLookUpParamFunctionTable(
 	table.insert(pairParam("max_clients",			&ConfigParser::_PARAM_max_clients));
 	table.insert(pairParam("server_listen",			&ConfigParser::_PARAM_server_listen));
 	table.insert(pairParam("server_name", 			&ConfigParser::_PARAM_server_name));
-	table.insert(pairParam("server_sendfile",		&ConfigParser::_PARAM_server_sendfile));
 	table.insert(pairParam("server_clientbodymax",	&ConfigParser::_PARAM_server_clientbodymax));
 	table.insert(pairParam("server_error",			&ConfigParser::_PARAM_server_error));
 	table.insert(pairParam("location_method",		&ConfigParser::_PARAM_location_method));
@@ -471,7 +474,6 @@ void	ConfigParser::_initLookUpParamFunctionTable(
 	table.insert(pairParam("redir_valid", 			&ConfigParser::_PARAM_redir_valid));
 	table.insert(pairParam("redir_errorcode", 		&ConfigParser::_PARAM_redir_errorcode));
 	table.insert(pairParam("redir_path", 			&ConfigParser::_PARAM_redir_path));
-	table.insert(pairParam("sendfile",				&ConfigParser::_PARAM_sendfile));
 	table.insert(pairParam("error_page",			&ConfigParser::_PARAM_error_page));
 	table.insert(pairParam("client_body_max",		&ConfigParser::_PARAM_client_body_max));
 	table.insert(pairParam("listen",				&ConfigParser::_PARAM_listen));
@@ -483,6 +485,7 @@ void	ConfigParser::_initLookUpParamFunctionTable(
 	table.insert(pairParam("index",					&ConfigParser::_PARAM_index));
 	table.insert(pairParam("cookie",				&ConfigParser::_PARAM_cookie));
 	table.insert(pairParam("autoindex",				&ConfigParser::_PARAM_autoindex));
+	table.insert(pairParam("upload",				&ConfigParser::_PARAM_upload));
 	table.insert(pairParam("return",				&ConfigParser::_PARAM_return));
 }
 
@@ -491,7 +494,6 @@ void	ConfigParser::_initLookUpParamValidityTable(std::map<string, int> &table)
 	table.insert(std::pair<string, int>("max_clients", 			LOCAL));
 	table.insert(std::pair<string, int>("server_listen", 		GLOBAL));
 	table.insert(std::pair<string, int>("server_name", 			GLOBAL));
-	table.insert(std::pair<string, int>("server_sendfile", 		GLOBAL));
 	table.insert(std::pair<string, int>("server_clientbodymax",	GLOBAL));
 	table.insert(std::pair<string, int>("server_error",			GLOBAL));
 	table.insert(std::pair<string, int>("location_method",		GLOBAL));
@@ -502,7 +504,6 @@ void	ConfigParser::_initLookUpParamValidityTable(std::map<string, int> &table)
 	table.insert(std::pair<string, int>("redir_valid",			GLOBAL));
 	table.insert(std::pair<string, int>("redir_errorcode",		GLOBAL));
 	table.insert(std::pair<string, int>("redir_path",			GLOBAL));
-	table.insert(std::pair<string, int>("sendfile", 			SERVER));
 	table.insert(std::pair<string, int>("error_page", 			SERVER));
 	table.insert(std::pair<string, int>("client_body_max", 		SERVER));
 	table.insert(std::pair<string, int>("listen", 				SERVER));
@@ -514,6 +515,7 @@ void	ConfigParser::_initLookUpParamValidityTable(std::map<string, int> &table)
 	table.insert(std::pair<string, int>("index", 				LOCATION));
 	table.insert(std::pair<string, int>("cookie",				LOCATION));
 	table.insert(std::pair<string, int>("autoindex", 			LOCATION));
+	table.insert(std::pair<string, int>("upload", 				LOCATION));
 	table.insert(std::pair<string, int>("return", 				LOCATION));
 }
 

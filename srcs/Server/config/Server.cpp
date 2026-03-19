@@ -8,7 +8,6 @@
 
 string	Server::_df_listen			= SERVER_DF_PORT;
 string	Server::_df_serverName		= SERVER_DF_NAME;
-bool	Server::_df_sendFile		= SERVER_DF_SEND;
 int		Server::_df_clientBodyMax	= SERVER_DF_BODY;
 string	Server::_df_errorPath		= SERVER_DF_ERROR;
 
@@ -34,7 +33,6 @@ void	Server::display() const
 	std::cout << "\n___DISPLAYING SERVER INFOS___\n\n";
 	std::cout << "Listening to port: " << _listen << "\n";
 	std::cout << "Server name is: " << _serverName << "\n";
-	std::cout << "The option to send file is set as: " << std::boolalpha << _sendFile << "\n";
 	std::cout << "The max client body size is: " << _clientBodyMax << "\n";
 
 	{
@@ -88,7 +86,6 @@ void	Server::clear()
 {
 	_listen = _df_listen;
 	_serverName = _df_serverName;
-	_sendFile = _df_sendFile;
 	_clientBodyMax = _df_clientBodyMax;
 	_errorPage = _df_errorPath;
 	_errors = std::map<int, string>();
@@ -122,11 +119,6 @@ void	Server::setServerName(string value)
 	_serverName = value;
 }
 
-void	Server::setSendfile(bool value)
-{
-	_sendFile = value;
-}
-
 void	Server::setClientBodyMax(int value)
 {
 	_clientBodyMax = value;
@@ -147,10 +139,6 @@ void	Server::set_df_serverName(string value)
 	Server::_df_serverName = value;
 }
 
-void	Server::set_df_sendFile(bool value)
-{
-	Server::_df_sendFile = value;
-}
 void	Server::set_df_clientBodyMax(int value)
 {
 	Server::_df_clientBodyMax = value;
@@ -165,8 +153,7 @@ void	Server::set_df_errorPath(string value)
 // CONSTRUCTORS
 
 Server::Server() :
-_listen (_df_listen), _serverName(_df_serverName),
-_sendFile(_df_sendFile), _clientBodyMax(_df_clientBodyMax)
+_listen (_df_listen), _serverName(_df_serverName), _clientBodyMax(_df_clientBodyMax)
 {
 	_errors.insert(std::pair<int, string>(0, _df_errorPath));
 	// std::cout
@@ -188,7 +175,7 @@ const std::map<string, Location>&	Server::getLocations() const
 	return (_locations);
 }
 
-const std::map<int, std::string>&	Server::getErrorsServer() const
+const std::map<int, std::string>&	Server::getServerErrors() const
 {
 	return (_errors);
 }

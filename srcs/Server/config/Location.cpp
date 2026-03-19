@@ -6,13 +6,17 @@
 # define LOC_DF_ROOT	"html"
 # define LOC_DF_IDX		"index.html"
 # define LOC_DF_COOKIE	false
+# define LOC_DF_UPLOAD	false
+# define LOC_DF_UPDIR	"upload"
 # define LOC_DF_AIDX	false
 
-bool	Location::_df_method	= LOC_DF_METHOD;
-string	Location::_df_root		= LOC_DF_ROOT;
-string	Location::_df_index		= LOC_DF_IDX;
-bool	Location::_df_cookie	= LOC_DF_COOKIE;
-bool	Location::_df_autoIndex	= LOC_DF_AIDX;
+bool	Location::_df_method		= LOC_DF_METHOD;
+string	Location::_df_root			= LOC_DF_ROOT;
+string	Location::_df_index			= LOC_DF_IDX;
+bool	Location::_df_cookie		= LOC_DF_COOKIE;
+bool	Location::_df_upload		= LOC_DF_UPLOAD;
+string	Location::_df_upload_dir	= LOC_DF_UPDIR;
+bool	Location::_df_autoIndex		= LOC_DF_AIDX;
 
 bool	Location::registerCgi(std::string cgi)
 {
@@ -42,6 +46,8 @@ void	Location::clear()
 	_methods.reserve(METHODS_COUNT);
 	for (int i = 0; i < METHODS_COUNT; i++)
 		_methods.push_back(_df_method);
+	_upload = _df_upload;
+	_uploadDir = _df_upload_dir;
 	_redir.clear();
 }
 
@@ -78,6 +84,15 @@ void	Location::setAutoIndex(bool value)
 	_autoIndex = value;
 }
 
+void	Location::setUpload(bool value)
+{
+	_upload = value;
+}
+
+void	Location::setUploadDir(string value)
+{
+	_uploadDir = value;
+}
 
 void	Location::set_df_method(bool value)
 {
@@ -102,6 +117,16 @@ void	Location::set_df_cookie(bool value)
 void	Location::set_df_autoIndex(bool value)
 {
 	Location::_df_autoIndex = value;
+}
+
+void	Location::set_df_upload(bool value)
+{
+	Location::_df_upload = value;
+}
+
+void	Location::set_df_upload_dir(string value)
+{
+	Location::_df_upload_dir = value;
 }
 
 void	Location::insertError(int code, string path)
@@ -163,6 +188,10 @@ void	Location::display() const
 		for (; it!= ite; it++)
 			std::cout << "	" << it->first << " : " << it->second << "\n";
 	}
+	if (!_upload)
+		std::cout << "Upload is set as false\n";
+	else
+		std::cout << "Upload is set as true, -> " << _uploadDir << "\n";
 	std::cout << "redir: ";
 	_redir.display();
 	std::cout << std::endl;
@@ -171,7 +200,8 @@ void	Location::display() const
 // CONSTRUCTORS
 
 Location::Location() :
-_root(_df_root), _index(_df_index), _autoIndex(_df_autoIndex), _cookie(_df_cookie)
+_root(_df_root), _index(_df_index), _autoIndex(_df_autoIndex),
+_cookie(_df_cookie), _upload(_df_upload), _uploadDir(_df_upload_dir)
 {
 	_methods.reserve(METHODS_COUNT);
 	for (int i = 0; i < METHODS_COUNT; i++)
@@ -204,7 +234,6 @@ const std::map<int, std::string>& Location::getErrors() const
 {
 	return (_errors);
 }
-
 
 const std::vector<bool>&	Location::getMethods() const
 {

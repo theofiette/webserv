@@ -91,6 +91,7 @@ class Response
 
 		void 				pickMethod();
 
+		void				handleHead();
 		void			 	handleGet();
 		void			 	handlePost();
 		void			 	handleDelete();

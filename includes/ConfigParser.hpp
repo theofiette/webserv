@@ -47,7 +47,6 @@ class ConfigParser
 		void	_PARAM_max_clients();
 		void	_PARAM_server_listen();
 		void	_PARAM_server_name();
-		void	_PARAM_server_sendfile();
 		void	_PARAM_server_clientbodymax();
 		void	_PARAM_server_error();
 		void	_PARAM_location_method();
@@ -58,7 +57,7 @@ class ConfigParser
 		void	_PARAM_redir_valid();
 		void	_PARAM_redir_errorcode();
 		void	_PARAM_redir_path();
-		void	_PARAM_sendfile();
+		void	_PARAM_upload();
 		void	_PARAM_error_page();
 		void	_PARAM_client_body_max();
 		void	_PARAM_listen();
