@@ -126,6 +126,11 @@ void	WebServer::loop()
 			{
 				_processConnections(_masterSockets[i], _config.servers[i], i);
 			}
+			else if (currRequest.revents & POLLERR || currRequest.revents & POLLERR || currRequest.revents & POLLNVAL)
+			{
+				_closeConnection(currRequest, _pollfds);
+				i--;
+			}
 			else if (currRequest.revents & POLLIN)
 			{
 				_processRequest(currRequest);

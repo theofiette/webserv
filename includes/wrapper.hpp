@@ -4,7 +4,7 @@
 
 int		Socket(int domain, int type, int protocol);
 void	Fcntl(int fd, int cmd, int opt);
-void	Getaddrinfo(const std::string name, const std::string service,
+void	Getaddrinfo(const std::string name, const std::string service, 
 	const addrinfo *req, addrinfo **pai);
 void	Setsockopt(int fd, int level, int optname);
 void	Bind(int fd, const sockaddr *addr, socklen_t len);

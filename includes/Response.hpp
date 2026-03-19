@@ -53,7 +53,7 @@ class Response
 		std::string			_rawResponse;
 		size_t				_bytesSent;
 		int					_headerLength;
-		int					_contentLength;
+		// int					_contentLength;
 		
 		Location 			_currLocation;
 		const Server 		&_currServ;

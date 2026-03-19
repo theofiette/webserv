@@ -12,6 +12,7 @@ SRC         =	srcs/main.cpp \
 				srcs/exceptions/exceptions.cpp \
 				srcs/Server/RequestGestion/Request.cpp \
 				srcs/Server/RequestGestion/Response.cpp \
+				srcs/Server/Upload/UploadHandler.cpp \
 				srcs/Server/RequestGestion/Session.cpp \
 				srcs/Server/RequestGestion/SessionManager.cpp \
 				srcs/Server/WebServer.cpp \
