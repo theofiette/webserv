@@ -20,11 +20,12 @@ SRC         =	srcs/main.cpp \
 				srcs/Server/config/Location.cpp \
 				srcs/Server/config/Server.cpp \
 				srcs/Server/config/ConfigParser.cpp \
+				srcs/Server/Helpers/Time/TimeoutTracker.cpp \
 				srcs/utils/format.cpp \
 				srcs/Server/CGI/Cgi.cpp \
 				srcs/utils/wrapper.cpp \
 				srcs/utils/safemath.cpp \
-				srcs/signal/signal.cpp 
+				srcs/signal/signal.cpp
 
 OBJ         = $(SRC:%.cpp=$(BUILD_DIR)/%.o)
 

@@ -25,7 +25,7 @@ typedef std::string string;
 
 #define LOCALHOST	"8080"
 #define MAX_CLIENTS	1024
-#define TIMEOUT		(60 * 1000)
+#define TIMEOUT		(1000)
 
 #define CONFIG_RULE	4
 

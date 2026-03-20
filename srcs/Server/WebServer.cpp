@@ -105,8 +105,9 @@ void	WebServer::_processConnections(int masterSocket, const Server &currServ, un
 		
 		std::cout << BOLD GREEN << "CREATING REQUEST FOR SERVER INDEX " << serverIndex << "\n";
 		Request req(currServ, serverIndex);
+	
 		std::pair<int, Request> p = std::make_pair(socketFd, req);
-		//TODO: not necessary after clean connexion
+
 		if (_requestsMap.find(socketFd) != _requestsMap.end())
 			_requestsMap.erase(_requestsMap.find(socketFd));
 		_requestsMap.insert(p);
@@ -117,7 +118,12 @@ void	WebServer::loop()
 {
 	while (1) 
 	{
-		_awaitRequests();
+		int activeConnections = _awaitRequests();
+		if (activeConnections == 0)
+		{
+			_checkTimedOutConnections();
+			continue ;
+		}
 		for (int i = 0; i < _connectionsCount ; i++)
 		{
 			pollfd &currRequest = _pollfds[i];
@@ -126,7 +132,7 @@ void	WebServer::loop()
 			{
 				_processConnections(_masterSockets[i], _config.servers[i], i);
 			}
-			else if (currRequest.revents & POLLERR || currRequest.revents & POLLERR || currRequest.revents & POLLNVAL)
+			else if (currRequest.revents & POLLERR || currRequest.revents & POLLHUP || currRequest.revents & POLLNVAL)
 			{
 				_closeConnection(currRequest, _pollfds);
 				i--;
@@ -166,8 +172,7 @@ void	WebServer::_processRequest(pollfd &request)
 	if (currRequest.isRequestComplete() == false)
 		return ;
 
-	currRequest.parseRequest(currRequest.getRawRequest());
-
+	currRequest.parseRequest(currRequest.getHeader());
 
 	Session &currSession = _sessionManager.accessSession(currRequest.getCookieValue("SessionId"), currRequest.getServerIndex());
 
@@ -210,9 +215,38 @@ void	WebServer::init()
 	_initPollFds();
 }
 
-void	WebServer::_awaitRequests()
+int	WebServer::_awaitRequests()
 {
-	poll(_pollfds, _connectionsCount, TIMEOUT); //TODO : wrapp for -1
+	int result = poll(_pollfds, _connectionsCount, TIMEOUT);
+	if (result < 0)
+		throw (ExceptionRuntime("poll() error"));
+	return (result);
+}
+
+void	WebServer::_processTimedOutConnections(pollfd& currRequest, const Request &request)
+{
+	Session	session();
+	Response resp(request, request.getServer(), currSession);
+	_responsesMap.insert(std::make_pair(currRequest.fd, resp));
+	currRequest.events = POLLOUT;
+}
+
+void	WebServer::_checkTimedOutConnections()
+{
+	for (int i = _serverCount; i < _connectionsCount; i++)
+	{
+		pollfd &currRequest = _pollfds[i];
+		if (_requestsMap.find(currRequest.fd) == _requestsMap.end())
+			continue ;
+		if (_responsesMap.find(currRequest.fd) != _responsesMap.end())
+			continue ;
+
+		Request &request = _requestsMap.at(currRequest.fd);
+		if (request.hasTimedOut() == true)
+		{
+			_processTimedOutConnections(currRequest, request);
+		}
+	}
 }
 
 void	WebServer::_closeConnection(pollfd &request, pollfd *fds)

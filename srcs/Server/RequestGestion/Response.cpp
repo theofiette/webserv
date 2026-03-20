@@ -28,6 +28,7 @@ static std::map<int, std::string> initStatusMap()
 	m[403] = "Forbidden";
 	m[404] = "Not found";
 	m[405] = "Not allowed";
+	m[408] = "Request Timeout";
 	m[411] = "Length Required";
 	m[413] = "Content too large";
 	m[500] = "Internal server error";
@@ -42,7 +43,9 @@ const std::map<int, std::string> Response::_statusMap = initStatusMap();
 
 bool Response::checkRequestValidity()
 {
-	if (_request.getRequestSuccess() == false)
+	if (_request.isRequestTimedOut() == true)
+		_statusCode = REQUEST_TIMEOUT;
+	else if (_request.getRequestSuccess() == false)
 		_statusCode = BAD_REQUEST;
 	if (_request.getMap().find("Content-Length") != _request.getMap().end() && 
 		stringToInt(_request.getMap().at("Content-Length")) > _currServ.getMaxBody())
@@ -358,8 +361,6 @@ void Response::handlePost()
 		int uploadStatus = handler.processUpload();
 		if (uploadStatus != CREATED)
 		{
-		std::cout << "HERE3\n";
-
 			_statusCode = uploadStatus;
 			handleResponsesError();
 			return ;

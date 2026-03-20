@@ -41,11 +41,14 @@ class WebServer
 		void	_initPollFds();
 		int		_initGetPollSize();
 
-		void	_awaitRequests();
-		void	_closeConnection(pollfd &, pollfd *);
+		int		_awaitRequests();
+		void	_checkTimedOutConnections();
+		
+		void	_processTimedOutConnections(pollfd&, const Request &);
 		void	_processConnections(int masterSocket, const Server &currServ, unsigned int serverIndex);
 		void	_processRequest(pollfd &);
 		void	_sendResponse(pollfd &);	
+		void	_closeConnection(pollfd &, pollfd *);
 
 		WebServer();
 

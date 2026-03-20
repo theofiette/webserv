@@ -5,8 +5,10 @@
 #include <sstream>
 
 Request::Request(const Server &server, unsigned int serverIndex) : 
-_totalBytes(0), _requestSuccess(true), _requestComplete(false), _serverIndex(serverIndex), _currServ(server)
-{}
+_totalBytes(0),_headerComplete(false), _requestSuccess(true), _requestComplete(false), _requestTimedOut(false), _serverIndex(serverIndex), _currServ(server)
+{
+	_tracker = TimeoutTracker();
+}
 
 Request::~Request(){}
 
@@ -30,7 +32,7 @@ int extractContentLength(const std::string &buffer)
 	return (contentLength);
 }
 
-ssize_t Request::readSocketChunk(int socketFd, char *buffer, size_t bufferSize)
+void Request::readSocketChunk(int socketFd, char *buffer, size_t bufferSize, size_t &headerEnd)
 {
 	ssize_t bytesRead = recv(socketFd, buffer, bufferSize, 0);
 
@@ -39,25 +41,27 @@ ssize_t Request::readSocketChunk(int socketFd, char *buffer, size_t bufferSize)
 	if (bytesRead == 0)
 	{
 		_requestComplete = true;
-		return (0);
+		return ;
 	}
-
+	if (_headerComplete == false)
+	{
+		_header += buffer;
+		headerEnd = findHeaderEnd(_header);
+	}
+	else
+		_body += buffer;
 	_totalBytes += bytesRead;
-	_rawRequest.append(buffer, bytesRead);
-	return (bytesRead);
 }
 
-bool Request::findBodyStart(size_t &bodyStart)
+size_t Request::findHeaderEnd(std::string buffer)
 {
-	size_t headerEnd = _rawRequest.find(CRLFCRLF);
+	size_t headerEnd = buffer.find(CRLFCRLF);
 
 	if (headerEnd == std::string::npos)
-	{
-		_requestSuccess = false;
-		return (true);
-	}
-	bodyStart = headerEnd + CRLF_SIZE;
-	return (true);
+		return (-1);
+
+	_headerComplete = true;
+	return (headerEnd + CRLF_SIZE);
 }
 
 bool Request::finalizeWithoutBody(int contentLength)
@@ -70,45 +74,67 @@ bool Request::finalizeWithoutBody(int contentLength)
 	return (false);
 }
 
-void Request::setBody(size_t bodyStart, int contentLength)
+void	Request::endRequestWithoutBody(const size_t& headerEnd) 
 {
-	if (_rawRequest.size() <= bodyStart)
-	{
-		_body.clear();
-		return ;
-	}
-	size_t bodyBytesReceived = _rawRequest.size() - bodyStart;
-	if (bodyBytesReceived >= static_cast<size_t>(contentLength))
-	{
-		_body = _rawRequest.substr(bodyStart, contentLength);
+	if (headerEnd == _header.size())
 		_requestComplete = true;
-		return ;
-	}
-	_body = _rawRequest.substr(bodyStart, bodyBytesReceived);
 }
 
+void	Request::storeBodyExceeding(const size_t &headerEnd)
+{ 
+	if (headerEnd != std::string::npos && headerEnd != _header.size())
+	{
+		_body = _header.substr(headerEnd);
+		_header = _header.substr(0, headerEnd);
+	}
+}
+//TODO: systeme diterations pour pas chercher la fin du header en boucle ? _iterations++ ? if _iterations < MAX_ITER
 void Request::receiveRequestChunk(int socketFd)
-{
+{	
 	char buffer[SEND_SIZE] = {0};
+	size_t headerEnd = 0;
 
-	if (readSocketChunk(socketFd, buffer, SEND_SIZE) == 0)
+	if (_tracker.isExpired() == true)
+	{
+		_requestComplete = true;
+		_requestSuccess = false;
+		_requestTimedOut = true;
 		return ;
+	}
 
-	size_t bodyStart = 0;
-	if (findBodyStart(bodyStart) == false)
-		return ;
-	// std::cout << GREEN << this->getRawRequest() << END << std::endl;
-
-	int contentLength = extractContentLength(_rawRequest);
-	if (finalizeWithoutBody(contentLength) == true)
-		return ;
-	if (contentLength > _currServ.getMaxBody())
+	readSocketChunk(socketFd, buffer, SEND_SIZE, headerEnd);
+	
+	int contentLength = extractContentLength(_header);
+	if (_headerComplete == true)
+	{
+		if (contentLength > _currServ.getMaxBody())
+		{
+			_requestComplete = true;
+			return ;
+		}
+		endRequestWithoutBody(headerEnd);
+		storeBodyExceeding(headerEnd);
+	}
+	if (_body.size() == static_cast<size_t>(contentLength))
 	{
 		_requestComplete = true;
 		return ;
 	}
+		
+}
 
-	setBody(bodyStart, contentLength);
+bool Request::hasTimedOut()
+{
+	if (_requestComplete == true)
+		return (false);
+	if (_tracker.isExpired() == true)
+	{
+		_requestComplete = true;
+		_requestSuccess = false;
+		_requestTimedOut = true;
+		return (true);
+	}
+	return (false);
 }
 
 void Request::displayInfos() const
@@ -169,7 +195,7 @@ void Request::stateRequestValidity()
 	// 	_requestSuccess = false;
 	// 	return ;
 	// }
-	
+
 	_requestSuccess = true;
 }
 
@@ -232,9 +258,9 @@ const std::map<std::string, std::string>& Request::getMap() const
 	return (_requestHeader);
 }
 
-const std::string& Request::getRawRequest() const
+const std::string& Request::getHeader() const
 {
-	return (_rawRequest);
+	return (_header);
 }
 
 const bool &Request::isRequestComplete()
@@ -245,4 +271,9 @@ const bool &Request::isRequestComplete()
 const bool &Request::getRequestSuccess() const
 {
 	return (_requestSuccess);
+}
+
+const bool &Request::isRequestTimedOut() const
+{
+	return (_requestTimedOut);
 }
