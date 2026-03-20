@@ -10,8 +10,6 @@ _totalBytes(0), _requestSuccess(true), _requestComplete(false), _serverIndex(ser
 
 Request::~Request(){}
 
-
-
 std::string extractContentLength(const std::string &buffer)
 {
 	std::string contentLength;
@@ -176,6 +174,21 @@ void Request::stateRequestValidity()
 	_requestSuccess = true;
 }
 
+static bool isValidHeaderKey(const std::string key){
+	for (std::string::const_iterator it = key.begin(); it != key.end(); it++){
+		if ((!isalpha(*it) && *it != '-'))
+			return (false);
+	}
+	return (true);
+}
+
+void Request::checkHeader(){
+	for (std::map<std::string, std::string>::iterator it = _requestHeader.begin(); it != _requestHeader.end(); it++){
+		if (!isValidHeaderKey(it->first))
+			_requestSuccess = false;
+	}
+}
+
 void Request::parseRequest(std::string request)
 {
 	std::string buffer;
@@ -184,6 +197,7 @@ void Request::parseRequest(std::string request)
 	std::getline(requestStream, buffer, '\n');
 	setFirstLine(buffer);
 	fillHeader(requestStream, buffer);
+	checkHeader();
 }
 
 const std::string Request::getCookieValue(const std::string & cookie_name) const

@@ -10,7 +10,7 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 
-const std::string Response::methods[METHODS_COUNT] = {"GET", "POST", "DELETE"};
+const std::string Response::methods[METHODS_COUNT] = {"HEAD", "GET", "POST", "DELETE"};
 const std::string Response::mimeTable[MIME_SIZE] = {"html", "css", "png", "ico", "gif", "plain"};
 
 static std::map<int, std::string> initStatusMap() 
@@ -26,7 +26,7 @@ static std::map<int, std::string> initStatusMap()
 	m[400] = "Bad Request";
 	m[403] = "Forbidden";
 	m[404] = "Not found";
-	m[405] = "Not allowed";
+	m[405] = "Method Not Allowed";
 	m[411] = "Length Required";
 	m[413] = "Content too large";
 	m[500] = "Internal server error";
@@ -46,9 +46,7 @@ bool Response::checkRequestValidity()
 	if (_request.getMap().find("Content-Length") != _request.getMap().end() && 
 		stringToInt(_request.getMap().at("Content-Length")) > _currServ.getMaxBody())
 		_statusCode = CONTENT_TOO_LARGE;
-	if (_statusCode != OK)
-		return (false);
-	return (true);
+	return (_statusCode == OK);
 }
 
 Response::Response(const Request &request, const Server &server, Session &session) : 
@@ -61,7 +59,7 @@ _statusCode(200), _bytesSent(0), _currServ(server), _request(request), _session(
 	}
 	if (checkRequestValidity() == true)
 		pickMethod();
-	else
+	if (_statusCode != OK)
 		handleResponsesError();
 	buildRawResponse();
 }
@@ -77,11 +75,10 @@ void Response::pickMethod()
 	static void (Response::*methods[])() = 
 	{
 		&Response::handleGet,
+		&Response::handleGet,
 		&Response::handlePost,
 		&Response::handleDelete
 	};
-	// if (_request.getMap().at("Method") == "HEAD") //TEMPORAIRE
-	// 	handleGet();
 	if (isCgi() == true)
 	{
 		handleCgi();
@@ -91,18 +88,27 @@ void Response::pickMethod()
 	{
 		for (int i = 0; i < METHODS_COUNT; i++)
 			if (_request.getMap().at("Method") == Response::methods[i])
+			{
 				(this->*methods[i])();
+				return ;
+			}
 	}
+	_statusCode = METHOD_NOT_ALLOWED;
 }
 
 std::string Response::MIMEtable(std::string localPath)
 {
-	int i = 0;
-	for (; i < 5; i++)
-		if (localPath.find("." + mimeTable[i]) != std::string::npos) // TODO: securise
-			break ;
+	int		i = 0;
+	size_t	mimePos = 0;
+	for (; i < MIME_SIZE; i++){
+		mimePos = localPath.rfind("." + mimeTable[i]);
+		if (mimePos != std::string::npos)
+			if ((mimePos + mimeTable[i].size() + 1) == localPath.size())
+				break ;
+	}
 	return ("text/" + mimeTable[i]);
 }
+
 
 //*********************************************************************************************/
 /*										SETTERS											  	  */
@@ -149,7 +155,6 @@ void Response::validateMethodAllowed(const Location &location)
 	if (methodIndex == -1 || !acceptedMethods[methodIndex])
 	{
 		std::cout << "Method not accepted\n";
-		throw ExceptionPathError();
 	}
 }
 
@@ -203,6 +208,7 @@ std::string Response::buildLocalPath()
 	std::map<string, Location>::const_reverse_iterator bestMatch = findBestLocation(uriPath);
 	const Location	&location = bestMatch->second;
 	
+	std::cout << _request.getMap().at("Method") << "\n";
 	validateMethodAllowed(bestMatch->second);
 	
 	std::string localPath = location.getRoot() + uriPath;
@@ -269,28 +275,49 @@ void Response::parseFormData(std::map<std::string, std::string> &data)
 	}
 }
 
+void Response::allowedMethodsHeader(){
+	if (_statusCode == METHOD_NOT_ALLOWED){
+		const std::vector<bool>&acceptedMethods = _currLocation.getMethods();
+		std::string allowedMethods;
+		for (int i = 0; i < METHODS_COUNT; i++)
+		{
+			if (acceptedMethods[i] == true)
+				allowedMethods += methods[i] + ((i < METHODS_COUNT - 1) ? ", " : "");				
+		}
+		addHeader("Allow", allowedMethods);
+		addHeader("Content-Length", "0");	
+	}
+}
+
 void Response::handleResponsesError()
 {
 	std::string localPath;
 	struct stat s;
-	
-	mc_is_ite errPage = _currServ.getErrorsServer().find(_statusCode);
-	if (errPage != _currServ.getErrorsServer().end())
+	if (_statusCode == METHOD_NOT_ALLOWED){
+		allowedMethodsHeader();
+		return ;
+	}
+
+	mc_is_ite errPage = _currLocation.getErrors().find(_statusCode);
+	if (errPage != _currLocation.getErrors().end())
 		localPath = errPage->second;
 	else
-		localPath = _currServ.getErrorsServer().find(0)->second;
-	
+	{
+		errPage = _currServ.getErrorsServer().find(_statusCode);
+		if (errPage != _currServ.getErrorsServer().end())
+			localPath = errPage->second;
+		else
+			localPath = _currServ.getErrorsServer().find(0)->second;
+	}	
 	if (stat(localPath.c_str(), &s) != -1 && access(localPath.c_str(), R_OK) != -1)
 		readFileContent(localPath, s.st_size);
 	else
 	{
-		_body = "<html><head><title>Error " + intToString(_statusCode) + "</title></head>";
+		_body = "<html><head><link rel=\"stylesheet\" href=\"css/style/\"><title>Error " + intToString(_statusCode) + "</title></head>";
 		_body += "<body><h1>Error " + intToString(_statusCode);
 		_body += _statusMap.at(_statusCode) + "</h1>";
 		_body += "<p>An error occurred while processing your request.</p></body></html>";
 	}
-	std::cout << "local " << localPath << "\n\n";
-	
 	addHeader("Content-Type", "text/html");
 	addHeader("Content-Length", intToString(_body.length()));
 }
@@ -315,15 +342,7 @@ void Response::handleGet()
 
 void Response::handlePost()
 {
-	struct stat s;
-	std::string localPath = "html/success.html"; // SUCCES PAGE IN CONFIG
-	if (stat(localPath.c_str(), &s) == -1)
-	{
-		handleResponsesError();
-		return ;
-	}
-	//TODO: RECUPER DYNAMIQUEMENT SUCCESS HTML via GLOBALSERVER ou REDIR (build full path...)
-	// std::string localPath = getSuccessPath();
+	std::string localPath = "html/success.html";
 	std::map<std::string, std::string> formData; // TODO: utiliser cette data
 	parseFormData(formData);
 

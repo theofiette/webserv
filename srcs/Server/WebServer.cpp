@@ -103,7 +103,6 @@ void	WebServer::_processConnections(int masterSocket, const Server &currServ, un
 		_pollfds[_connectionsCount].events = POLLIN;
 		_connectionsCount ++;
 		
-		std::cout << BOLD GREEN << "CREATING REQUEST FOR SERVER INDEX " << serverIndex << "\n";
 		Request req(currServ, serverIndex);
 		std::pair<int, Request> p = std::make_pair(socketFd, req);
 		//TODO: not necessary after clean connexion
@@ -123,13 +122,9 @@ void	WebServer::loop()
 			pollfd &currRequest = _pollfds[i];
 			_decrement = false;
 			if (i < _serverCount)
-			{
 				_processConnections(_masterSockets[i], _config.servers[i], i);
-			}
 			else if (currRequest.revents & POLLIN)
-			{
 				_processRequest(currRequest);
-			}
 			else if (currRequest.revents & POLLOUT)
 			{
 				_sendResponse(currRequest);
@@ -161,12 +156,9 @@ void	WebServer::_processRequest(pollfd &request)
 	if (currRequest.isRequestComplete() == false)
 		return ;
 
-	std::cout << GREEN << currRequest.getRawRequest() << std::endl << END;
 	currRequest.parseRequest(currRequest.getRawRequest());
 
 	Session &currSession = _sessionManager.accessSession(currRequest.getCookieValue("SessionId"), currRequest.getServerIndex());
-
-	currSession.display();
 
 	Response resp(currRequest, currRequest.getServer(), currSession);
 
@@ -185,7 +177,6 @@ void	WebServer::_sendResponse(pollfd &request)
 
 	std::string chunckedStr = currResponse.getChunckResp(SEND_SIZE);
 	int bytesSent;
-	std::cout << chunckedStr << "\n";
 	try
 	{
 		bytesSent = Send(request.fd, chunckedStr);
@@ -213,7 +204,7 @@ void	WebServer::_closeConnection(pollfd &request, pollfd *fds)
 {
 	_decrement = true;
 	request.revents = 0;
-	std::cout << RED ITALIC << "Closing fd " << request.fd << END << std::endl;
+	// std::cout << RED ITALIC << "Closing fd " << request.fd << END << std::endl;
 	if (_responsesMap.find(request.fd) != _responsesMap.end())
 		_responsesMap.erase(_responsesMap.find(request.fd));
 	if (_requestsMap.find(request.fd) != _requestsMap.end())

@@ -4,6 +4,7 @@
 #include <iostream>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <string.h>
 
 int main()
@@ -15,15 +16,32 @@ int main()
     sockaddr_in serverAddress;
     serverAddress.sin_family = AF_INET;
     serverAddress.sin_port = htons(8080);
-    serverAddress.sin_addr.s_addr = INADDR_ANY;
+    serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1"); // localhost
 
-    // sending connection request
-    connect(clientSocket, (struct sockaddr*)&serverAddress,
-            sizeof(serverAddress));
+    // connection
+    if (connect(clientSocket, (struct sockaddr*)&serverAddress,
+                sizeof(serverAddress)) < 0)
+    {
+        perror("connect");
+        return 1;
+    }
 
-    // sending data
-    const char* message = "DELETE /permissions.html HTTP/1.1\r\nHost: localhost:8080\r\n\r\n";
+    // sending request
+    const char* message = "SHHSSHD /index.html HTTP/1.1\r\nHost: localhost:8080\r\nConnection: close\r\n\r\n";
     send(clientSocket, message, strlen(message), 0);
+
+    // receiving response
+    char buffer[4096];
+    int bytesRead;
+
+    while ((bytesRead = recv(clientSocket, buffer, sizeof(buffer) - 1, 0)) > 0)
+    {
+        buffer[bytesRead] = '\0'; // null-terminate
+        std::cout << buffer;
+    }
+
+    if (bytesRead < 0)
+        perror("recv");
 
     // closing socket
     close(clientSocket);

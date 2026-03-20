@@ -37,6 +37,7 @@ class Request
 
 		void 				stateRequestValidity();
 		void 				fillHeader(std::stringstream &, std::string &);
+		void				checkHeader();
 		void				parseRequest(std::string);
 		void				receiveRequestChunk(int);		
 		// // TEMPORAIRE
