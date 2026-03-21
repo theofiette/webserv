@@ -15,7 +15,11 @@ std::string extractContentLength(const std::string &buffer)
 	std::string contentLength;
 	size_t pos = buffer.find("Content-Length:");
 	if (pos == std::string::npos)
-		return ("-1");
+	{
+		pos = buffer.find("content-length:");
+		if (pos == std::string::npos)
+			return ("-1");
+	}
 
 	pos += 15;
 	while (pos < buffer.size() && (buffer[pos] == ' ' || buffer[pos] == '\t'))
@@ -208,7 +212,6 @@ const std::string Request::getCookieValue(const std::string & cookie_name) const
 	size_t		pos;
 	size_t		comma_pos;
 
-	// std::cout << "COOKIE NAME : " << cookie_name_updated << std::endl;
 
 	if (cookie_name.length() == 0)
 		return ("");
