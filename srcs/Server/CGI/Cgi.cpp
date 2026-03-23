@@ -4,9 +4,11 @@ Cgi::Cgi(const Request &request, const Session &session)
 {
 	std::map<std::string, std::string> rm = request.getMap();
 
+	request.displayInfos();
+
 	// _metaVariables["AUTH_TYPE"] = "";
-	_metaVariables["CONTENT_LENGTH"] = (rm.find("Content-length") != rm.end() ? rm.find("Content-length")->second : "");
-	_metaVariables["CONTENT_TYPE"] = (rm.find("Content-type") != rm.end() ? rm.find("Content-type")->second : "");
+	_metaVariables["CONTENT_LENGTH"] = (rm.find("Content-Length") != rm.end() ? rm.find("Content-Length")->second : "");
+	_metaVariables["CONTENT_TYPE"] = (rm.find("Content-Type") != rm.end() ? rm.find("Content-Type")->second : "");
 	_metaVariables["GATEWAY_INTERFACE"] = "CGI/1.1";
 	_metaVariables["PATH_INFO"] = "";
 	// _metaVariables["PATH_TRANSLATED"] = "";
@@ -16,7 +18,7 @@ Cgi::Cgi(const Request &request, const Session &session)
 	// _metaVariables["REMOTE_IDENT"] = "";
 	// _metaVariables["REMOTE_USER"] = "";
 	_metaVariables["REQUEST_METHOD"] = (rm.find("Method") != rm.end() ? rm.find("Method")->second : "");
-	_metaVariables["SCRIPT_NAME"] = (rm.find("Path") != rm.end() ? rm.find("Path")->second : ""); // TODO:substr
+	_metaVariables["SCRIPT_NAME"] = (rm.find("Path") != rm.end() ? rm.find("Path")->second.substr(1) : ""); // TODO:substr
 	_metaVariables["SERVER_NAME"] = request.getServer().getServerName();
 	_metaVariables["SERVER_PORT"] = request.getServer().getListen();
 	_metaVariables["SERVER_PROTOCOL"] = (rm.find("Protocol") != rm.end() ? rm.find("Protocol")->second : "");
@@ -56,10 +58,11 @@ void Cgi::cgiChildProcess(int pipe_in[2], int pipe_out[2]){
 		close(pipe_out[1]);
 		exit(1);
 	}
-	std::string file = "./" + (getMetaVars().find("SCRIPT_NAME")->second).substr(1);
+	std::string file = "./cgi/" + (getMetaVars().find("SCRIPT_NAME")->second);
 	
 	char **tmp = new char*[2];
 	tmp[0] = strdup(file.c_str());
+	// tmp[0] = strdup((std::string("cgi_tester")).c_str());
 	tmp[1] = NULL;
 	execve(tmp[0], tmp, getEnv());
 	perror("execve");

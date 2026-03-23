@@ -154,6 +154,13 @@ void Request::setFirstLine(std::string buffer)
 		_requestSuccess = false;
 		return ;
 	}
+	std::string rest;
+	if (iss >> rest)
+	{
+		_requestSuccess = false;
+		return ;
+	}
+
 	if (!protocol.empty() && protocol[protocol.size() - 1] == '\r')
 		protocol[protocol.size() - 1] = 0;
     _requestHeader["Method"] = method;
@@ -190,13 +197,28 @@ void Request::fillHeader(std::stringstream &requestStream, std::string &buffer)
 void Request::stateRequestValidity()
 {
 	//TODO: if POST and no content length its invalid? 
-	// if (_requestHeader["Protocol"] != "HTTP/1.0")
-	// {
-	// 	_requestSuccess = false;
-	// 	return ;
-	// }
+	if (_requestHeader["Protocol"] != "HTTP/1.1" )
+	{
+		_requestSuccess = false;
+		return ;
+	}
 
 	_requestSuccess = true;
+}
+
+static bool isValidHeaderKey(const std::string key){
+	for (std::string::const_iterator it = key.begin(); it != key.end(); it++){
+		if ((!isalpha(*it) && *it != '-'	))
+			return (false);
+	}
+	return (true);
+}
+
+void Request::checkHeader(){
+	for (std::map<std::string, std::string>::iterator it = _requestHeader.begin(); it != _requestHeader.end(); it++){
+		if (!isValidHeaderKey(it->first))
+			_requestSuccess = false;
+	}
 }
 
 void Request::parseRequest(std::string request)
@@ -204,9 +226,11 @@ void Request::parseRequest(std::string request)
 	std::string buffer;
 	std::stringstream requestStream(request, std::ios_base::in);
 
+	std::cout << request << "\n\n";
 	std::getline(requestStream, buffer, '\n');
 	setFirstLine(buffer);
 	fillHeader(requestStream, buffer);
+	checkHeader();
 }
 
 const std::string Request::getCookieValue(const std::string & cookie_name) const

@@ -103,7 +103,6 @@ void	WebServer::_processConnections(int masterSocket, const Server &currServ, un
 		_pollfds[_connectionsCount].events = POLLIN;
 		_connectionsCount ++;
 		
-		std::cout << BOLD GREEN << "CREATING REQUEST FOR SERVER INDEX " << serverIndex << "\n";
 		Request req(currServ, serverIndex);
 	
 		std::pair<int, Request> p = std::make_pair(socketFd, req);
@@ -133,9 +132,7 @@ void	WebServer::loop()
 				i--;
 			}
 			else if (currRequest.revents & POLLIN)
-			{
 				_processRequest(currRequest);
-			}
 			else if (currRequest.revents & POLLOUT)
 			{
 				_sendResponse(currRequest);
@@ -222,7 +219,7 @@ void	WebServer::_closeConnection(pollfd &request, pollfd *fds)
 {
 	_decrement = true;
 	request.revents = 0;
-	std::cout << RED ITALIC << "Closing fd " << request.fd << END << std::endl;
+	// std::cout << RED ITALIC << "Closing fd " << request.fd << END << std::endl;
 	if (_responsesMap.find(request.fd) != _responsesMap.end())
 		_responsesMap.erase(_responsesMap.find(request.fd));
 	if (_requestsMap.find(request.fd) != _requestsMap.end())

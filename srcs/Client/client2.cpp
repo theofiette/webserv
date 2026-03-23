@@ -22,44 +22,32 @@ int main()
     memset(&serverAddress, 0, sizeof(serverAddress));
     serverAddress.sin_family = AF_INET;
     serverAddress.sin_port = htons(8080);
-    serverAddress.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1"); // localhost
 
-    // sending connection request
+    // connection
     if (connect(clientSocket, (struct sockaddr*)&serverAddress,
-            sizeof(serverAddress)) < 0)
+                sizeof(serverAddress)) < 0)
     {
         perror("connect");
-        close(clientSocket);
         return 1;
     }
 
-    // sending data
-    const char* message = "GET /permissions.html HTTP/1.1\r\nHost: localhost:8080\r\nConnection: close\r\n\r";
+    // sending request
+    const char* message = "GET /index.html HTTP/1.11\r\nHost: localhost:8080\r\nConnection: close\r\n\r\n";
+    send(clientSocket, message, strlen(message), 0);
 
-    std::cout << "----- Requete envoyee -----\n";
-    std::cout << message << std::endl;
-
-    ssize_t sent = send(clientSocket, message, strlen(message), 0);
-    if (sent < 0)
-    {
-        perror("send");
-        close(clientSocket);
-        return 1;
-    }
-
-    std::cout << "----- Reponse recue -----\n";
+    // receiving response
     char buffer[4096];
-    ssize_t bytesRead = 0;
+    int bytesRead;
+
     while ((bytesRead = recv(clientSocket, buffer, sizeof(buffer) - 1, 0)) > 0)
     {
-        buffer[bytesRead] = '\0';
+        buffer[bytesRead] = '\0'; // null-terminate
         std::cout << buffer;
     }
 
     if (bytesRead < 0)
         perror("recv");
-    else
-        std::cout << std::endl;
 
     // closing socket
     close(clientSocket);

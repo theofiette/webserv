@@ -30,11 +30,12 @@ enum ErrorCode{
 	BAD_REQUEST = 400,
 	FORBIDDEN = 403,
 	NOT_FOUND = 404,
-	NOT_ALLOWED = 405,
+	METHOD_NOT_ALLOWED = 405,
 	REQUEST_TIMEOUT = 408,
 	LENGTH_REQUIRED = 411,
 	CONTENT_TOO_LARGE = 413,
-	INTERNAL_SERVER_ERROR = 500
+	INTERNAL_SERVER_ERROR = 500,
+	HTTP_VERSION_NOT_SUPPORTED = 505
 };
 
 typedef struct SentResponse 
@@ -82,6 +83,7 @@ class Response
 		bool 				readFileContent(const std::string &, size_t);
 		void 				parseFormData(std::map<std::string, std::string> &);
 		void 				handleResponsesError();
+		void				allowedMethodsHeader();
 
 	public:
 		Response(const Request &, const Server &, Session &);

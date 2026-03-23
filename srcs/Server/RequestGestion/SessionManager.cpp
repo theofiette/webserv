@@ -19,12 +19,12 @@ Session & SessionManager::accessSession(const std::string &id, unsigned int serv
 			{
 				_idCount++;
 				it = _sessions[server].begin();
-				std::cout << BLUE BOLD << "found corresponding session in server " << server << std::endl;
+				std::cout << BLUE BOLD << "found corresponding session in server " << server << std::endl << END;
 			}
 		}
 
 		Session new_session(intToString(_idCount));
-		std::cout << BLUE BOLD << "new session created in server " << server << std::endl;
+		std::cout << BLUE BOLD << "new session created in server " << server << std::endl << END;
 
 		_idCount++;
 
