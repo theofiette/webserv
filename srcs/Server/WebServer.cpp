@@ -118,12 +118,7 @@ void	WebServer::loop()
 {
 	while (1) 
 	{
-		int activeConnections = _awaitRequests();
-		if (activeConnections == 0)
-		{
-			_checkTimedOutConnections();
-			continue ;
-		}
+		_awaitRequests();
 		for (int i = 0; i < _connectionsCount ; i++)
 		{
 			pollfd &currRequest = _pollfds[i];
@@ -221,32 +216,6 @@ int	WebServer::_awaitRequests()
 	if (result < 0)
 		throw (ExceptionRuntime("poll() error"));
 	return (result);
-}
-
-void	WebServer::_processTimedOutConnections(pollfd& currRequest, const Request &request)
-{
-	Session	session();
-	Response resp(request, request.getServer(), currSession);
-	_responsesMap.insert(std::make_pair(currRequest.fd, resp));
-	currRequest.events = POLLOUT;
-}
-
-void	WebServer::_checkTimedOutConnections()
-{
-	for (int i = _serverCount; i < _connectionsCount; i++)
-	{
-		pollfd &currRequest = _pollfds[i];
-		if (_requestsMap.find(currRequest.fd) == _requestsMap.end())
-			continue ;
-		if (_responsesMap.find(currRequest.fd) != _responsesMap.end())
-			continue ;
-
-		Request &request = _requestsMap.at(currRequest.fd);
-		if (request.hasTimedOut() == true)
-		{
-			_processTimedOutConnections(currRequest, request);
-		}
-	}
 }
 
 void	WebServer::_closeConnection(pollfd &request, pollfd *fds)
