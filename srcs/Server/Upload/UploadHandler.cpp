@@ -1,6 +1,7 @@
 #include "UploadHandler.hpp"
 
 #include "Request.hpp"
+#include "Response.hpp"
 
 #include <sys/stat.h>
 #include <fstream>
@@ -10,21 +11,60 @@ _request(request), _uploadDirectory(uploadDirectory), _statusCode(400) {}
 
 UploadHandler::~UploadHandler()  {}
 
-std::string	UploadHandler::_extractFilename()
+bool	UploadHandler::_isMultipart(const std::string &contentType)
 {
-	std::map<std::string, std::string>::const_iterator it = _request.getMap().find("Filename: ");
-	if (it == _request.getMap().end())
-	{
-		std::cout << "HERE10\n";
+	return (contentType.find("multipart/form-data") != std::string::npos);
+}
+
+std::string	UploadHandler::_extractBoundary(const std::string &contentType)
+{
+	size_t pos = contentType.find("boundary=");
+
+	if (pos == std::string::npos)
 		return ("");
-	}
-	std::string filename = it->second.substr((*it).second.size() + 11);
+	pos += 9;
+	if (pos >= contentType.size())
+		return ("");
+	return (contentType.substr(pos));
+}
+
+std::string	UploadHandler::_extractFilename() const
+{
+	const std::vector<char> &bodyVec = _request.getBody();
+	if (bodyVec.empty())
+		return ("");
+
+	std::string body(bodyVec.begin(), bodyVec.end());
+	size_t dispositionPos = body.find("Content-Disposition:");
+	if (dispositionPos == std::string::npos)
+		return ("");
+
+	size_t LineEnd = body.find("\r\n", dispositionPos);
+	if (LineEnd == std::string::npos)
+		return ("");
+
+	std::string dispositionLine = body.substr(dispositionPos, LineEnd - dispositionPos);
+	size_t filenamePos = dispositionLine.find("filename=\"");
+	if (filenamePos == std::string::npos)
+		return ("");
+
+	filenamePos += 10;
+	size_t filenameEnd = dispositionLine.find('"', filenamePos);
+	if (filenameEnd == std::string::npos)
+		return ("");
+
+	std::string filename = dispositionLine.substr(filenamePos, filenameEnd - filenamePos);
+	if (filename.empty())
+		return ("");
+
 	std::cout << ORANGE << "FILENAME IS " << filename << std::endl << END;
 	return (filename);
 }
 
-bool	UploadHandler::_writeFile(const std::string &, const std::string &) const
+bool	UploadHandler::_writeFile(const std::string & filename, const std::string &content) const
 {
+	(void)filename; 
+	(void)content;
 	// std::ofstream outfile(filename.c_str());
 	// if (!outfile.is_open())
 	// 	;
@@ -33,15 +73,30 @@ bool	UploadHandler::_writeFile(const std::string &, const std::string &) const
 	return (true);
 }
 
+
+// ------geckoformboundaryec4d5957babb5756bf6c14779693ebba
+// Content-Disposition: form-data; name="file"; filename="nsmail.jpg"
+// Content-Type: image/jpeg
+
 int	UploadHandler::processUpload()
 {
 	const std::string filename = _extractFilename();
-	if (filename.empty())
+
+	std::map<std::string, std::string>::const_iterator headerMap = _request.getMap().find("Content-Type");
+	if (headerMap == _request.getMap().end())
 	{
-		_statusCode = 400;
+		_statusCode = BAD_REQUEST;
 		return (_statusCode);
 	}
-	_statusCode = 201;
+
+	const std::string _boundary = _extractBoundary(headerMap->second);
+
+	if (filename.empty())
+	{
+		_statusCode = BAD_REQUEST; // 400 ?
+		return (_statusCode);
+	}
+	_statusCode = CREATED;
 	return (_statusCode);
 }
 

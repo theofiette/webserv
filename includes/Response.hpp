@@ -34,6 +34,7 @@ enum ErrorCode{
 	REQUEST_TIMEOUT = 408,
 	LENGTH_REQUIRED = 411,
 	CONTENT_TOO_LARGE = 413,
+	UNSUPPORTED_MEDIA_TYPE = 415,
 	INTERNAL_SERVER_ERROR = 500,
 	HTTP_VERSION_NOT_SUPPORTED = 505
 };
@@ -55,14 +56,12 @@ class Response
 		std::string			_rawResponse;
 		size_t				_bytesSent;
 		int					_headerLength;
-		// int					_contentLength;
 		
 		Location 			_currLocation;
 		const Server 		&_currServ;
 		const Request 		&_request;
 		Session				&_session;
 
-		std::string			_boundary;
 		
 		static const 		std::map<int, std::string> _statusMap;
 		static const 		std::string methods[METHODS_COUNT];

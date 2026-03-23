@@ -12,7 +12,7 @@
 #include <sys/wait.h>
 
 const std::string Response::methods[METHODS_COUNT] = {"HEAD", "GET", "POST", "DELETE"};
-const std::string Response::mimeTable[MIME_SIZE] = {"html", "css", "png", "ico", "gif", "plain"};
+const std::string Response::mimeTable[MIME_SIZE] = {"html", "css", "png", "ico", "gif", "plain", "jpeg"};
 
 static std::map<int, std::string> initStatusMap() 
 {
@@ -31,6 +31,7 @@ static std::map<int, std::string> initStatusMap()
 	m[408] = "Request Timeout";
 	m[411] = "Length Required";
 	m[413] = "Content Too Large";
+	m[415] = "Unsupported Media Type";
 	m[500] = "Internal Server Error";
 	m[505] = "HTTP Version Not Supported";
 	return (m);
@@ -42,29 +43,19 @@ const std::map<int, std::string> Response::_statusMap = initStatusMap();
 /*										CONSTRUCTORS										  */
 //*********************************************************************************************/
 
-bool Response::checkRequestValidity()
-{
-	if (_request.isRequestTimedOut() == true)
-		_statusCode = REQUEST_TIMEOUT;
-	else if (_request.getRequestSuccess() == false)
-		_statusCode = BAD_REQUEST;
-	if (_request.getMap().find("Content-Length") != _request.getMap().end() && 
-		stringToInt(_request.getMap().at("Content-Length")) > _currServ.getMaxBody())
-		_statusCode = CONTENT_TOO_LARGE;
-	return (_statusCode == OK);
-}
-
 Response::Response(const Request &request, const Server &server, Session &session) : 
-_statusCode(200), _bytesSent(0), _currServ(server), _request(request), _session(session)
+_statusCode(request.getRequestCode()), _bytesSent(0), _currServ(server), _request(request), _session(session)
 {
+	std::cout << _request.getRequestCode() << "\n";
+	_request.displayInfos();
 	if (!session.isConnected())
 	{
 		insertCookieHeader("SessionId=" + session.getId());
 		session.setConnected(true);
 	}
-	if (checkRequestValidity() == true)
+	if (_statusCode == OK)
 		pickMethod();
-	if (_statusCode != OK)
+	else
 		handleResponsesError();
 	buildRawResponse();
 }
@@ -80,7 +71,6 @@ void Response::pickMethod()
 	static void (Response::*methods[])() = 
 	{
 		&Response::handleHead,
-		&Response::handleGet,
 		&Response::handleGet,
 		&Response::handlePost,
 		&Response::handleDelete
@@ -99,7 +89,6 @@ void Response::pickMethod()
 				return ;
 			}
 	}
-	_statusCode = METHOD_NOT_ALLOWED;
 }
 
 std::string Response::MIMEtable(std::string localPath)
@@ -161,6 +150,7 @@ void Response::validateMethodAllowed(const Location &location)
 	if (methodIndex == -1 || !acceptedMethods[methodIndex])
 	{
 		std::cout << "Method not accepted\n";
+		_statusCode = METHOD_NOT_ALLOWED;
 	}
 }
 
@@ -260,14 +250,15 @@ bool Response::readFileContent(const std::string &filePath, size_t fileSize)
 void Response::parseFormData(std::map<std::string, std::string> &data)
 {
 	size_t lastPos = 0;
+	std::string body(_request.getBody().begin(), _request.getBody().end());
 
-	for (size_t i = _request.getBody().find("=", 0); i != std::string::npos; i = _request.getBody().find("=", lastPos))
+	for (size_t i = body.find("=", 0); i != std::string::npos; i = body.find("=", lastPos))
 	{
-		size_t endPos = _request.getBody().find("&", i);
+		size_t endPos = body.find("&", i);
 		if (endPos == std::string::npos)
-			endPos = _request.getBody().find("\r\n\r\n");
-		std::string key = _request.getBody().substr((lastPos == 0 ? lastPos : lastPos + 1), i - (lastPos + (lastPos != 0))); // 🤮🤮🤮
-		std::string val = _request.getBody().substr(i + 1, endPos - (i + 1));
+			endPos = body.find("\r\n\r\n");
+		std::string key = body.substr((lastPos == 0 ? lastPos : lastPos + 1), i - (lastPos + (lastPos != 0))); // 🤮🤮🤮
+		std::string val = body.substr(i + 1, endPos - (i + 1));
 
 		if (key.find(SESSION_PREFIXE) != std::string::npos)
 		{
@@ -339,13 +330,6 @@ void	Response::handleHead()
 	std::string localPath;
 	struct stat	s;
 
-	if (_statusCode != OK)
-	{
-		handleResponsesError();
-		_body.clear();
-		return ;
-	}
-
 	localPath = buildLocalPath();
 	checkFileAccess(localPath, R_OK);
 	if ((stat(localPath.c_str(), &s) == -1))
@@ -375,18 +359,20 @@ void Response::handlePost()
 	struct stat	s;
 	std::map<std::string, std::string>::const_iterator contentTypePos = _request.getMap().find("Content-Type");
 
-	if ((_currLocation.getUpload() == true) && contentTypePos != _request.getMap().end() 
-	&& contentTypePos->second.find("application/octet-stream") != std::string::npos)
+	if (contentTypePos != _request.getMap().end() )
+	{
+		_statusCode = UNSUPPORTED_MEDIA_TYPE; // TODO: a confirmer
+		handleResponsesError();
+		return ;
+	}
+
+	if ((_currLocation.getUpload() == true) && UploadHandler::_isMultipart(contentTypePos->second))
 	{
 		std::string localPath = buildLocalPath();
 		checkFileAccess(localPath, R_OK);
 		if ((stat(localPath.c_str(), &s) == -1) || _statusCode != OK)
 			return ;
 		std::string uploadDirectory = _currLocation.getUploadDir();
-		// std::string fullPath = localPath + "/" + uploadDirectory;
-		// std::cout << "FULLPATH is " << fullPath << std::endl;
-		// if ((stat(fullPath.c_str(), &s) == -1))
-		// 	return ;
 
 		UploadHandler handler(_request, uploadDirectory);
 
@@ -438,7 +424,9 @@ void Response::cgiMainProcess(int pipe_in[2], int pipe_out[2], Cgi &cgi, int pid
 
 	if (_request.getMap().find("Method")->second == "POST")
 	{
-		cgi.setBodyMessage(_request.getBody()); //write in stdout
+		const std::vector<char>& bodyVec = _request.getBody();
+		std::string bodyStr(bodyVec.begin(), bodyVec.end());
+		cgi.setBodyMessage(bodyStr); //write in stdout
 		if (write(pipe_in[1], cgi.getBodyMessage().c_str(), cgi.getBodyMessage().size()) == -1)
 		{
 			close(pipe_in[1]);

@@ -1,11 +1,12 @@
 #include "webserv.hpp"
 #include "Request.hpp"
+#include "Response.hpp"
 #include "safemath.hpp"
 #include <map>
 #include <sstream>
 
 Request::Request(const Server &server, unsigned int serverIndex) : 
-_totalBytes(0),_headerComplete(false), _requestSuccess(true), _requestComplete(false), _requestTimedOut(false), _serverIndex(serverIndex), _currServ(server)
+_totalBytes(0),_headerComplete(false), _requestCode(OK), _requestComplete(false), _requestTimedOut(false), _serverIndex(serverIndex), _currServ(server)
 {
 	_tracker = TimeoutTracker();
 }
@@ -36,6 +37,7 @@ void Request::readSocketChunk(int socketFd, char *buffer, size_t bufferSize, siz
 {
 	ssize_t bytesRead = recv(socketFd, buffer, bufferSize, 0);
 
+	std::cout << "BYTES READ : " <<  bytesRead << "\n\n";
 	if (bytesRead < 0)
 		throw ExceptionRuntime("recv() error");
 	if (bytesRead == 0)
@@ -45,11 +47,11 @@ void Request::readSocketChunk(int socketFd, char *buffer, size_t bufferSize, siz
 	}
 	if (_headerComplete == false)
 	{
-		_header += buffer;
+		_header.append(buffer, bytesRead);
 		headerEnd = findHeaderEnd(_header);
 	}
 	else
-		_body += buffer;
+		_body.insert(_body.end(), buffer, buffer + bytesRead);
 	_totalBytes += bytesRead;
 }
 
@@ -76,15 +78,18 @@ bool Request::finalizeWithoutBody(int contentLength)
 
 void	Request::endRequestWithoutBody(const size_t& headerEnd) 
 {
-	if (headerEnd == _header.size())
+	if (headerEnd == _header.size() && _body.empty())
+	{
 		_requestComplete = true;
+	}
 }
 
 void	Request::storeBodyExceeding(const size_t &headerEnd)
 { 
 	if (headerEnd != std::string::npos && headerEnd != _header.size())
 	{
-		_body = _header.substr(headerEnd);
+		std::string bodyStr = _header.substr(headerEnd);
+		_body.insert(_body.end(), bodyStr.begin(), bodyStr.end());
 		_header = _header.substr(0, headerEnd);
 	}
 }
@@ -92,18 +97,17 @@ void	Request::storeBodyExceeding(const size_t &headerEnd)
 void Request::receiveRequestChunk(int socketFd)
 {	
 	char buffer[SEND_SIZE] = {0};
-	size_t headerEnd = 0;
+	size_t headerEnd = _header.size();
 
 	if (_tracker.isExpired() == true)
 	{
 		_requestComplete = true;
-		_requestSuccess = false;
+		_requestCode = REQUEST_TIMEOUT;
 		_requestTimedOut = true;
 		return ;
 	}
 
 	readSocketChunk(socketFd, buffer, SEND_SIZE, headerEnd);
-	
 	int contentLength = extractContentLength(_header);
 	if (_headerComplete == true)
 	{
@@ -112,29 +116,16 @@ void Request::receiveRequestChunk(int socketFd)
 			_requestComplete = true;
 			return ;
 		}
-		endRequestWithoutBody(headerEnd);
+		if (contentLength <= 0)
+			endRequestWithoutBody(headerEnd); // SI JAI TOUT READ ET QUE Y A RIEN APRES 1er CRL
 		storeBodyExceeding(headerEnd);
 	}
-	if (_body.size() == static_cast<size_t>(contentLength))
+	std::cout << "BODYSIZE == " << _body.size()  << "CONTENT LENGTH == " << contentLength << std::endl;
+	if (contentLength > 0 && _body.size() == static_cast<size_t>(contentLength))
 	{
 		_requestComplete = true;
 		return ;
 	}
-		
-}
-
-bool Request::hasTimedOut()
-{
-	if (_requestComplete == true)
-		return (false);
-	if (_tracker.isExpired() == true)
-	{
-		_requestComplete = true;
-		_requestSuccess = false;
-		_requestTimedOut = true;
-		return (true);
-	}
-	return (false);
 }
 
 void Request::displayInfos() const
@@ -149,18 +140,22 @@ void Request::setFirstLine(std::string buffer)
     std::istringstream iss(buffer);
     std::string method, path, protocol;
 
-	if (!(iss >> method >> path >> protocol) || buffer.find("\r") == std::string::npos)
+	if (!(iss >> method >> path >> protocol))
 	{
-		_requestSuccess = false;
+		_requestCode = BAD_REQUEST;
+		return ;
+	}
+	else if (buffer.find("\r") == std::string::npos)
+	{
+		_requestCode = HTTP_VERSION_NOT_SUPPORTED;
 		return ;
 	}
 	std::string rest;
 	if (iss >> rest)
 	{
-		_requestSuccess = false;
+		_requestCode = BAD_REQUEST;
 		return ;
 	}
-
 	if (!protocol.empty() && protocol[protocol.size() - 1] == '\r')
 		protocol[protocol.size() - 1] = 0;
     _requestHeader["Method"] = method;
@@ -178,14 +173,14 @@ void Request::fillHeader(std::stringstream &requestStream, std::string &buffer)
 		size_t sep = buffer.find(": ");
 		if (sep == std::string::npos)
 		{
-			_requestSuccess = false;
+			_requestCode = BAD_REQUEST;
 			return ;
 		}
 		pair.first = buffer.substr(0, sep);
 		size_t end = buffer.find('\r');
 		if (end == std::string::npos)
 		{
-			_requestSuccess = false;
+			_requestCode = BAD_REQUEST;
 			return ;
 		}
 		sep += 2;
@@ -197,13 +192,16 @@ void Request::fillHeader(std::stringstream &requestStream, std::string &buffer)
 void Request::stateRequestValidity()
 {
 	//TODO: if POST and no content length its invalid? 
-	if (_requestHeader["Protocol"] != "HTTP/1.1" )
+	if (_requestHeader["Protocol"] != "HTTP/1.1")
 	{
-		_requestSuccess = false;
+		_requestCode = HTTP_VERSION_NOT_SUPPORTED;
 		return ;
 	}
-
-	_requestSuccess = true;
+	std::string methods[METHODS_COUNT] = {"HEAD", "GET", "POST", "DELETE"};
+	for (int i = 0; i < METHODS_COUNT; i++)
+		if (_requestHeader["Method"] == methods[i])
+			return ;
+	_requestCode = METHOD_NOT_ALLOWED;		
 }
 
 static bool isValidHeaderKey(const std::string key){
@@ -217,7 +215,7 @@ static bool isValidHeaderKey(const std::string key){
 void Request::checkHeader(){
 	for (std::map<std::string, std::string>::iterator it = _requestHeader.begin(); it != _requestHeader.end(); it++){
 		if (!isValidHeaderKey(it->first))
-			_requestSuccess = false;
+			_requestCode = BAD_REQUEST;
 	}
 }
 
@@ -231,6 +229,7 @@ void Request::parseRequest(std::string request)
 	setFirstLine(buffer);
 	fillHeader(requestStream, buffer);
 	checkHeader();
+	stateRequestValidity();
 }
 
 const std::string Request::getCookieValue(const std::string & cookie_name) const
@@ -272,7 +271,7 @@ const Server &	Request::getServer() const
 	return (_currServ);
 }
 
-const std::string& Request::getBody() const
+const std::vector<char>& Request::getBody() const
 {
 	return (_body);
 }
@@ -287,17 +286,17 @@ const std::string& Request::getHeader() const
 	return (_header);
 }
 
-const bool &Request::isRequestComplete()
+const bool& Request::isRequestComplete()
 {
 	return (_requestComplete);
 }
 
-const bool &Request::getRequestSuccess() const
+const size_t& Request::getRequestCode() const
 {
-	return (_requestSuccess);
+	return (_requestCode);
 }
 
-const bool &Request::isRequestTimedOut() const
+const bool& Request::isRequestTimedOut() const
 {
 	return (_requestTimedOut);
 }

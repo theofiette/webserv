@@ -33,7 +33,7 @@ int main()
     }
 
     // sending request
-    const char* message = "GET /index.html HTTP/1.11\r\nHost: localhost:8080\r\nConnection: close\r\n\r\n";
+    const char* message = "DELETE /index.html HTTP/1.1\r\nHost: localhost:8080\r\nConnection: close\r\n\r\n";
     send(clientSocket, message, strlen(message), 0);
 
     // receiving response

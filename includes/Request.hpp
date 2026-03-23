@@ -19,9 +19,9 @@ class Request
 		std::map<std::string, std::string>	_requestHeader;
 		// std::string 						_rawRequest;
 		std::string 						_header;
-		std::string 						_body;
+		std::vector<char> 					_body;
 		bool 								_headerComplete;
-		bool								_requestSuccess;
+		size_t								_requestCode;
 		bool								_requestComplete;
 		bool								_requestTimedOut;
 		int									_serverIndex;
@@ -47,16 +47,15 @@ class Request
 		void				checkHeader();
 		void				parseRequest(std::string);
 		void				receiveRequestChunk(int);		
-		bool				hasTimedOut();
 		// // TEMPORAIRE
 		void 				displayInfos() const;
 		const bool &		isRequestComplete();
 		
-		const std::string& 	getHeader() const;
-		const std::string&	getBody() const;
-		const Server &		getServer() const;
-		const bool &		getRequestSuccess() const;
-		const bool &		isRequestTimedOut() const;
+		const std::string& 			getHeader() const;
+		const std::vector<char>&	getBody() const;
+		const Server&				getServer() const;
+		const size_t&				getRequestCode() const;
+		const bool&					isRequestTimedOut() const;
 		
 		const std::map<std::string, std::string>&	getMap() const;
 		const std::string							getCookieValue(const std::string &) const;

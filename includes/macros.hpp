@@ -25,11 +25,11 @@ typedef std::string string;
 
 #define LOCALHOST	"8080"
 #define MAX_CLIENTS	1024
-#define TIMEOUT		(1000)
+#define TIMEOUT		(60 * 1000)
 
 #define CONFIG_RULE	4
 
-#define MIME_SIZE 6
+#define MIME_SIZE 7
 
 #define	METHODS_COUNT	4
 enum	E_METHODS

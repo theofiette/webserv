@@ -164,6 +164,10 @@ void	WebServer::_processRequest(pollfd &request)
 	if (currRequest.isRequestComplete() == false)
 		return ;
 
+	// for (std::vector<char>::const_iterator it = currRequest.getBody().begin(); it != currRequest.getBody().end(); it++)
+	// 	std::cout << *it;
+
+	std::cout << currRequest.getHeader()  << std::endl;
 	currRequest.parseRequest(currRequest.getHeader());
 
 	Session &currSession = _sessionManager.accessSession(currRequest.getCookieValue("SessionId"), currRequest.getServerIndex());
@@ -188,7 +192,7 @@ void	WebServer::_sendResponse(pollfd &request)
 
 	std::string chunckedStr = currResponse.getChunckResp(SEND_SIZE);
 	int bytesSent;
-	// std::cout << ITALIC  BLUE << chunckedStr << "\n";
+	std::cout << ITALIC  BLUE << chunckedStr << "\n";
 	try
 	{
 		bytesSent = Send(request.fd, chunckedStr);
