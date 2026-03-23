@@ -208,7 +208,6 @@ std::string Response::buildLocalPath()
 	std::map<string, Location>::const_reverse_iterator bestMatch = findBestLocation(uriPath);
 	const Location	&location = bestMatch->second;
 	
-	std::cout << _request.getMap().at("Method") << "\n";
 	validateMethodAllowed(bestMatch->second);
 	
 	std::string localPath = location.getRoot() + uriPath;
