@@ -47,7 +47,6 @@ std::string	UploadHandler::_extractFilename() const
 	size_t filenamePos = dispositionLine.find("filename=\"");
 	if (filenamePos == std::string::npos)
 		return ("");
-
 	filenamePos += 10;
 	size_t filenameEnd = dispositionLine.find('"', filenamePos);
 	if (filenameEnd == std::string::npos)
@@ -57,7 +56,6 @@ std::string	UploadHandler::_extractFilename() const
 	if (filename.empty())
 		return ("");
 
-	std::cout << ORANGE << "FILENAME IS " << filename << std::endl << END;
 	return (filename);
 }
 
@@ -73,7 +71,6 @@ bool	UploadHandler::_writeFile(const std::string & filename, const std::string &
 	return (true);
 }
 
-
 // ------geckoformboundaryec4d5957babb5756bf6c14779693ebba
 // Content-Disposition: form-data; name="file"; filename="nsmail.jpg"
 // Content-Type: image/jpeg
@@ -81,15 +78,13 @@ bool	UploadHandler::_writeFile(const std::string & filename, const std::string &
 int	UploadHandler::processUpload()
 {
 	const std::string filename = _extractFilename();
-
-	std::map<std::string, std::string>::const_iterator headerMap = _request.getMap().find("Content-Type");
-	if (headerMap == _request.getMap().end())
+	std::map<std::string, std::string>::const_iterator contentType = _request.getMap().find("Content-Type");
+	if (contentType == _request.getMap().end())
 	{
 		_statusCode = BAD_REQUEST;
 		return (_statusCode);
 	}
-
-	const std::string _boundary = _extractBoundary(headerMap->second);
+	const std::string _boundary = _extractBoundary(contentType->second);
 
 	if (filename.empty())
 	{

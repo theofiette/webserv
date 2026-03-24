@@ -46,13 +46,12 @@ const std::map<int, std::string> Response::_statusMap = initStatusMap();
 Response::Response(const Request &request, const Server &server, Session &session) : 
 _statusCode(request.getRequestCode()), _bytesSent(0), _currServ(server), _request(request), _session(session)
 {
-	std::cout << _request.getRequestCode() << "\n";
-	_request.displayInfos();
 	if (!session.isConnected())
 	{
 		insertCookieHeader("SessionId=" + session.getId());
 		session.setConnected(true);
 	}
+
 	if (_statusCode == OK)
 		pickMethod();
 	else
@@ -359,10 +358,11 @@ void Response::handlePost()
 	struct stat	s;
 	std::map<std::string, std::string>::const_iterator contentTypePos = _request.getMap().find("Content-Type");
 
-	if (contentTypePos != _request.getMap().end() )
+	if (contentTypePos == _request.getMap().end())
 	{
 		_statusCode = UNSUPPORTED_MEDIA_TYPE; // TODO: a confirmer
 		handleResponsesError();
+
 		return ;
 	}
 
@@ -376,6 +376,7 @@ void Response::handlePost()
 
 		UploadHandler handler(_request, uploadDirectory);
 
+		std::cout << "UPLOAD STATUS IS " << _request.getHeader()  << "----------------" << std::endl;
 		int uploadStatus = handler.processUpload();
 		if (uploadStatus != CREATED)
 		{
@@ -517,6 +518,7 @@ void Response::buildRawResponse()
 
 	_headerLength = _rawResponse.size();
 	_rawResponse += _body;
+	std::cout << _rawResponse << std::endl;
 }
 
 //*********************************************************************************************/

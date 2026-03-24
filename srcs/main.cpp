@@ -25,6 +25,7 @@ int main(int argc, char *argv[])
 	int returnValue = 0;
 
 	signal(SIGINT, sigHandlerDefault);
+	signal(SIGPIPE, SIG_IGN);
 	try
 	{
 		std::string		configFilePath = (argc > 1 ? argv[1] : CONFIG_PATH);

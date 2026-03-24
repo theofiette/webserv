@@ -2,6 +2,7 @@
 <html lang="fr">
 	<head>
 		<link rel="stylesheet" href="css/style/">
+
 		<meta charset="UTF-8">
 		<title>TeamRequette's Webserv - Cookies</title>
 	</head>
@@ -15,6 +16,7 @@
 					<button class="button" onclick="setThemeDark()"> dark theme</button>
 					<button class="button" onclick="setThemeWhite()"> white theme</button>
 					<button class="button" onclick="setThemeYellow()"> yellow theme</button>
+					<button class="button" onclick="setThemeHorror()"> horror theme</button>
 				</div>
 
 				<br>
@@ -23,11 +25,12 @@
 					<h1>Font</h1>
 					<button class="button" onclick="setFontDefault()"> reset font</button>
 					<button class="button" onclick="setFontArial()"> arial font</button>
+					<button class="button" onclick="setFontHorror()"> horror font</button>
 				</div>
 				</div>
 			
 				<div>
-					<img src="medias/images/cookies.jpeg" alt="YOU!!">
+					<img id="cookieImage" src="medias/images/cookies.png" alt="YOU!!">
 				</div>
 				
 		</div>
@@ -41,32 +44,61 @@
 		<h1><br></h1>
 	</body>
 
-	
-
 	<script> 
 
+		function getCookie(name) {
+	    let cookies = document.cookie.split(";");
+	    for (let i = 0; i < cookies.length; i++) {
+	        let c = cookies[i].trim();
+	        if (c.startsWith(name + "=")) {
+	            return c.substring(name.length + 1);
+	        }
+	    }
+			return null;
+		}
+
+		window.onload = function () {
+	    let theme = getCookie("theme");
+	    let font = getCookie("font");
+
+	    let imgElement = document.getElementById("cookieImage");
+
+	    if (theme === "horror" && font === "horror") {
+	        imgElement.src = "medias/images/cookiesHorror.png";
+			imgElement.className = ""
+	    }
+	};
+
 		function setThemeDefault() {
-		console.log(document.cookie = "theme=theme;"); 
+		console.log(document.cookie = "theme=theme;max-age=424242;"); 
 		console.log(location.reload()); }
 
 		function setThemeDark() {
-		console.log(document.cookie = "theme=dark;"); 
+		console.log(document.cookie = "theme=dark;max-age=424242;"); 
 		console.log(location.reload());}
 
 		function setThemeWhite() {
-		console.log(document.cookie = "theme=white;"); 
+		console.log(document.cookie = "theme=white;max-age=424242;"); 
 		console.log(location.reload());}
 
 		function setThemeYellow() {
-		console.log(document.cookie = "theme=yellow;"); 
+		console.log(document.cookie = "theme=yellow;max-age=424242;"); 
+		console.log(location.reload());}
+
+		function setThemeHorror() {
+		console.log(document.cookie = "theme=horror;max-age=424242;"); 
 		console.log(location.reload());}
 
 		function setFontDefault() {
-		console.log(document.cookie = "font=font;"); 
+		console.log(document.cookie = "font=font;max-age=424242;"); 
 		console.log(location.reload()); }
 
 		function setFontArial() {
-		console.log(document.cookie = "font=arial;"); 
+		console.log(document.cookie = "font=arial;max-age=424242;"); 
+		console.log(location.reload());}
+
+		function setFontHorror() {
+		console.log(document.cookie = "font=horror;max-age=424242;");
 		console.log(location.reload());}
 
 	</script>

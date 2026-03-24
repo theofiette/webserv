@@ -24,6 +24,9 @@ class Request
 		size_t								_requestCode;
 		bool								_requestComplete;
 		bool								_requestTimedOut;
+		bool								_discardBody;
+		// size_t							_contentLength;
+		size_t								_bodySize;
 		int									_serverIndex;
 
 		const Server	&_currServ;

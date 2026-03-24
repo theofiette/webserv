@@ -96,6 +96,7 @@ void	WebServer::_processConnections(int masterSocket, const Server &currServ, un
 	while (_connectionsCount < _pollSize)
 	{
 		socketFd = accept(masterSocket, 0, 0);
+		fcntl(socketFd, F_SETFL, O_NONBLOCK);
 		if (socketFd == -1)
 			break ;
 		std::cout << YELLOW << "Connected to client " << _connectionsCount << " on fd " << socketFd << std::endl << END;
@@ -164,10 +165,10 @@ void	WebServer::_processRequest(pollfd &request)
 	if (currRequest.isRequestComplete() == false)
 		return ;
 
+	// std::cout << currRequest.getHeader() << std::endl;
 	// for (std::vector<char>::const_iterator it = currRequest.getBody().begin(); it != currRequest.getBody().end(); it++)
-	// 	std::cout << *it;
+	// 	std::cout <<  *it;
 
-	std::cout << currRequest.getHeader()  << std::endl;
 	currRequest.parseRequest(currRequest.getHeader());
 
 	Session &currSession = _sessionManager.accessSession(currRequest.getCookieValue("SessionId"), currRequest.getServerIndex());
@@ -189,10 +190,8 @@ void	WebServer::_sendResponse(pollfd &request)
 	if (_responsesMap.find(request.fd) == _responsesMap.end())
 		throw (ExceptionRuntime("Can't find corresponding response."));
 	Response &currResponse = _responsesMap.at(request.fd);
-
 	std::string chunckedStr = currResponse.getChunckResp(SEND_SIZE);
 	int bytesSent;
-	std::cout << ITALIC  BLUE << chunckedStr << "\n";
 	try
 	{
 		bytesSent = Send(request.fd, chunckedStr);
@@ -223,7 +222,6 @@ void	WebServer::_closeConnection(pollfd &request, pollfd *fds)
 {
 	_decrement = true;
 	request.revents = 0;
-	// std::cout << RED ITALIC << "Closing fd " << request.fd << END << std::endl;
 	if (_responsesMap.find(request.fd) != _responsesMap.end())
 		_responsesMap.erase(_responsesMap.find(request.fd));
 	if (_requestsMap.find(request.fd) != _requestsMap.end())
@@ -233,16 +231,12 @@ void	WebServer::_closeConnection(pollfd &request, pollfd *fds)
 	_connectionsCount--;
 }
 
-// CONSTRUCTORS
-
 WebServer::WebServer(const WebServerConfig &config) : 
 _config(config), _serverCount(0), _connectionsCount(0), _pollfds(NULL), _pollSize(0), _gaiPtr(NULL)
 {
 	_sessionManager.setServerCount(_config.servers.size());
 	_sessionManager.initServerSessions();
 }
-
-// DESTRUCTOR
 
 WebServer::~WebServer()
 {

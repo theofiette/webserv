@@ -6,7 +6,8 @@
 #include <sstream>
 
 Request::Request(const Server &server, unsigned int serverIndex) : 
-_totalBytes(0),_headerComplete(false), _requestCode(OK), _requestComplete(false), _requestTimedOut(false), _serverIndex(serverIndex), _currServ(server)
+_totalBytes(0),_headerComplete(false), _requestCode(OK), _requestComplete(false), _requestTimedOut(false),
+_discardBody(false), _bodySize(0), _serverIndex(serverIndex), _currServ(server)
 {
 	_tracker = TimeoutTracker();
 }
@@ -37,7 +38,6 @@ void Request::readSocketChunk(int socketFd, char *buffer, size_t bufferSize, siz
 {
 	ssize_t bytesRead = recv(socketFd, buffer, bufferSize, 0);
 
-	std::cout << "BYTES READ : " <<  bytesRead << "\n\n";
 	if (bytesRead < 0)
 		throw ExceptionRuntime("recv() error");
 	if (bytesRead == 0)
@@ -51,7 +51,11 @@ void Request::readSocketChunk(int socketFd, char *buffer, size_t bufferSize, siz
 		headerEnd = findHeaderEnd(_header);
 	}
 	else
-		_body.insert(_body.end(), buffer, buffer + bytesRead);
+	{
+		if (_discardBody == false)
+			_body.insert(_body.end(), buffer, buffer + bytesRead); // on veut juste drainer dans le buffer puis clear, pas besoin de stocker
+		_bodySize += bytesRead; // pour suivre le nombre lu
+	}
 	_totalBytes += bytesRead;
 }
 
@@ -89,7 +93,9 @@ void	Request::storeBodyExceeding(const size_t &headerEnd)
 	if (headerEnd != std::string::npos && headerEnd != _header.size())
 	{
 		std::string bodyStr = _header.substr(headerEnd);
-		_body.insert(_body.end(), bodyStr.begin(), bodyStr.end());
+		if (_discardBody == false)
+			_body.insert(_body.end(), bodyStr.begin(), bodyStr.end());
+		_bodySize += bodyStr.size();
 		_header = _header.substr(0, headerEnd);
 	}
 }
@@ -111,17 +117,21 @@ void Request::receiveRequestChunk(int socketFd)
 	int contentLength = extractContentLength(_header);
 	if (_headerComplete == true)
 	{
-		if (contentLength > _currServ.getMaxBody())
+		if (contentLength > 0 && contentLength > _currServ.getMaxBody())
 		{
-			_requestComplete = true;
+			_requestCode = CONTENT_TOO_LARGE;
+			_discardBody = true;
+			storeBodyExceeding(headerEnd);
+			_body.clear();
+			if (_bodySize >= static_cast<size_t>(contentLength)) // on peut plus utiliser _body.size() pcq on a clear, mais on veut quand meme saovir quand est ce qu on a lu tout le body
+				_requestComplete = true; // ici on continue de lire du coup meme si maxbody est trop grand, de toute facon on lit en chuncked donc c est non bloquant pour le server
 			return ;
 		}
 		if (contentLength <= 0)
-			endRequestWithoutBody(headerEnd); // SI JAI TOUT READ ET QUE Y A RIEN APRES 1er CRL
+			endRequestWithoutBody(headerEnd);
 		storeBodyExceeding(headerEnd);
 	}
-	std::cout << "BODYSIZE == " << _body.size()  << "CONTENT LENGTH == " << contentLength << std::endl;
-	if (contentLength > 0 && _body.size() == static_cast<size_t>(contentLength))
+	if (contentLength > 0 && _bodySize >= static_cast<size_t>(contentLength))
 	{
 		_requestComplete = true;
 		return ;
@@ -224,7 +234,7 @@ void Request::parseRequest(std::string request)
 	std::string buffer;
 	std::stringstream requestStream(request, std::ios_base::in);
 
-	std::cout << request << "\n\n";
+	// std::cout << request << "\n\n";
 	std::getline(requestStream, buffer, '\n');
 	setFirstLine(buffer);
 	fillHeader(requestStream, buffer);
