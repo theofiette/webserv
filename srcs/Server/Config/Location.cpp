@@ -254,3 +254,13 @@ bool Location::isCookie() const
 {
 	return (_cookie);
 }
+
+const string&	Location::getUploadDir() const
+{
+	return (_uploadDir);
+}
+
+bool	Location::getUpload() const
+{
+	return (_upload);
+}

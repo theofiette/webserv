@@ -49,10 +49,10 @@ class WebServer
 		void	_initPollFds();
 		size_t	_initGetPollSize();
 
-		// void	_closeConnection(pollfd &, pollfd *);
-		// void	_processConnections(int masterSocket, const Server &currServ, unsigned int serverIndex);
-		// void	_processRequest(pollfd &);
-		// void	_sendResponse(pollfd &);
+		//TODO : REFACTO //////////////////////////////////////////////////////
+		// Move dans connection manager
+		void	_checkTimedOutConnections();
+		void	_processTimedOutConnections(pollfd&, const Request &);
 
 		WebServer();
 

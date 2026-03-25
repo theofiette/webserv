@@ -32,10 +32,13 @@ enum ErrorCode{
 	BAD_REQUEST = 400,
 	FORBIDDEN = 403,
 	NOT_FOUND = 404,
-	NOT_ALLOWED = 405,
+	METHOD_NOT_ALLOWED = 405,
+	REQUEST_TIMEOUT = 408,
 	LENGTH_REQUIRED = 411,
 	CONTENT_TOO_LARGE = 413,
-	INTERNAL_SERVER_ERROR = 500
+	UNSUPPORTED_MEDIA_TYPE = 415,
+	INTERNAL_SERVER_ERROR = 500,
+	HTTP_VERSION_NOT_SUPPORTED = 505
 };
 
 typedef struct SentResponse 
@@ -55,14 +58,12 @@ class Response
 		std::string			_rawResponse;
 		size_t				_bytesSent;
 		int					_headerLength;
-		// int					_contentLength;
 		
 		Location 			_currLocation;
 		const Server 		&_currServ;
 		// const Request 		&_request;
 		// Session				&_session;
 
-		std::string			_boundary;
 		
 		static const 		std::map<int, std::string> _statusMap;
 		static const 		std::string methods[METHODS_COUNT];
@@ -82,6 +83,8 @@ class Response
 		void 				checkFileAccess(std::string &, int);
 		bool 				readFileContent(const std::string &, size_t);
 		void 				parseFormData(std::map<std::string, std::string> &, const Request &_req);
+		void 				handleResponsesError();
+		void				allowedMethodsHeader();
 
 	public:
 		// Response(const Request &, const Server &, Session &);

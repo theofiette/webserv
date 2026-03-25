@@ -30,7 +30,7 @@ typedef std::string string;
 
 #define CONFIG_RULE	4
 
-#define MIME_SIZE 6
+#define MIME_SIZE 7
 
 #define	METHODS_COUNT	4
 enum	E_METHODS

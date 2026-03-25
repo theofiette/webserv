@@ -3,35 +3,18 @@
 	<head>
 		<link rel="stylesheet" href="css/style/">
 		<meta charset="UTF-8">
-		<title>TeamRequette's Webserv - Upload</title>
+		<title>TeamRequette's Webserv - Post</title>
 	</head>
-	<body>
-		<div>
-    <label for="randomfile">Upload your file:</label>
-    <input type="file" id="FILE" required />
+<form method="post" enctype="multipart/form-data">
+  <div>
+    <label for="file">Choose file to upload</label>
+    <input type="file" id="file" name="file" multiple />
+  </div>
+  <div>
+    <button class="button" >upload file</button>
+  </div>
+</form>
+
+<div class="centerbox">
+		<a class="button2" href="/index.html"> Back</a>
 </div>
-<div>
-    <button type="button" onclick="uploadBrut()" class="button">Submit</button>
-</div>
-
-
-<script>
-async function uploadBrut() {
-    const fileInput = document.getElementById('FILE');
-    const file = fileInput.files[0];
-    
-    if (!file) return;
-
-    await fetch('/upload.html', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/octet-stream', // On annonce du binaire
-            'Filename': file.name // On envoie le nom dans un header
-        },
-        body: file // On envoie les octets
-    });
-    window.location.href = '/success.html';
-}
-</script>
-	</body>
-</html>

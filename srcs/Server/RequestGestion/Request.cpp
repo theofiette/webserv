@@ -1,11 +1,13 @@
 #include "webserv.hpp"
 #include "Request.hpp"
+#include "Response.hpp"
 #include "safemath.hpp"
 #include <map>
 #include <sstream>
 
 Request::Request(const Server &server, unsigned int serverIndex) : 
-_totalBytes(0), _requestSuccess(true), _requestComplete(false), _serverIndex(serverIndex), _currServ(server)
+_totalBytes(0),_headerComplete(false), _requestCode(OK), _requestComplete(false), _requestTimedOut(false),
+_discardBody(false), _bodySize(0), _serverIndex(serverIndex), _currServ(server), _tracker(TimeoutTracker())
 {}
 
 Request::~Request(){}
@@ -30,7 +32,7 @@ int extractContentLength(const std::string &buffer)
 	return (contentLength);
 }
 
-ssize_t Request::readSocketChunk(int socketFd, char *buffer, size_t bufferSize)
+void Request::readSocketChunk(int socketFd, char *buffer, size_t bufferSize, size_t &headerEnd)
 {
 	ssize_t bytesRead = recv(socketFd, buffer, bufferSize, 0);
 	if (bytesRead < 0)
@@ -38,25 +40,31 @@ ssize_t Request::readSocketChunk(int socketFd, char *buffer, size_t bufferSize)
 	if (bytesRead == 0)
 	{
 		_requestComplete = true;
-		return (0);
+		return ;
 	}
-
+	if (_headerComplete == false)
+	{
+		_header.append(buffer, bytesRead);
+		headerEnd = findHeaderEnd(_header);
+	}
+	else
+	{
+		if (_discardBody == false)
+			_body.insert(_body.end(), buffer, buffer + bytesRead);
+		_bodySize += bytesRead;
+	}
 	_totalBytes += bytesRead;
-	_rawRequest.append(buffer, bytesRead);
-	return (bytesRead);
 }
 
-bool Request::findBodyStart(size_t &bodyStart)
+size_t Request::findHeaderEnd(std::string buffer)
 {
-	size_t headerEnd = _rawRequest.find(CRLFCRLF);
+	size_t headerEnd = buffer.find(CRLFCRLF);
 
 	if (headerEnd == std::string::npos)
-	{
-		_requestSuccess = false;
-		return (true);
-	}
-	bodyStart = headerEnd + CRLF_SIZE;
-	return (true);
+		return (-1);
+
+	_headerComplete = true;
+	return (headerEnd + CRLF_SIZE);
 }
 
 bool Request::finalizeWithoutBody(int contentLength)
@@ -69,45 +77,62 @@ bool Request::finalizeWithoutBody(int contentLength)
 	return (false);
 }
 
-void Request::setBody(size_t bodyStart, int contentLength)
+void	Request::endRequestWithoutBody(const size_t& headerEnd) 
 {
-	if (_rawRequest.size() <= bodyStart)
+	if (headerEnd == _header.size() && _body.empty())
 	{
-		_body.clear();
-		return ;
-	}
-	size_t bodyBytesReceived = _rawRequest.size() - bodyStart;
-	if (bodyBytesReceived >= static_cast<size_t>(contentLength))
-	{
-		_body = _rawRequest.substr(bodyStart, contentLength);
 		_requestComplete = true;
-		return ;
 	}
-	_body = _rawRequest.substr(bodyStart, bodyBytesReceived);
 }
 
+void	Request::storeBodyExceeding(const size_t &headerEnd)
+{ 
+	if (headerEnd != std::string::npos && headerEnd != _header.size())
+	{
+		std::string bodyStr = _header.substr(headerEnd);
+		if (_discardBody == false)
+			_body.insert(_body.end(), bodyStr.begin(), bodyStr.end());
+		_bodySize += bodyStr.size();
+		_header = _header.substr(0, headerEnd);
+	}
+}
+//TODO: systeme diterations pour pas chercher la fin du header en boucle ? _iterations++ ? if _iterations < MAX_ITER
 void Request::receiveRequestChunk(int socketFd)
-{
+{	
 	char buffer[SEND_SIZE] = {0};
+	size_t headerEnd = _header.size();
 
-	if (readSocketChunk(socketFd, buffer, SEND_SIZE) == 0)
+	if (_tracker.isExpired() == true)
+	{
+		_requestComplete = true;
+		_requestCode = REQUEST_TIMEOUT;
+		_requestTimedOut = true;
 		return ;
+	}
 
-	size_t bodyStart = 0;
-	if (findBodyStart(bodyStart) == false)
-		return ;
-	// std::cout << YELLOW << this->getRawRequest() << END << std::endl;
-
-	int contentLength = extractContentLength(_rawRequest);
-	if (finalizeWithoutBody(contentLength) == true)
-		return ;
-	if (contentLength > _currServ.getMaxBody())
+	readSocketChunk(socketFd, buffer, SEND_SIZE, headerEnd);
+	int contentLength = extractContentLength(_header); // est ce qu on stockerait pas le content length dans request
+	if (_headerComplete == true)
+	{
+		if (contentLength > 0 && contentLength > _currServ.getMaxBody())
+		{
+			_requestCode = CONTENT_TOO_LARGE;
+			_discardBody = true;
+			storeBodyExceeding(headerEnd);
+			_body.clear();
+			if (_bodySize >= static_cast<size_t>(contentLength)) // on peut plus utiliser _body.size() pcq  le body est vide, mais on veut quand meme saovir quand est ce qu on a lu tout le body
+				_requestComplete = true;
+			return ;
+		}
+		if (contentLength <= 0)
+			endRequestWithoutBody(headerEnd);
+		storeBodyExceeding(headerEnd);
+	}
+	if (contentLength > 0 && _bodySize >= static_cast<size_t>(contentLength))
 	{
 		_requestComplete = true;
 		return ;
 	}
-
-	setBody(bodyStart, contentLength);
 }
 
 void Request::displayInfos() const
@@ -122,9 +147,20 @@ void Request::setFirstLine(std::string buffer)
     std::istringstream iss(buffer);
     std::string method, path, protocol;
 
-	if (!(iss >> method >> path >> protocol) || buffer.find("\r") == std::string::npos)
+	if (!(iss >> method >> path >> protocol))
 	{
-		_requestSuccess = false;
+		_requestCode = BAD_REQUEST;
+		return ;
+	}
+	else if (buffer.find("\r") == std::string::npos)
+	{
+		_requestCode = HTTP_VERSION_NOT_SUPPORTED;
+		return ;
+	}
+	std::string rest;
+	if (iss >> rest)
+	{
+		_requestCode = BAD_REQUEST;
 		return ;
 	}
 	if (!protocol.empty() && protocol[protocol.size() - 1] == '\r')
@@ -144,14 +180,14 @@ void Request::fillHeader(std::stringstream &requestStream, std::string &buffer)
 		size_t sep = buffer.find(": ");
 		if (sep == std::string::npos)
 		{
-			_requestSuccess = false;
+			_requestCode = BAD_REQUEST;
 			return ;
 		}
 		pair.first = buffer.substr(0, sep);
 		size_t end = buffer.find('\r');
 		if (end == std::string::npos)
 		{
-			_requestSuccess = false;
+			_requestCode = BAD_REQUEST;
 			return ;
 		}
 		sep += 2;
@@ -163,13 +199,31 @@ void Request::fillHeader(std::stringstream &requestStream, std::string &buffer)
 void Request::stateRequestValidity()
 {
 	//TODO: if POST and no content length its invalid? 
-	// if (_requestHeader["Protocol"] != "HTTP/1.0")
-	// {
-	// 	_requestSuccess = false;
-	// 	return ;
-	// }
-	
-	_requestSuccess = true;
+	if (_requestHeader["Protocol"] != "HTTP/1.1")
+	{
+		_requestCode = HTTP_VERSION_NOT_SUPPORTED;
+		return ;
+	}
+	std::string methods[METHODS_COUNT] = {"HEAD", "GET", "POST", "DELETE"};
+	for (int i = 0; i < METHODS_COUNT; i++)
+		if (_requestHeader["Method"] == methods[i])
+			return ;
+	_requestCode = METHOD_NOT_ALLOWED;		
+}
+
+static bool isValidHeaderKey(const std::string key){
+	for (std::string::const_iterator it = key.begin(); it != key.end(); it++){
+		if ((!isalpha(*it) && *it != '-'	))
+			return (false);
+	}
+	return (true);
+}
+
+void Request::checkHeader(){
+	for (std::map<std::string, std::string>::iterator it = _requestHeader.begin(); it != _requestHeader.end(); it++){
+		if (!isValidHeaderKey(it->first))
+			_requestCode = BAD_REQUEST;
+	}
 }
 
 void Request::parseRequest(std::string request)
@@ -177,9 +231,12 @@ void Request::parseRequest(std::string request)
 	std::string buffer;
 	std::stringstream requestStream(request, std::ios_base::in);
 
+	// std::cout << request << "\n\n";
 	std::getline(requestStream, buffer, '\n');
 	setFirstLine(buffer);
 	fillHeader(requestStream, buffer);
+	checkHeader();
+	stateRequestValidity();
 }
 
 const std::string Request::getCookieValue(const std::string & cookie_name) const
@@ -221,7 +278,7 @@ const Server &	Request::getServer() const
 	return (_currServ);
 }
 
-const std::string& Request::getBody() const
+const std::vector<char>& Request::getBody() const
 {
 	return (_body);
 }
@@ -231,17 +288,22 @@ const std::map<std::string, std::string>& Request::getMap() const
 	return (_requestHeader);
 }
 
-const std::string& Request::getRawRequest() const
+const std::string& Request::getHeader() const
 {
-	return (_rawRequest);
+	return (_header);
 }
 
-const bool &Request::isRequestComplete()
+const bool& Request::isRequestComplete()
 {
 	return (_requestComplete);
 }
 
-const bool &Request::getRequestSuccess() const
+const size_t& Request::getRequestCode() const
 {
-	return (_requestSuccess);
+	return (_requestCode);
+}
+
+const bool& Request::isRequestTimedOut() const
+{
+	return (_requestTimedOut);
 }

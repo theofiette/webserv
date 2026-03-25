@@ -107,6 +107,9 @@ void	WebServer::display()
 
 // 	std::cout << GREEN << currRequest.getRawRequest() << std::endl << END;
 // 	currRequest.parseRequest(currRequest.getRawRequest());
+	// std::cout << currRequest.getHeader() << std::endl;
+	// for (std::vector<char>::const_iterator it = currRequest.getBody().begin(); it != currRequest.getBody().end(); it++)
+	// 	std::cout <<  *it;
 
 
 // 	Session &currSession = _sessionManager.accessSession(currRequest.getCookieValue("SessionId"), currRequest.getServerIndex());
@@ -197,8 +200,6 @@ WebServer::WebServer(const WebServerConfig &config) :
 _config(config), _gaiPtr(NULL), _connectionManager(_config), _pollfds(NULL), _pollSize(0)
 {
 }
-
-// DESTRUCTOR
 
 WebServer::~WebServer()
 {

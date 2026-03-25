@@ -8,6 +8,7 @@
 #include <map>
 
 #include "Server.hpp"
+#include "TimeoutTracker.hpp"
 
 typedef std::map<std::string, std::string>::iterator _req_map_it;
 
@@ -16,20 +17,29 @@ class Request
 	private:
 		size_t								_totalBytes;
 		std::map<std::string, std::string>	_requestHeader;
-		std::string 						_rawRequest;
-		std::string 						_body;
-		bool								_requestSuccess;
+		// std::string 						_rawRequest;
+		std::string 						_header;
+		std::vector<char> 					_body;
+		bool 								_headerComplete;
+		size_t								_requestCode;
 		bool								_requestComplete;
+		bool								_requestTimedOut;
+		bool								_discardBody;
+		// size_t							_contentLength;
+		size_t								_bodySize;
 		int									_serverIndex;
 
-		const Server &_currServ;
+		const Server	&_currServ;
+		TimeoutTracker	_tracker;
 
 		void 	setFirstLine(std::string);
-		ssize_t	readSocketChunk(int, char *, size_t);
+		void	readSocketChunk(int, char *, size_t, size_t&);
 
-		bool	findBodyStart(size_t &);
+		size_t	findHeaderEnd(std::string);
+		void	endRequestWithoutBody(const size_t&);
+		void	storeBodyExceeding(size_t const&);
 		bool	finalizeWithoutBody(int);
-		void	setBody(size_t, int);
+		// void	setBody(size_t, int);
 
 	public:
 		Request(const Server &, unsigned int);
@@ -37,16 +47,18 @@ class Request
 
 		void 				stateRequestValidity();
 		void 				fillHeader(std::stringstream &, std::string &);
+		void				checkHeader();
 		void				parseRequest(std::string);
 		void				receiveRequestChunk(int);		
 		// // TEMPORAIRE
 		void 				displayInfos() const;
 		const bool &		isRequestComplete();
 		
-		const std::string& 	getRawRequest() const;
-		const std::string&	getBody() const;
-		const Server &		getServer() const;
-		const bool &		getRequestSuccess() const;
+		const std::string& 			getHeader() const;
+		const std::vector<char>&	getBody() const;
+		const Server&				getServer() const;
+		const size_t&				getRequestCode() const;
+		const bool&					isRequestTimedOut() const;
 		
 		const std::map<std::string, std::string>&	getMap() const;
 		const std::string							getCookieValue(const std::string &) const;
