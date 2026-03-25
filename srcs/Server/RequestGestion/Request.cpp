@@ -33,7 +33,6 @@ int extractContentLength(const std::string &buffer)
 ssize_t Request::readSocketChunk(int socketFd, char *buffer, size_t bufferSize)
 {
 	ssize_t bytesRead = recv(socketFd, buffer, bufferSize, 0);
-
 	if (bytesRead < 0)
 		throw ExceptionRuntime("recv() error");
 	if (bytesRead == 0)
@@ -97,7 +96,7 @@ void Request::receiveRequestChunk(int socketFd)
 	size_t bodyStart = 0;
 	if (findBodyStart(bodyStart) == false)
 		return ;
-	std::cout << YELLOW << this->getRawRequest() << END << std::endl;
+	// std::cout << YELLOW << this->getRawRequest() << END << std::endl;
 
 	int contentLength = extractContentLength(_rawRequest);
 	if (finalizeWithoutBody(contentLength) == true)

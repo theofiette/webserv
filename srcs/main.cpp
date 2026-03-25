@@ -31,9 +31,9 @@ int main(int argc, char *argv[])
 		ConfigParser	parser;
 		WebServer		webServer(parser.parseFile(configFilePath));
 
-		webServer.display();
+		// webServer.display();
 		webServer.init();
-		webServer.loop();
+		webServer.run();
 	}
 	catch (std::exception &e)
 	{

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "WebServer.hpp"
-#include "Request.hpp"
 #include "Session.hpp"
+
+class Request;
 
 class Cgi
 {
@@ -12,7 +12,8 @@ class Cgi
 		char**								_cgiEnv;
 	public:
 		Cgi();
-		Cgi(const Request &, const Session &);
+		// Cgi(const Request &, const Session &);
+		Cgi(const Request &);
 		~Cgi();
 		
 		void setupCgiFrame();

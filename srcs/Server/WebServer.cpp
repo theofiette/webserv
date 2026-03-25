@@ -20,12 +20,10 @@ void	WebServer::_initCreateMasterSocket(
 	const Server &currentServer, const struct addrinfo &hints)
 {
 
-	currentServer.display();
 	int	newSocket;
 
 	newSocket = Socket(AF_INET, SOCK_STREAM, 0);
 	_masterSockets.push_back(newSocket);
-	_serverCount++;
 	Fcntl(newSocket, F_SETFL, O_NONBLOCK);
 	Getaddrinfo(currentServer.getServerName(), currentServer.getListen(), &hints, &_gaiPtr);
 	Setsockopt(newSocket, SOL_SOCKET, SO_REUSEADDR);
@@ -49,7 +47,7 @@ void	WebServer::_initMasterSocket()
 		_initCreateMasterSocket(*it, hints);
 }
 
-int	WebServer::_initGetPollSize()
+size_t	WebServer::_initGetPollSize()
 {
 	unsigned int fds;
 
@@ -69,8 +67,8 @@ int	WebServer::_initGetPollSize()
 		std::cerr << "Max client number set to " << fds << "\n";
 	}
 
-	std::cout << "The program is initialized with " << _serverCount << " servers." << "\n";
-	std::cout << "It can listen to " << fds << " clients" << std::endl;
+	std::cerr << "The program is initialized with " << _masterSockets.size() << " servers." << "\n";
+	std::cerr << "It can listen to " << fds << " clients" << std::endl;
 
 	//TODO: this is false, needs to be corrected
 	return (static_cast<int>(fds));
@@ -81,69 +79,10 @@ void	WebServer::_initPollFds()
 	_pollSize = _initGetPollSize();
 	_pollfds = new pollfd[_pollSize];
 	t_bzero(_pollfds, sizeof(*_pollfds) * _pollSize);
-	for (int i = 0; i < _serverCount; i++)
+	for (size_t i = 0; i < _masterSockets.size(); i++)
 	{
 		_pollfds[i].fd = _masterSockets[i];
 		_pollfds[i].events = POLLIN;
-		_connectionsCount ++;
-	}
-}
-
-void	WebServer::_processConnections(int masterSocket, const Server &currServ, unsigned int serverIndex)
-{
-	int	socketFd;
-
-	while (_connectionsCount < _pollSize)
-	{
-		socketFd = accept(masterSocket, 0, 0);
-		if (socketFd == -1)
-			break ;
-		std::cout << YELLOW << "Connected to client " << _connectionsCount << " on fd " << socketFd << std::endl << END;
-		_pollfds[_connectionsCount].fd = socketFd; 
-		_pollfds[_connectionsCount].events = POLLIN;
-		_connectionsCount ++;
-		
-		std::cout << BOLD GREEN << "CREATING REQUEST FOR SERVER INDEX " << serverIndex << "\n";
-		Request req(currServ, serverIndex);
-		std::pair<int, Request> p = std::make_pair(socketFd, req);
-		//TODO: not necessary after clean connexion
-		if (_requestsMap.find(socketFd) != _requestsMap.end())
-			_requestsMap.erase(_requestsMap.find(socketFd));
-		_requestsMap.insert(p);
-	}
-}
-
-void	WebServer::loop()
-{
-	while (1) 
-	{
-		_awaitRequests();
-		for (int i = 0; i < _connectionsCount ; i++)
-		{
-			pollfd &currRequest = _pollfds[i];
-			_decrement = false;
-			if (i < _serverCount)
-			{
-				_processConnections(_masterSockets[i], _config.servers[i], i);
-			}
-			else if (currRequest.revents & POLLERR || currRequest.revents & POLLERR || currRequest.revents & POLLNVAL)
-			{
-				_closeConnection(currRequest, _pollfds);
-				i--;
-			}
-			else if (currRequest.revents & POLLIN)
-			{
-				_processRequest(currRequest);
-			}
-			else if (currRequest.revents & POLLOUT)
-			{
-				_sendResponse(currRequest);
-				if (_responsesMap.find(currRequest.fd)->second.isSent())
-					_closeConnection(currRequest, _pollfds);
-				if (_decrement == true)
-					i--;
-			}
-		}
 	}
 }
 
@@ -156,87 +95,107 @@ void	WebServer::display()
 		it->display();
 }
 
-void	WebServer::_processRequest(pollfd &request)
-{
-	if (_requestsMap.find(request.fd) == _requestsMap.end())
-		throw (ExceptionRuntime("Can't find corresponding request."));
-	Request &currRequest = _requestsMap.at(request.fd);
+// void	WebServer::_processRequest(pollfd &request)
+// {
+// 	if (_requestsMap.find(request.fd) == _requestsMap.end())
+// 		throw (ExceptionRuntime("Can't find corresponding request."));
+// 	Request &currRequest = _requestsMap.at(request.fd);
 
-	currRequest.receiveRequestChunk(request.fd);
-	if (currRequest.isRequestComplete() == false)
-		return ;
+// 	currRequest.receiveRequestChunk(request.fd);
+// 	if (currRequest.isRequestComplete() == false)
+// 		return ;
 
-	std::cout << GREEN << currRequest.getRawRequest() << std::endl << END;
-	currRequest.parseRequest(currRequest.getRawRequest());
-
-
-	Session &currSession = _sessionManager.accessSession(currRequest.getCookieValue("SessionId"), currRequest.getServerIndex());
-
-	currSession.display();
+// 	std::cout << GREEN << currRequest.getRawRequest() << std::endl << END;
+// 	currRequest.parseRequest(currRequest.getRawRequest());
 
 
-	Response resp(currRequest, currRequest.getServer(), currSession);
+// 	Session &currSession = _sessionManager.accessSession(currRequest.getCookieValue("SessionId"), currRequest.getServerIndex());
 
-	std::pair<int, Response> r = std::make_pair(request.fd, resp); // TODO: choose an other way or keep
+// 	currSession.display();
+
+
+// 	Response resp(currRequest, currRequest.getServer(), currSession);
+
+// 	std::pair<int, Response> r = std::make_pair(request.fd, resp); // TODO: choose an other way or keep
 	
-	_responsesMap.insert(r);
+// 	_responsesMap.insert(r);
 
-	request.events = POLLOUT; // on set le fd ready to send
-}
+// 	request.events = POLLOUT; // on set le fd ready to send
+// }
 
-void	WebServer::_sendResponse(pollfd &request)
+// void	WebServer::_sendResponse(pollfd &request)
+// {
+// 	if (_responsesMap.find(request.fd) == _responsesMap.end())
+// 		throw (ExceptionRuntime("Can't find corresponding response."));
+// 	Response &currResponse = _responsesMap.at(request.fd);
+
+// 	std::string chunckedStr = currResponse.getChunckResp(SEND_SIZE);
+// 	int bytesSent;
+// 	std::cout << chunckedStr << "\n";
+// 	try
+// 	{
+// 		bytesSent = Send(request.fd, chunckedStr);
+// 	}
+// 	catch (std::exception &e){
+// 		std::cerr << RED "Write Error in sendResponse." << std::endl;
+// 		_closeConnection(request, _pollfds);
+// 		return ;
+// 	}
+// 	currResponse.updateBytesSent(bytesSent);
+// }
+
+void	WebServer::run()
 {
-	if (_responsesMap.find(request.fd) == _responsesMap.end())
-		throw (ExceptionRuntime("Can't find corresponding response."));
-	Response &currResponse = _responsesMap.at(request.fd);
-
-	std::string chunckedStr = currResponse.getChunckResp(SEND_SIZE);
-	int bytesSent;
-	std::cout << chunckedStr << "\n";
-	try
-	{
-		bytesSent = Send(request.fd, chunckedStr);
-	}
-	catch (std::exception &e){
-		std::cerr << RED "Write Error in sendResponse." << std::endl;
-		_closeConnection(request, _pollfds);
-		return ;
-	}
-	currResponse.updateBytesSent(bytesSent);
+	_connectionManager.loop();
 }
 
+/*
+*	TODO: REFACTO
+*	Some variables (in comanager.init) should be in its constructor + not in webserv ?
+*/
 void	WebServer::init()
-{
-	_initMasterSocket();
-	_initPollFds();
-}
-
-void	WebServer::_awaitRequests()
-{
-	poll(_pollfds, _connectionsCount, TIMEOUT); //TODO : wrapp for -1
-}
-
-void	WebServer::_closeConnection(pollfd &request, pollfd *fds)
-{
-	_decrement = true;
-	request.revents = 0;
-	std::cout << RED ITALIC << "Closing fd " << request.fd << END << std::endl;
-	if (_responsesMap.find(request.fd) != _responsesMap.end())
-		_responsesMap.erase(_responsesMap.find(request.fd));
-	if (_requestsMap.find(request.fd) != _requestsMap.end())
-		_requestsMap.erase(_requestsMap.find(request.fd));
-	close(request.fd);
-	request = fds[_connectionsCount - 1];
-	_connectionsCount--;
-}
-
-// CONSTRUCTORS
-
-WebServer::WebServer(const WebServerConfig &config) : 
-_config(config), _serverCount(0), _connectionsCount(0), _pollfds(NULL), _pollSize(0), _gaiPtr(NULL)
 {
 	_sessionManager.setServerCount(_config.servers.size());
 	_sessionManager.initServerSessions();
+	_initMasterSocket();
+	_initPollFds();
+	_connectionManager.init(_pollSize, _masterSockets, _pollfds);
+}
+
+// void	WebServer::_awaitRequests()
+// {
+// 	int	socketsCount;
+
+// 	socketsCount = _masterSockets.size() + _connectionManager.size();
+// 	// std::cerr << "DEBUG: polling on " << socketsCount << "fds" << std::endl;
+// 	poll(_pollfds, socketsCount, TIMEOUT); //TODO : wrap for -1
+// }
+
+// void	WebServer::_closeConnection(pollfd &request, pollfd *fds)
+// {
+// 	(void)request;
+// 	(void)fds;
+// 	// _decrement = true;
+// 	// request.revents = 0;
+// 	// std::cout << RED ITALIC << "Closing fd " << request.fd << END << std::endl;
+// 	// if (_responsesMap.find(request.fd) != _responsesMap.end())
+// 	// 	_responsesMap.erase(_responsesMap.find(request.fd));
+// 	// if (_requestsMap.find(request.fd) != _requestsMap.end())
+// 	// 	_requestsMap.erase(_requestsMap.find(request.fd));
+// 	// close(request.fd);
+// 	// request = fds[_connectionsCount - 1];
+// 	// _connectionsCount--;
+// }
+
+// CONSTRUCTORS
+
+/*
+*	TODO: REFACTO
+*	reserve in the constructor ?
+*/
+WebServer::WebServer(const WebServerConfig &config) : 
+_config(config), _gaiPtr(NULL), _connectionManager(_config), _pollfds(NULL), _pollSize(0)
+{
 }
 
 // DESTRUCTOR

@@ -5,8 +5,9 @@
 #include <string>
 #include "exception.hpp"
 #include "Location.hpp"
-#include "Cgi.hpp"
 #include "safemath.hpp"
+#include "Session.hpp"
+#include "Cgi.hpp"
 
 
 typedef std::multimap<std::string, std::string>::iterator _header_it;
@@ -14,6 +15,7 @@ typedef std::multimap<std::string, std::string>::iterator _header_it;
 class Request;
 class Server;
 class Location;
+class Cgi;
 
 typedef std::multimap<std::string, std::string> multimap;
 typedef std::map<string, Location>::const_reverse_iterator mc_sL_rite;
@@ -57,8 +59,8 @@ class Response
 		
 		Location 			_currLocation;
 		const Server 		&_currServ;
-		const Request 		&_request;
-		Session				&_session;
+		// const Request 		&_request;
+		// Session				&_session;
 
 		std::string			_boundary;
 		
@@ -67,43 +69,45 @@ class Response
 		static const 		std::string mimeTable[MIME_SIZE];
 
 		std::string			MIMEtable(std::string);
-		std::string			buildLocalPath();
+		std::string			buildLocalPath(const Request &_req);
 
 		mc_sL_rite			findBestLocation(const std::string &);
-		void 				validateMethodAllowed(const Location &);
+		void 				validateMethodAllowed(const Location &, const Request &_req);
 
 		void 				appendIndexToDirectory(std::string &, const Location &);
 		void				appendCookieIndexToDirectory(std::string &, const std::string &);
 		void 				insertCookieHeader(std::string);
-		void				buildLocalPathFromCookie(std::string &localPath, const Location & location);
+		void				buildLocalPathFromCookie(std::string &localPath, const Location & location, const Request &_req);
 
 		void 				checkFileAccess(std::string &, int);
 		bool 				readFileContent(const std::string &, size_t);
-		void 				parseFormData(std::map<std::string, std::string> &);
-		void 				handleResponsesError();
+		void 				parseFormData(std::map<std::string, std::string> &, const Request &_req);
 
 	public:
-		Response(const Request &, const Server &, Session &);
+		// Response(const Request &, const Server &, Session &);
+		Response(const Server &);
 		~Response();
 
 		void				setCurrLocation(const Location &);
 		void 				addHeader(std::string, std::string);
 
-		void 				pickMethod();
+		void 				handleResponsesError();
+		void 				pickMethod(const Request &_req);
 
-		void				handleHead();
-		void			 	handleGet();
-		void			 	handlePost();
-		void			 	handleDelete();
-		void			 	handleCgi();
+		void				handleHead(const Request &_req);
+		void			 	handleGet(const Request &_req);
+		void			 	handlePost(const Request &_req);
+		void			 	handleDelete(const Request &_req);
+		void			 	handleCgi(const Request &_req);
 
-		void				cgiMainProcess(int[2], int[2], Cgi&, int);
-		void 				buildRawResponse();
+		void				cgiMainProcess(int[2], int[2], Cgi&, int, const Request &_req);
+		void 				buildRawResponse(const Request &_req);
 		std::string 		getChunckResp(int);
 		void				updateBytesSent(int);
 		bool				isSent();
-		bool 				isCgi();
-		bool 				checkRequestValidity();
+		bool 				isCgi(const Request &_req);
+		// bool 			checkRequestValidity();
+		bool				checkRequestValidity(const Request &_req);
 
 		const std::string&	getRawResponse() const;
 		int					getHeaderLength() const;

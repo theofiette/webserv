@@ -14,7 +14,8 @@
 
 typedef std::string string;
 
-# define SESSION_PREFIXE	"session_"
+# define	SESSION_PREFIXE	"session_"
+# define	COOKIE_DURATION	"max-age=424242;"
 
 #define BACKLOG_SIZE	1024
 
@@ -25,7 +26,7 @@ typedef std::string string;
 
 #define LOCALHOST	"8080"
 #define MAX_CLIENTS	1024
-#define TIMEOUT		(60 * 1000)
+#define TIMEOUT		(60 * 1000 * 3)
 
 #define CONFIG_RULE	4
 

@@ -13,13 +13,15 @@ SRC         =	srcs/main.cpp \
 				srcs/Server/RequestGestion/Request.cpp \
 				srcs/Server/RequestGestion/Response.cpp \
 				srcs/Server/Upload/UploadHandler.cpp \
+				srcs/Server/Connections/ConnectionManager.cpp \
+				srcs/Server/Connections/Connection.cpp \
 				srcs/Server/RequestGestion/Session.cpp \
 				srcs/Server/RequestGestion/SessionManager.cpp \
 				srcs/Server/WebServer.cpp \
-				srcs/Server/config/Redir.cpp \
-				srcs/Server/config/Location.cpp \
-				srcs/Server/config/Server.cpp \
-				srcs/Server/config/ConfigParser.cpp \
+				srcs/Server/Config/Redir.cpp \
+				srcs/Server/Config/Location.cpp \
+				srcs/Server/Config/Server.cpp \
+				srcs/Server/Config/ConfigParser.cpp \
 				srcs/utils/format.cpp \
 				srcs/Server/CGI/Cgi.cpp \
 				srcs/utils/wrapper.cpp \

@@ -1,5 +1,5 @@
 #include "webserv.hpp"
-#include "WebServer.hpp"
+// #include "WebServer.hpp"
 #include "Response.hpp"
 #include "Server.hpp"
 #include "Request.hpp"
@@ -40,32 +40,48 @@ const std::map<int, std::string> Response::_statusMap = initStatusMap();
 /*										CONSTRUCTORS										  */
 //*********************************************************************************************/
 
-bool Response::checkRequestValidity()
+bool Response::checkRequestValidity(const Request &_req)
 {
-	if (_request.getRequestSuccess() == false)
+	if (_req.getRequestSuccess() == false)
 		_statusCode = BAD_REQUEST;
-	if (_request.getMap().find("Content-Length") != _request.getMap().end() && 
-		stringToInt(_request.getMap().at("Content-Length")) > _currServ.getMaxBody())
+	if (_req.getMap().find("Content-Length") != _req.getMap().end() && 
+		stringToInt(_req.getMap().at("Content-Length")) > _currServ.getMaxBody())
 		_statusCode = CONTENT_TOO_LARGE;
 	if (_statusCode != OK)
 		return (false);
 	return (true);
 }
 
-Response::Response(const Request &request, const Server &server, Session &session) : 
-_statusCode(200), _bytesSent(0), _currServ(server), _request(request), _session(session)
+Response::Response(const Server &server) : 
+_statusCode(200), _bytesSent(0), _currServ(server)
 {
-	if (!session.isConnected())
-	{
-		insertCookieHeader("SessionId=" + session.getId());
-		session.setConnected(true);
-	}
-	if (checkRequestValidity() == true)
-		pickMethod();
-	else
-		handleResponsesError();
-	buildRawResponse();
+	// if (!session.isConnected())
+	// {
+	// 	insertCookieHeader("SessionId=" + session.getId());
+	// 	session.setConnected(true);
+	// }
+	std::cerr << "DEBUG: Constructor called for class Request\n";
+	// if (checkRequestValidity() == true)
+	// 	pickMethod();
+	// else
+	// 	handleResponsesError();
+	// buildRawResponse();
 }
+
+// Response::Response(const Request &request, const Server &server, Session &session) : 
+// _statusCode(200), _bytesSent(0), _currServ(server), _request(request), _session(session)
+// {
+// 	if (!session.isConnected())
+// 	{
+// 		insertCookieHeader("SessionId=" + session.getId());
+// 		session.setConnected(true);
+// 	}
+// 	if (checkRequestValidity() == true)
+// 		pickMethod();
+// 	else
+// 		handleResponsesError();
+// 	buildRawResponse();
+// }
 
 Response::~Response(){}
 
@@ -73,25 +89,25 @@ Response::~Response(){}
 /*										METHODS											  	  */
 //*********************************************************************************************/
 
-void Response::pickMethod()
+void Response::pickMethod(const Request &_req)
 {
-	static void (Response::*methods[])() = 
+	static void (Response::*methods[])(const Request &_req) = 
 	{
 		&Response::handleHead,
 		&Response::handleGet,
 		&Response::handlePost,
 		&Response::handleDelete
 	};
-	if (isCgi() == true)
+	if (isCgi(_req) == true)
 	{
-		handleCgi();
+		handleCgi(_req);
 		return ;
 	}
 	else
 	{
 		for (int i = 0; i < METHODS_COUNT; i++)
-			if (_request.getMap().at("Method") == Response::methods[i])
-				(this->*methods[i])();
+			if (_req.getMap().at("Method") == Response::methods[i])
+				(this->*methods[i])(_req);
 	}
 }
 
@@ -131,9 +147,9 @@ std::map<string, Location>::const_reverse_iterator Response::findBestLocation(co
 	return (loc.rend());
 }
 
-void Response::validateMethodAllowed(const Location &location)
+void Response::validateMethodAllowed(const Location &location, const Request &_req)
 {
-	std::string method = _request.getMap().at("Method");
+	std::string method = _req.getMap().at("Method");
 	const std::vector<bool>& acceptedMethods = location.getMethods();
 	
 	int methodIndex = -1;
@@ -180,7 +196,7 @@ void Response::appendCookieIndexToDirectory(
 	}
 }
 
-void	Response::buildLocalPathFromCookie(std::string &localPath, const Location & location)
+void	Response::buildLocalPathFromCookie(std::string &localPath, const Location & location, const Request &_req)
 {
 	size_t	pos = localPath.rfind('/');
 
@@ -189,7 +205,7 @@ void	Response::buildLocalPathFromCookie(std::string &localPath, const Location &
 	pos++;
 	
 	std::string cookie_name = localPath.substr(pos);
-	std::string cookie_value = _request.getCookieValue(cookie_name);
+	std::string cookie_value = _req.getCookieValue(cookie_name);
 
 	if (!cookie_value.empty())
 		appendCookieIndexToDirectory(localPath, cookie_value);
@@ -197,18 +213,18 @@ void	Response::buildLocalPathFromCookie(std::string &localPath, const Location &
 		appendIndexToDirectory(localPath, location);
 }
 
-std::string Response::buildLocalPath()
+std::string Response::buildLocalPath(const Request &_req)
 {
-	std::string uriPath = _request.getMap().at("Path");
+	std::string uriPath = _req.getMap().at("Path");
 	std::map<string, Location>::const_reverse_iterator bestMatch = findBestLocation(uriPath);
 	const Location	&location = bestMatch->second;
 	
-	validateMethodAllowed(bestMatch->second);
+	validateMethodAllowed(bestMatch->second, _req);
 	
 	std::string localPath = location.getRoot() + uriPath;
 
 	if (location.isCookie())
-		buildLocalPathFromCookie(localPath, location);
+		buildLocalPathFromCookie(localPath, location, _req);
 	else
 		appendIndexToDirectory(localPath, location);
 	
@@ -221,7 +237,8 @@ std::string Response::buildLocalPath()
 
 void	Response::insertCookieHeader(std::string cookie)
 {
-	_header.insert(std::pair<string, string>("Set-Cookie", cookie));
+	_header.insert(std::pair<string, string>("Set-Cookie", cookie + ";" + COOKIE_DURATION));
+	std::cout << BLUE ITALIC << cookie << ";" << COOKIE_DURATION << std::endl;
 }
 
 void Response::checkFileAccess(std::string &localPath, int requiredAccess)
@@ -246,23 +263,23 @@ bool Response::readFileContent(const std::string &filePath, size_t fileSize)
 	return (true);
 }
 
-void Response::parseFormData(std::map<std::string, std::string> &data)
+void Response::parseFormData(std::map<std::string, std::string> &data, const Request &_req)
 {
 	size_t lastPos = 0;
 
-	for (size_t i = _request.getBody().find("=", 0); i != std::string::npos; i = _request.getBody().find("=", lastPos))
+	for (size_t i = _req.getBody().find("=", 0); i != std::string::npos; i = _req.getBody().find("=", lastPos))
 	{
-		size_t endPos = _request.getBody().find("&", i);
+		size_t endPos = _req.getBody().find("&", i);
 		if (endPos == std::string::npos)
-			endPos = _request.getBody().find("\r\n\r\n");
-		std::string key = _request.getBody().substr((lastPos == 0 ? lastPos : lastPos + 1), i - (lastPos + (lastPos != 0))); // 🤮🤮🤮
-		std::string val = _request.getBody().substr(i + 1, endPos - (i + 1));
+			endPos = _req.getBody().find("\r\n\r\n");
+		std::string key = _req.getBody().substr((lastPos == 0 ? lastPos : lastPos + 1), i - (lastPos + (lastPos != 0))); // 🤮🤮🤮
+		std::string val = _req.getBody().substr(i + 1, endPos - (i + 1));
 
-		if (key.find(SESSION_PREFIXE) != std::string::npos)
-		{
-			key = key.substr(std::string(SESSION_PREFIXE).length());
-			_session.insertCookieFromPair(std::pair<string, string>(key, val));
-		}
+		// if (key.find(SESSION_PREFIXE) != std::string::npos)
+		// {
+		// 	key = key.substr(std::string(SESSION_PREFIXE).length());
+		// 	_session.insertCookieFromPair(std::pair<string, string>(key, val));
+		// }
 		
 		data.insert(std::make_pair(key, val));
 		lastPos = endPos;
@@ -299,7 +316,7 @@ void Response::handleResponsesError()
 /*										HANDLERS											  */
 //*********************************************************************************************/
 
-void	Response::handleHead()
+void	Response::handleHead(const Request &_req)
 {
 	std::string localPath;
 	struct stat	s;
@@ -311,7 +328,7 @@ void	Response::handleHead()
 		return ;
 	}
 
-	localPath = buildLocalPath();
+	localPath = buildLocalPath(_req);
 	checkFileAccess(localPath, R_OK);
 	if ((stat(localPath.c_str(), &s) == -1))
 		return ;
@@ -323,12 +340,12 @@ void	Response::handleHead()
 		std::cout << it->first << ": " << it->second << "\n";
 }
 
-void Response::handleGet()
+void Response::handleGet(const Request &_req)
 {
 	std::string localPath;
 	struct stat s;
 
-	localPath = buildLocalPath();
+	localPath = buildLocalPath(_req);
 	checkFileAccess(localPath, R_OK);
 	if ((stat(localPath.c_str(), &s) == -1) || _statusCode != OK)
 		return ;
@@ -337,8 +354,9 @@ void Response::handleGet()
 	addHeader("Content-Length", intToString(_body.length()));
 }
 
-void Response::handlePost()
+void Response::handlePost(const Request &_req)
 {
+	(void) _req;
 	// std::map<std::string, std::string>::const_iterator contentTypePos = _request.getMap().find("Content-Type");
 	// if (contentTypePos != _request.getMap().end() && contentTypePos->second.find("application/octet-stream") != std::string::npos)
 	// {
@@ -386,9 +404,9 @@ void Response::handlePost()
 	// addHeader("Content-Length", "0");
 }
 
-void Response::handleDelete()
+void Response::handleDelete(const Request &_req)
 {
-	std::string localPath = buildLocalPath();
+	std::string localPath = buildLocalPath(_req);
 
     checkFileAccess(localPath, W_OK);
 	
@@ -401,17 +419,18 @@ void Response::handleDelete()
 	}
 }
 
-void Response::cgiMainProcess(int pipe_in[2], int pipe_out[2], Cgi &cgi, int pid){
+void Response::cgiMainProcess(int pipe_in[2], int pipe_out[2], Cgi &cgi, int pid, const Request &_req)
+{
 	close(pipe_in[0]);
 	close(pipe_out[1]);
 
-	if (_request.getMap().find("Method")->second == "POST")
+	if (_req.getMap().find("Method")->second == "POST")
 	{
-		cgi.setBodyMessage(_request.getBody()); //write in stdout
+		cgi.setBodyMessage(_req.getBody()); //write in stdout
 		if (write(pipe_in[1], cgi.getBodyMessage().c_str(), cgi.getBodyMessage().size()) == -1)
 		{
 			close(pipe_in[1]);
-			close(pipe_out[0]);			
+			close(pipe_out[0]);
 			throw ExceptionWriteError();
 		}
 	}
@@ -431,8 +450,9 @@ void Response::cgiMainProcess(int pipe_in[2], int pipe_out[2], Cgi &cgi, int pid
 		throw ExceptionReadError(); // vrai error
 }
 
-bool Response::isCgi(){
-	std::string uriPath = _request.getMap().at("Path");
+bool Response::isCgi(const Request &_req)
+{
+	std::string uriPath = _req.getMap().at("Path");
 	std::map<string, Location>::const_reverse_iterator loc = findBestLocation(uriPath);
 	Location location = loc->second;
 	size_t suffixPos = uriPath.find(".");
@@ -447,8 +467,10 @@ bool Response::isCgi(){
 	return (false);
 }
 
-void Response::handleCgi(){
-	Cgi cgi(_request, _session);
+void Response::handleCgi(const Request &_req)
+{
+	// Cgi cgi(_request, _session);
+	Cgi cgi(_req);
 
 	int pipe_in[2];
 	int pipe_out[2];
@@ -460,7 +482,7 @@ void Response::handleCgi(){
 	if (!pid)
 		cgi.cgiChildProcess(pipe_in, pipe_out);
 	else
-		cgiMainProcess(pipe_in, pipe_out, cgi, pid);
+		cgiMainProcess(pipe_in, pipe_out, cgi, pid, _req);
 }
 
 std::string Response::getChunckResp(int bytes)
@@ -481,14 +503,14 @@ bool	Response::isSent()
 	return (_bytesSent >= _rawResponse.size());
 }
 
-void Response::buildRawResponse()
+void Response::buildRawResponse(const Request &_req)
 {
 	std::map<std::string, std::string>::iterator it = _header.begin();
 
-	if (_request.getMap().find("Protocol") == _request.getMap().end())
+	if (_req.getMap().find("Protocol") == _req.getMap().end())
 		_rawResponse += "HTTP/1.1 ";
 	else
-		_rawResponse += _request.getMap().at("Protocol") + " ";
+		_rawResponse += _req.getMap().at("Protocol") + " ";
 	_rawResponse += intToString(_statusCode) + " " + _statusMap.at(_statusCode) + "\r\n";
 
 	for (; it != _header.end(); it++)
@@ -504,7 +526,8 @@ void Response::buildRawResponse()
 /*										GETTERS											  	  */
 //*********************************************************************************************/
 
-void Response::setCurrLocation(const Location &loc){
+void Response::setCurrLocation(const Location &loc)
+{
 	_currLocation = loc;
 }
 
