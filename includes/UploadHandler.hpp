@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 class Request;
 
@@ -11,11 +12,11 @@ class UploadHandler
 		std::string		_uploadDirectory;
 		int				_statusCode;
 		std::string		_boundary;
-		std::string		_subHeader;
 
-		std::string	_extractBoundary(const std::string &);
-		std::string	_extractFilename() const;
-		bool		_writeFile(const std::string &, const std::string &) const;
+		std::string			_extractBoundary(const std::string &);
+		std::string			_extractFilename() const;
+		bool				_writeFile(const std::string &, std::vector<char>&) const;
+		std::vector<char>	_trimBody(const std::string&);
 		
 	public:
 		UploadHandler(const Request &, const std::string &);
@@ -23,6 +24,8 @@ class UploadHandler
 
 		static bool	_isMultipart(const std::string &);
 		
-		int	processUpload();
+		int			processUpload();
+
+		const std::string findCorrespondingValueFromKey(const std::string&);
 };
 

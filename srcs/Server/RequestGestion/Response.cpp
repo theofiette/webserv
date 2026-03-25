@@ -362,7 +362,6 @@ void Response::handlePost()
 	{
 		_statusCode = UNSUPPORTED_MEDIA_TYPE; // TODO: a confirmer
 		handleResponsesError();
-
 		return ;
 	}
 
@@ -376,11 +375,10 @@ void Response::handlePost()
 
 		UploadHandler handler(_request, uploadDirectory);
 
-		std::cout << "UPLOAD STATUS IS " << _request.getHeader()  << "----------------" << std::endl;
 		int uploadStatus = handler.processUpload();
+		_statusCode = uploadStatus;
 		if (uploadStatus != CREATED)
 		{
-			_statusCode = uploadStatus;
 			handleResponsesError();
 			return ;
 		}

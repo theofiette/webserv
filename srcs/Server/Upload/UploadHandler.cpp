@@ -4,10 +4,13 @@
 #include "Response.hpp"
 
 #include <sys/stat.h>
+#include <algorithm>
 #include <fstream>
 
+typedef std::map<std::string, std::string>::const_iterator mc_ss_it;
+
 UploadHandler::UploadHandler(const Request &request, const std::string &uploadDirectory) :
-_request(request), _uploadDirectory(uploadDirectory), _statusCode(400) {}
+_request(request), _uploadDirectory(uploadDirectory), _statusCode(CREATED) {}
 
 UploadHandler::~UploadHandler()  {}
 
@@ -28,7 +31,7 @@ std::string	UploadHandler::_extractBoundary(const std::string &contentType)
 	return (contentType.substr(pos));
 }
 
-std::string	UploadHandler::_extractFilename() const
+std::string	UploadHandler::_extractFilename() const // faire juste size_t CursorStart, CursorEnd, et reutilsier les memes? 
 {
 	const std::vector<char> &bodyVec = _request.getBody();
 	if (bodyVec.empty())
@@ -59,38 +62,86 @@ std::string	UploadHandler::_extractFilename() const
 	return (filename);
 }
 
-bool	UploadHandler::_writeFile(const std::string & filename, const std::string &content) const
+bool	UploadHandler::_writeFile(const std::string & filename, std::vector<char> &content) const
 {
 	(void)filename; 
 	(void)content;
-	// std::ofstream outfile(filename.c_str());
-	// if (!outfile.is_open())
-	// 	;
-	// outfile.write()
-	;
+	std::ofstream outfile(filename.c_str());
+	if (!outfile.is_open())
+		;
+	std::string bodyStr;
+	bodyStr.reserve(content.size());
+	for (std::vector<char>::iterator it = content.begin(); it != content.end(); it++)
+		bodyStr += *it;
+	outfile.write(bodyStr.c_str(), content.size());
 	return (true);
 }
+
+const std::string UploadHandler::findCorrespondingValueFromKey(const string &Key)
+{
+	mc_ss_it it = _request.getMap().find(Key);
+	if (it == _request.getMap().end())
+	{
+		_statusCode = BAD_REQUEST;
+		return ("");
+	}
+	return (it->second);
+}
+
 
 // ------geckoformboundaryec4d5957babb5756bf6c14779693ebba
 // Content-Disposition: form-data; name="file"; filename="nsmail.jpg"
 // Content-Type: image/jpeg
 
+std::vector<char> UploadHandler::_trimBody(const std::string &boundary)
+{
+	std::vector<char> body = _request.getBody();
+	std::string crlf = CRLFCRLF;
+	std::vector<char>::iterator subHeaderEnd = std::search(body.begin(), body.end(), crlf.begin(), crlf.end());
+
+	if (subHeaderEnd == body.end()){
+		_statusCode = BAD_REQUEST;
+		return (std::vector<char>(0));
+	}
+	subHeaderEnd += CRLF_SIZE;
+	body.erase(body.begin(), subHeaderEnd);
+
+	std::vector<char>::iterator lastBoundaryPos = std::search(subHeaderEnd, body.end(), boundary.begin(), boundary.end());
+	if (lastBoundaryPos == body.end()){
+		_statusCode = BAD_REQUEST;
+		return (std::vector<char>(0));
+	}
+	body.erase(lastBoundaryPos - 3, body.end()); // -3 ??
+	return (body);
+}
+
 int	UploadHandler::processUpload()
 {
 	const std::string filename = _extractFilename();
-	std::map<std::string, std::string>::const_iterator contentType = _request.getMap().find("Content-Type");
-	if (contentType == _request.getMap().end())
-	{
-		_statusCode = BAD_REQUEST;
+	
+	const string contentType = findCorrespondingValueFromKey("Content-Type");
+	if (_statusCode == BAD_REQUEST)
 		return (_statusCode);
-	}
-	const std::string _boundary = _extractBoundary(contentType->second);
+
+	const std::string boundary = _extractBoundary(contentType);
 
 	if (filename.empty())
 	{
 		_statusCode = BAD_REQUEST; // 400 ?
 		return (_statusCode);
 	}
+	std::cout << "CHECK PASSED \n\n";
+
+	std::vector<char> fileContent = _trimBody(boundary);
+	if (fileContent.empty())
+	{
+		_statusCode = BAD_REQUEST;
+		return (_statusCode);
+	}
+
+	if (_writeFile(filename,fileContent) == false)
+		return (_statusCode);
+
 	_statusCode = CREATED;
 	return (_statusCode);
 }

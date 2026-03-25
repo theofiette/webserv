@@ -7,10 +7,8 @@
 
 Request::Request(const Server &server, unsigned int serverIndex) : 
 _totalBytes(0),_headerComplete(false), _requestCode(OK), _requestComplete(false), _requestTimedOut(false),
-_discardBody(false), _bodySize(0), _serverIndex(serverIndex), _currServ(server)
-{
-	_tracker = TimeoutTracker();
-}
+_discardBody(false), _bodySize(0), _serverIndex(serverIndex), _currServ(server), _tracker(TimeoutTracker())
+{}
 
 Request::~Request(){}
 
@@ -53,8 +51,8 @@ void Request::readSocketChunk(int socketFd, char *buffer, size_t bufferSize, siz
 	else
 	{
 		if (_discardBody == false)
-			_body.insert(_body.end(), buffer, buffer + bytesRead); // on veut juste drainer dans le buffer puis clear, pas besoin de stocker
-		_bodySize += bytesRead; // pour suivre le nombre lu
+			_body.insert(_body.end(), buffer, buffer + bytesRead);
+		_bodySize += bytesRead;
 	}
 	_totalBytes += bytesRead;
 }
@@ -114,7 +112,7 @@ void Request::receiveRequestChunk(int socketFd)
 	}
 
 	readSocketChunk(socketFd, buffer, SEND_SIZE, headerEnd);
-	int contentLength = extractContentLength(_header);
+	int contentLength = extractContentLength(_header); // est ce qu on stockerait pas le content length dans request
 	if (_headerComplete == true)
 	{
 		if (contentLength > 0 && contentLength > _currServ.getMaxBody())
@@ -123,8 +121,8 @@ void Request::receiveRequestChunk(int socketFd)
 			_discardBody = true;
 			storeBodyExceeding(headerEnd);
 			_body.clear();
-			if (_bodySize >= static_cast<size_t>(contentLength)) // on peut plus utiliser _body.size() pcq on a clear, mais on veut quand meme saovir quand est ce qu on a lu tout le body
-				_requestComplete = true; // ici on continue de lire du coup meme si maxbody est trop grand, de toute facon on lit en chuncked donc c est non bloquant pour le server
+			if (_bodySize >= static_cast<size_t>(contentLength)) // on peut plus utiliser _body.size() pcq  le body est vide, mais on veut quand meme saovir quand est ce qu on a lu tout le body
+				_requestComplete = true;
 			return ;
 		}
 		if (contentLength <= 0)
