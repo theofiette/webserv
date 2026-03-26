@@ -40,15 +40,10 @@ size_t	ConnectionManager::_setupPollfds()
 		else if (j < _connections.size())
 		{
 			_pollfds[i + j].fd = _connections[j].getFd();
-			if (_connections[j].getState() == CS_SENDING)
-			{
-				_pollfds[i + j].events = POLLOUT;
-				std::cerr << "SET AS POLLOUT\n";
-			}
-			else
-				_pollfds[i + j].events = POLLIN;
-
-			_pollfds[i + j].revents = 0;
+			std::cout << "wanted event for fd " << _connections[j].getFd() << " is : " << _connections[j].getWantedEvent() << "\n";
+			std::cout << "events for fd " << _pollfds[i + j].fd << " is : " << _pollfds[i + j].events << "\n";
+			std::cout << "state for fd " << _connections[j].getFd() << " is : " << _connections[j].getStateInterpreted() << "\n";
+			_pollfds[i + j].events = _connections[j].getWantedEvent();
 			j++;
 		}
 		else
@@ -119,27 +114,22 @@ void	ConnectionManager::_checkOpenConnections()
 void	ConnectionManager::_processConnections()
 {
 	std::vector<Connection>::iterator it, ite;
-	size_t		index;
 	size_t		i;
-
 
 	it	= _connections.begin();
 	ite	= _connections.end();
-	i = 0;
+	i = _masterSockets.size();
 	for (; it != ite; it++)
 	{
 		Connection	&currentConnection = *it;
 
-		// std::cout << RED BOLD << "coNENCTION NUMBER : " << i << END << std::endl; 
-
-		index = _masterSockets.size() + i;
-		std::cout << "revent is : " << _pollfds[index].revents << "\n";
-		currentConnection.processTmp(_pollfds[index].revents);
+		std::cout << "revent is : " << _pollfds[i].revents << "\n";
+		currentConnection.processTmp(_pollfds[i].revents);
 		if (currentConnection.getState() == CS_CLOSE)
 		{
 			_to_close.push(it);
 		}
-
+		i++;
 	}
 }
 
@@ -151,9 +141,7 @@ void	ConnectionManager::_awaitEvents()
 {
 	size_t socketCount;
 
-	// socketCount = _masterSockets.size() + _connections.size();
 	socketCount = _setupPollfds();
-	// std::cerr << "DEBUG: polling on " << socketsCount << "fds" << std::endl;
 	poll(_pollfds, socketCount, TIMEOUT); //TODO : wrap for -1
 }
 

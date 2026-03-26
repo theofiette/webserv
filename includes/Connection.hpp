@@ -18,8 +18,8 @@ class Request;
 
 enum ConnectionState {
 	CS_NONE,
+	CS_BUFFERING,
 	CS_PARSING,
-	CS_PARSED,
 	CS_WRITING,
 	CS_WRITTEN,
 	CS_SENDING,
@@ -32,6 +32,7 @@ class Connection {
 	private:
 
 		int			_fd;
+		short		_wantedEvent;
 
 		ConnectionState			_state;
 		// HttpRequest			_request;
@@ -56,7 +57,9 @@ class Connection {
 		// short			getEvent() const;
 		int				getFd() const;
 		ConnectionState	getState() const;
+		string			getStateInterpreted() const;
 		void			setState(ConnectionState state);
+		short			getWantedEvent();
 
 		Connection &operator=(const Connection &other);
 		// Connection(const Connection &other);

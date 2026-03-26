@@ -1,12 +1,41 @@
 #include "Connection.hpp"
 
-// short Connection::getEvent() const
-// {
-// 	return (_event);
-// }
 void	Connection::setState(ConnectionState state)
 {
+	if (state == CS_SENDING)
+		_wantedEvent = POLLOUT;
+	else
+		_wantedEvent = POLLIN;
 	_state = state;
+	std::cout << BLUE << "state is now : " << getStateInterpreted() << "\n" END;
+}
+
+short	Connection::getWantedEvent()
+{
+	return (_wantedEvent);
+}
+
+string	Connection::getStateInterpreted() const
+{
+	switch (_state)
+	{
+		case (CS_NONE):
+			return ("CS_NONE");
+		case (CS_BUFFERING):
+			return ("CS_BUFFERING");
+		case (CS_PARSING):
+			return ("CS_PARSING");
+		case (CS_WRITING):
+			return ("CS_WRITING");
+		case (CS_SENDING):
+			return ("CS_SENDING");
+		case (CS_KEEP):
+			return ("CS_KEEP");
+		case (CS_CLOSE):
+			return ("CS_CLOSE");
+		default :
+			return ("**default**");
+	}
 }
 
 ConnectionState	Connection::getState() const
@@ -27,6 +56,7 @@ void	Connection::_clear()
 
 void	Connection::processTmp(short revent)
 {
+	std::cerr << RED << "PROCESS: fd is " << _fd << "\n";
 	std::string chunckedStr;
 
 	// std::cerr << "fd is " << _fd << "\n";
@@ -46,29 +76,21 @@ void	Connection::processTmp(short revent)
 	switch (_state)
 	{
 		case (CS_NONE):
-			// std::cerr << "CS_NONE\n";
-			setState(CS_PARSING);
+			setState(CS_BUFFERING);
 			break;
-		case (CS_PARSING):
-			// std::cerr << "CS_PARSING\n";
+		case (CS_BUFFERING):
 			if (!(revent & POLLIN))
 				return ;
 			_request.receiveRequestChunk(_fd);
 			if (_request.isRequestComplete())
-				setState(CS_PARSED);
-			break ;
-		case (CS_PARSED):
-			// std::cerr << "CS_PARSED\n";
+				setState(CS_PARSING);
+			else
+				break ;
+		case (CS_PARSING):
 			_request.parseRequest(_request.getHeader());
-			// std::cerr << YELLOW << _request.getHeader() << END << std::endl;
 			_response.setStatusCode(_request.getRequestCode());
 			setState(CS_WRITING);
-			break ;
 		case (CS_WRITING):
-			// std::cerr << "CS_WRITING\n";
-			//session here
-			// std::cout << "REQUEST STATUS -->" << _request.getRequestCode() << "\n\n";
-			// std::cout << "----" << (_request.getMap().find("Path") == _request.getMap().end()) << "----\n\n";
 			if (_request.getRequestCode() == OK)
 				_response.pickMethod(_request);
 			else
@@ -77,14 +99,13 @@ void	Connection::processTmp(short revent)
 			setState(CS_SENDING);
 			break ;
 		case (CS_SENDING):
-			// std::cerr << "CS_SENDING\n";
 			if (!(revent & POLLOUT))
 				return ;
 			chunckedStr = _response.getChunckResp(SEND_SIZE);
 			int bytesSent;
-			// std::cout << GREEN ITALIC << chunckedStr << END << "\n";
+			std::cout << GREEN ITALIC << "SENDING>> " << chunckedStr << END << "\n";
 			bytesSent = send(_fd, chunckedStr.c_str(), chunckedStr.size(), 0);
-			if (bytesSent < 0)
+			if (bytesSent <= 0)
 			{
 				setState(CS_CLOSE);
 				return ;
@@ -93,14 +114,14 @@ void	Connection::processTmp(short revent)
 			if (_response.isSent())
 			{
 				setState(CS_KEEP);
+				// setState(CS_CLOSE);
 			}
 			break ;
 		case (CS_KEEP):
-			// _clear();
-			// setState(CS_NONE);
-			// break ;
+			_clear();
+			setState(CS_NONE);
+			break ;
 		default :
-			// std::cerr << "**default**\n";
 			setState(CS_CLOSE);
 			break;
 	}
@@ -115,7 +136,7 @@ void	Connection::process(short revent)
 			std::cerr << "fd is " << _fd << "\n";
 			std::cerr << "state is CS_NONE\n";
 			std::cerr << "event is " << revent << std::endl;
-			setState(CS_PARSING);
+			setState(CS_BUFFERING);
 			break;
 		default :
 			std::cerr << "fd is " << _fd << "\n";
@@ -152,10 +173,8 @@ Connection &Connection::operator=(const Connection &other)
 // }
 
 Connection::Connection(int fd, const Server &server, unsigned int tmp_i): 
-_request(server, tmp_i), _response(server), _server(server)
+_fd(fd), _state(CS_NONE), _request(server, tmp_i), _response(server), _server(server)
 {
-	_fd = fd;
-	_state = CS_NONE;
 	std::cerr << "DEBUG: TMP Constructor called for class Connection\n";
 }
 

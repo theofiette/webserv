@@ -12,7 +12,7 @@ typedef std::map<std::string, std::string>::const_iterator mc_ss_it;
 UploadHandler::UploadHandler(const Request &request, const std::string &uploadDirectory) :
 _request(request), _uploadDirectory(uploadDirectory), _statusCode(CREATED) {}
 
-UploadHandler::~UploadHandler()  {}
+UploadHandler::~UploadHandler() {}
 
 bool	UploadHandler::_isMultipart(const std::string &contentType)
 {
@@ -64,8 +64,6 @@ std::string	UploadHandler::_extractFilename() const // faire juste size_t Cursor
 
 bool	UploadHandler::_writeFile(const std::string & filename, std::vector<char> &content) const
 {
-	(void)filename; 
-	(void)content;
 	std::ofstream outfile(filename.c_str());
 	if (!outfile.is_open())
 		;
