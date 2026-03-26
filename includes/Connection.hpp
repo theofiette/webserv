@@ -23,6 +23,7 @@ enum ConnectionState {
 	CS_WRITING,
 	CS_WRITTEN,
 	CS_SENDING,
+	CS_KEEP,
 	CS_CLOSE
 };
 
@@ -30,19 +31,20 @@ class Connection {
 
 	private:
 
-		// pollfd		_pollfd;
 		int			_fd;
-		// short		_event;
 
 		ConnectionState			_state;
 		// HttpRequest			_request;
 		// HttpResponse			_response;
 		// HttpParser			_parser; <- could be static
 
-
 		Request				_request;
 		Response			_response;
+
+		const Server &		_server;
 		// Session				_session;
+
+		void	_clear();
 
 		Connection();
 

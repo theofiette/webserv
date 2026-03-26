@@ -5,12 +5,47 @@
 #include <map>
 #include <sstream>
 
+void Request::display() const
+{
+	std::cout << getHeader();
+	std::vector<char>::const_iterator it, ite;
+	it	= _body.begin();
+	ite	= _body.end();
+	for (; it != ite; it++)
+	{
+		std::cout << *it;
+	}
+	std::cout << std::endl;
+}
+
+void	Request::clear()
+{
+	_totalBytes = 0;
+	_headerComplete = false;
+	_requestCode = OK;
+	_requestComplete = false;
+	_requestTimedOut = false;
+	_discardBody = false;
+	_receivedBodyBytes = 0;
+
+	_requestHeader.clear();
+	_header.clear();
+	_body.clear();
+
+	_tracker = TimeoutTracker();
+}
+
 Request::Request(const Server &server, unsigned int serverIndex) : 
 _totalBytes(0),_headerComplete(false), _requestCode(OK), _requestComplete(false), _requestTimedOut(false),
-_discardBody(false), _bodySize(0), _serverIndex(serverIndex), _currServ(server), _tracker(TimeoutTracker())
-{}
+_discardBody(false), _receivedBodyBytes(0), _serverIndex(serverIndex), _currServ(server), _tracker(TimeoutTracker())
+{
+	std::cerr << "DEBUG: Constructor called for class Request\n" END;
+}
 
-Request::~Request(){}
+Request::~Request()
+{
+	std::cerr << "DEBUG: Destructor called for class Request\n";
+}
 
 int extractContentLength(const std::string &buffer)
 {
@@ -35,6 +70,7 @@ int extractContentLength(const std::string &buffer)
 void Request::readSocketChunk(int socketFd, char *buffer, size_t bufferSize, size_t &headerEnd)
 {
 	ssize_t bytesRead = recv(socketFd, buffer, bufferSize, 0);
+	std::cout << BLUE BOLD << buffer << END << std::endl;
 	if (bytesRead < 0)
 		throw ExceptionRuntime("recv() error");
 	if (bytesRead == 0)
@@ -51,7 +87,7 @@ void Request::readSocketChunk(int socketFd, char *buffer, size_t bufferSize, siz
 	{
 		if (_discardBody == false)
 			_body.insert(_body.end(), buffer, buffer + bytesRead);
-		_bodySize += bytesRead;
+		_receivedBodyBytes += bytesRead;
 	}
 	_totalBytes += bytesRead;
 }
@@ -92,7 +128,7 @@ void	Request::storeBodyExceeding(const size_t &headerEnd)
 		std::string bodyStr = _header.substr(headerEnd);
 		if (_discardBody == false)
 			_body.insert(_body.end(), bodyStr.begin(), bodyStr.end());
-		_bodySize += bodyStr.size();
+		_receivedBodyBytes += bodyStr.size();
 		_header = _header.substr(0, headerEnd);
 	}
 }
@@ -120,7 +156,7 @@ void Request::receiveRequestChunk(int socketFd)
 			_discardBody = true;
 			storeBodyExceeding(headerEnd);
 			_body.clear();
-			if (_bodySize >= static_cast<size_t>(contentLength)) // on peut plus utiliser _body.size() pcq  le body est vide, mais on veut quand meme saovir quand est ce qu on a lu tout le body
+			if (_receivedBodyBytes >= static_cast<size_t>(contentLength)) // on peut plus utiliser _body.size() pcq  le body est vide, mais on veut quand meme saovir quand est ce qu on a lu tout le body
 				_requestComplete = true;
 			return ;
 		}
@@ -128,7 +164,7 @@ void Request::receiveRequestChunk(int socketFd)
 			endRequestWithoutBody(headerEnd);
 		storeBodyExceeding(headerEnd);
 	}
-	if (contentLength > 0 && _bodySize >= static_cast<size_t>(contentLength))
+	if (contentLength > 0 && _receivedBodyBytes >= static_cast<size_t>(contentLength))
 	{
 		_requestComplete = true;
 		return ;
@@ -138,8 +174,11 @@ void Request::receiveRequestChunk(int socketFd)
 void Request::displayInfos() const
 {
 	std::map<std::string, std::string>::const_iterator it = _requestHeader.begin();
+	if (it == _requestHeader.end())
+		std::cout << "empty request header\n" << std::endl;
 	for (; it != _requestHeader.end(); it++)
 		std::cout << it->first << " : " << it->second << "\n";
+	std::cout << std::endl;
 }
 
 void Request::setFirstLine(std::string buffer)
@@ -150,17 +189,20 @@ void Request::setFirstLine(std::string buffer)
 	if (!(iss >> method >> path >> protocol))
 	{
 		_requestCode = BAD_REQUEST;
+		std::cout << GREEN ITALIC  << "Exit 1\n";
 		return ;
 	}
 	else if (buffer.find("\r") == std::string::npos)
 	{
 		_requestCode = HTTP_VERSION_NOT_SUPPORTED;
+		std::cout << GREEN ITALIC  << "Exit 2\n";
 		return ;
 	}
 	std::string rest;
 	if (iss >> rest)
 	{
 		_requestCode = BAD_REQUEST;
+		std::cout << GREEN ITALIC  << "Exit 3\n";
 		return ;
 	}
 	if (!protocol.empty() && protocol[protocol.size() - 1] == '\r')
@@ -168,6 +210,8 @@ void Request::setFirstLine(std::string buffer)
     _requestHeader["Method"] = method;
     _requestHeader["Path"] = path;
     _requestHeader["Protocol"] = protocol; //TODO: check if correct ?? 
+		std::cout << GREEN ITALIC  << "Exit 4\n" END;
+
 }
 
 void Request::fillHeader(std::stringstream &requestStream, std::string &buffer) 
@@ -298,7 +342,7 @@ const bool& Request::isRequestComplete()
 	return (_requestComplete);
 }
 
-const size_t& Request::getRequestCode() const
+size_t Request::getRequestCode() const
 {
 	return (_requestCode);
 }

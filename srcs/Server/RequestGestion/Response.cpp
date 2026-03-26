@@ -43,14 +43,27 @@ const std::map<int, std::string> Response::_statusMap = initStatusMap();
 /*										CONSTRUCTORS										  */
 //*********************************************************************************************/
 
+void	Response::clear()
+{
+	_statusCode = 200;
+	_bytesSent = 0;
+
+	_rawResponse.clear();
+	_header.clear();
+	_body.clear();
+}
+
 Response::Response(const Server &server) : 
 _statusCode(200), _bytesSent(0), _currServ(server)
 {
-	std::cerr << "DEBUG: Constructor called for class Request\n";
+	std::cerr << "DEBUG: Constructor called for class Response\n";
 	// TODO : ERROR_CODE dans flux connection
 }
 
-Response::~Response(){}
+Response::~Response()
+{
+	std::cerr << "DEBUG: Destructor called for class Response\n";
+}
 
 //*********************************************************************************************/
 /*										METHODS											  	  */
@@ -121,6 +134,8 @@ std::map<string, Location>::const_reverse_iterator Response::findBestLocation(co
 
 void Response::validateMethodAllowed(const Location &location, const Request &_req)
 {
+	if (_req.getMap().find("Method") == _req.getMap().end())
+			std::cerr << "map::at error 7\n";
 	std::string method = _req.getMap().at("Method");
 	const std::vector<bool>& acceptedMethods = location.getMethods();
 	
@@ -187,6 +202,8 @@ void	Response::buildLocalPathFromCookie(std::string &localPath, const Location &
 
 std::string Response::buildLocalPath(const Request &_req)
 {
+	if (_req.getMap().find("Path") == _req.getMap().end())
+			std::cerr << "map::at error 6\n";
 	std::string uriPath = _req.getMap().at("Path");
 	std::map<string, Location>::const_reverse_iterator bestMatch = findBestLocation(uriPath);
 	const Location	&location = bestMatch->second;
@@ -302,6 +319,8 @@ void Response::handleResponsesError()
 	{
 		_body = "<html><head><link rel=\"stylesheet\" href=\"css/style/\"><title>Error " + intToString(_statusCode) + "</title></head>";
 		_body += "<body><h1>Error " + intToString(_statusCode);
+		if (_statusMap.find(_statusCode) == _statusMap.end())
+			std::cerr << "map::at error 4\n";
 		_body += _statusMap.at(_statusCode) + "</h1>";
 		_body += "<p>An error occurred while processing your request.</p></body></html>";
 	}
@@ -356,7 +375,7 @@ void Response::handlePost(const Request &_req)
 
 	if ((_currLocation.getUpload() == true) && UploadHandler::_isMultipart(contentTypePos->second))
 	{
-		std::string localPath = buildLocalPath();
+		std::string localPath = buildLocalPath(_req);
 		checkFileAccess(localPath, R_OK);
 		if ((stat(localPath.c_str(), &s) == -1) || _statusCode != OK)
 			return ;
@@ -441,6 +460,8 @@ void Response::cgiMainProcess(int pipe_in[2], int pipe_out[2], Cgi &cgi, int pid
 
 bool Response::isCgi(const Request &_req)
 {
+	if (_req.getMap().find("Path") == _req.getMap().end())
+		std::cerr << "map::at error 3\n";
 	std::string uriPath = _req.getMap().at("Path");
 	std::map<string, Location>::const_reverse_iterator loc = findBestLocation(uriPath);
 	Location location = loc->second;
@@ -499,7 +520,13 @@ void Response::buildRawResponse(const Request &_req)
 	if (_req.getMap().find("Protocol") == _req.getMap().end())
 		_rawResponse += "HTTP/1.1 ";
 	else
+	{
+		if (_req.getMap().find("Protocol") == _req.getMap().end())
+			std::cerr << "map::at error 1\n";
 		_rawResponse += _req.getMap().at("Protocol") + " ";
+	}
+	if (_statusMap.find(_statusCode) == _statusMap.end())
+			std::cerr << "map::at error 2\n";
 	_rawResponse += intToString(_statusCode) + " " + _statusMap.at(_statusCode) + "\r\n";
 
 	for (; it != _header.end(); it++)
@@ -509,12 +536,16 @@ void Response::buildRawResponse(const Request &_req)
 
 	_headerLength = _rawResponse.size();
 	_rawResponse += _body;
-	std::cout << _rawResponse << std::endl;
 }
 
 //*********************************************************************************************/
 /*										GETTERS											  	  */
 //*********************************************************************************************/
+
+void Response::setStatusCode(const int statusCode)
+{
+	_statusCode = statusCode;
+}
 
 void Response::setCurrLocation(const Location &loc)
 {

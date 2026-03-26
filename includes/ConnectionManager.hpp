@@ -24,6 +24,8 @@ class ConnectionManager
 		const std::vector<Server>	&_servers;
 		///////////////////////////////////////////////////////////////////////
 
+		void	_reserve(size_t n);
+
 		void	_awaitEvents();
 		size_t	_setupPollfds();
 		void	_checkOpenConnections();
@@ -46,7 +48,6 @@ class ConnectionManager
 			size_t maxConnections, const std::vector<int> masterSockets, pollfd *pollfds);
 
 		size_t	size();
-		void	reserve(size_t n);
 		void	loop();
 		
 		ConnectionManager(const WebServerConfig &config);

@@ -26,7 +26,7 @@ class Request
 		bool								_requestTimedOut;
 		bool								_discardBody;
 		// size_t							_contentLength;
-		size_t								_bodySize;
+		size_t								_receivedBodyBytes;
 		int									_serverIndex;
 
 		const Server	&_currServ;
@@ -42,6 +42,7 @@ class Request
 		// void	setBody(size_t, int);
 
 	public:
+		Request();
 		Request(const Server &, unsigned int);
 		~Request();
 
@@ -51,18 +52,21 @@ class Request
 		void				parseRequest(std::string);
 		void				receiveRequestChunk(int);		
 		// // TEMPORAIRE
+		void				display() const;
 		void 				displayInfos() const;
 		const bool &		isRequestComplete();
 		
 		const std::string& 			getHeader() const;
 		const std::vector<char>&	getBody() const;
 		const Server&				getServer() const;
-		const size_t&				getRequestCode() const;
+		size_t						getRequestCode() const;
 		const bool&					isRequestTimedOut() const;
 		
 		const std::map<std::string, std::string>&	getMap() const;
 		const std::string							getCookieValue(const std::string &) const;
 		unsigned int								getServerIndex() const;
+
+		void	clear();
 	
 };
 

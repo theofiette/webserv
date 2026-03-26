@@ -3,7 +3,7 @@
 if [ "$REQUEST_METHOD" = "GET" ]; then
 	BODY="<html>
 		<head>
-			<link rel="stylesheet" href="css/style/">
+			<link rel="stylesheet" href="css/style/style.css">
 		</head>
 		<body>
 			<div class="container">
@@ -30,7 +30,7 @@ elif [ "$REQUEST_METHOD" = "POST" ]; then
 
 	BODY="<html>
 		<head>
-			<link rel="stylesheet" href="css/style/">
+			<link rel="stylesheet" href="css/style/style.css">
 		</head>
 		<body>
 			<div class="container">

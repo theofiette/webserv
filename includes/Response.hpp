@@ -60,6 +60,7 @@ class Response
 		int					_headerLength;
 		
 		Location 			_currLocation;
+
 		const Server 		&_currServ;
 		// const Request 		&_request;
 		// Session				&_session;
@@ -83,15 +84,17 @@ class Response
 		void 				checkFileAccess(std::string &, int);
 		bool 				readFileContent(const std::string &, size_t);
 		void 				parseFormData(std::map<std::string, std::string> &, const Request &_req);
-		void 				handleResponsesError();
+		// void 				handleResponsesError();
 		void				allowedMethodsHeader();
 
 	public:
 		// Response(const Request &, const Server &, Session &);
+		Response();
 		Response(const Server &);
 		~Response();
 
 		void				setCurrLocation(const Location &);
+		void				setStatusCode(const int);
 		void 				addHeader(std::string, std::string);
 
 		void 				handleResponsesError();
@@ -109,10 +112,11 @@ class Response
 		void				updateBytesSent(int);
 		bool				isSent();
 		bool 				isCgi(const Request &_req);
-		// bool 			checkRequestValidity();
-		bool				checkRequestValidity(const Request &_req);
+		// bool				checkRequestValidity(const Request &_req);
 
 		const std::string&	getRawResponse() const;
 		int					getHeaderLength() const;
 		int					getBytesSent() const;
+
+		void				clear();
 };

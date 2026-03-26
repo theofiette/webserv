@@ -11,6 +11,7 @@ void	ConnectionManager::init(
 	_masterSockets = masterSockets;
 	_pollfds = pollfds;
 
+	_reserve(maxConnections);
 	if (_maxConnections == 0 || _masterSockets.empty() || pollfds == 0)
 		throw (ExceptionBadInit("Couldn't init ConnectionManager correctly"));
 }
@@ -39,16 +40,24 @@ size_t	ConnectionManager::_setupPollfds()
 		else if (j < _connections.size())
 		{
 			_pollfds[i + j].fd = _connections[j].getFd();
-			_pollfds[i + j].events = POLLIN + POLLOUT;
+			if (_connections[j].getState() == CS_SENDING)
+			{
+				_pollfds[i + j].events = POLLOUT;
+				std::cerr << "SET AS POLLOUT\n";
+			}
+			else
+				_pollfds[i + j].events = POLLIN;
+
+			_pollfds[i + j].revents = 0;
 			j++;
 		}
 		else
 			return (i + j);
 	}
-	std::cerr << RED << "PollTab: ";
-	for (size_t k = 0; k < i + j; k++)
-		std::cerr << _pollfds[i].fd << " | ";
-	std::cerr << std::endl;
+	// std::cerr << RED << "PollTab: ";
+	// for (size_t k = 0; k < i + j; k++)
+	// 	std::cerr << _pollfds[i].fd << " | ";
+	// std::cerr << std::endl;
 	return (_maxConnections);
 }
 
@@ -70,8 +79,8 @@ void	ConnectionManager::_openConnection(int fd, const Server &tmp_serv, unsigned
 
 void	ConnectionManager::_checkCloseConnections()
 {
-	if (!_to_close.empty())
-		std::cerr << RED << "DEBUG: starting closing process on stack of size " << _to_close.size() << END << std::endl;
+	// if (!_to_close.empty())
+	// 	std::cerr << RED << "DEBUG: starting closing process on stack of size " << _to_close.size() << END << std::endl;
 	while (!_to_close.empty())
 	{
 		_closeConnection(_to_close.top());
@@ -94,13 +103,12 @@ void	ConnectionManager::_checkOpenConnections()
 {
 	int newSocket;
 
-	// std::cerr << "DEBUG: _checkConnections" << std::endl;
 	for (size_t i = 0; i < _masterSockets.size(); i++)
 	{
-		while (_masterSockets.size() + _connections.size() < _maxConnections)
+		while (_connections.size() < _maxConnections)
 		{
 			newSocket = accept(_masterSockets[i], 0, 0);
-			if (newSocket == -1)
+			if (newSocket < 0)
 				break ;
 			_openConnection(newSocket, _servers[i], i);
 			std::cerr << RED << "DEBUG: opening connection on fd " << newSocket << END << "\n";
@@ -122,11 +130,16 @@ void	ConnectionManager::_processConnections()
 	{
 		Connection	&currentConnection = *it;
 
+		// std::cout << RED BOLD << "coNENCTION NUMBER : " << i << END << std::endl; 
+
 		index = _masterSockets.size() + i;
+		std::cout << "revent is : " << _pollfds[index].revents << "\n";
 		currentConnection.processTmp(_pollfds[index].revents);
 		if (currentConnection.getState() == CS_CLOSE)
+		{
 			_to_close.push(it);
-		i++;
+		}
+
 	}
 }
 
@@ -155,7 +168,7 @@ void	ConnectionManager::loop()
 	}
 }
 
-void	ConnectionManager::reserve(size_t n)
+void	ConnectionManager::_reserve(size_t n)
 {
 	std::cerr << "DEBUG: reserved_connections for " << n << " possibles connections" << std::endl;
 	_connections.reserve(n);
@@ -174,7 +187,7 @@ ConnectionManager::ConnectionManager(const WebServerConfig &config) : _servers(c
 
 ConnectionManager::~ConnectionManager()
 {
-	std::cerr << "DEBUG: Destructor called for class ConnectionManager\n";
+	// std::cerr << "DEBUG: Destructor called for class ConnectionManager\n";
 }
 
 ///////////////////////////////////////////////////////////////////////////////

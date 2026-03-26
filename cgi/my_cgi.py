@@ -27,7 +27,7 @@ if request_method == "POST":
 if request_method == "GET":
     body = f"""<html>
     <head>
-		<link rel="stylesheet" href="css/style/">
+		<link rel="stylesheet" href="css/style/style.css">
     </head>
     <body>
         <div class="container">
@@ -45,7 +45,7 @@ elif request_method == "POST":
 
     body = f"""<html>
     <head>
-        <link rel="stylesheet" href="css/style/">
+        <link rel="stylesheet" href="css/style/style.css">
     </head>
     <body>
         <div class="container">

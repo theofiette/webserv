@@ -35,11 +35,6 @@ class WebServer
 		pollfd 						*_pollfds;
 		size_t						_pollSize;
 
-
-		bool						_decrement;
-		std::map<int, Request> 		_requestsMap;
-		std::map<int, Response> 	_responsesMap;
-
 		SessionManager				_sessionManager;
 
 		void	_initMasterSocket();
