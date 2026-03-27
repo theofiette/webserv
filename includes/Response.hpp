@@ -61,7 +61,7 @@ class Response
 		
 		Location 			_currLocation;
 
-		const Server 		&_currServ;
+		const Server 		*_currServ;
 		// const Request 		&_request;
 		// Session				&_session;
 

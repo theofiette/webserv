@@ -33,8 +33,8 @@ size_t	ConnectionManager::_setupPollfds()
 	{
 		if (i < _masterSockets.size())
 		{
-			// _pollfds[i].fd = _masterSockets[i];
-			// _pollfds[i].events = POLLIN;
+			_pollfds[i].fd = _masterSockets[i];
+			_pollfds[i].events = POLLIN;
 			i++;
 		}
 		else if (j < _connections.size())

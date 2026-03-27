@@ -37,7 +37,7 @@ void	Request::clear()
 
 Request::Request(const Server &server, unsigned int serverIndex) : 
 _totalBytes(0),_headerComplete(false), _requestCode(OK), _requestComplete(false), _requestTimedOut(false),
-_discardBody(false), _receivedBodyBytes(0), _serverIndex(serverIndex), _currServ(server), _tracker(TimeoutTracker())
+_discardBody(false), _receivedBodyBytes(0), _serverIndex(serverIndex), _currServ(&server), _tracker(TimeoutTracker())
 {
 	std::cerr << "DEBUG: Constructor called for class Request\n" END;
 }
@@ -150,7 +150,7 @@ void Request::receiveRequestChunk(int socketFd)
 	int contentLength = extractContentLength(_header); // est ce qu on stockerait pas le content length dans request
 	if (_headerComplete == true)
 	{
-		if (contentLength > 0 && contentLength > _currServ.getMaxBody())
+		if (contentLength > 0 && contentLength > _currServ->getMaxBody())
 		{
 			_requestCode = CONTENT_TOO_LARGE;
 			_discardBody = true;
@@ -317,7 +317,7 @@ unsigned int	Request::getServerIndex() const
 	return (_serverIndex);
 }
 
-const Server &	Request::getServer() const
+const Server *	Request::getServer() const
 {
 	return (_currServ);
 }

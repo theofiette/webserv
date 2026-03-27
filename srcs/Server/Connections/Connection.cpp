@@ -113,8 +113,10 @@ void	Connection::processTmp(short revent)
 			_response.updateBytesSent(bytesSent);
 			if (_response.isSent())
 			{
-				setState(CS_KEEP);
-				// setState(CS_CLOSE);
+				if (_request.getMap().find("Connection") != _request.getMap().end() && _request.getMap().find("Connection")->second == "keep-alive")
+					setState(CS_KEEP);
+				else
+					setState(CS_CLOSE);
 			}
 			break ;
 		case (CS_KEEP):
@@ -157,7 +159,11 @@ Connection &Connection::operator=(const Connection &other)
 		return (*this);
 	}
 	this->_fd = other._fd;
+	this->_wantedEvent = other._wantedEvent;
 	this->_state = other._state;
+	this->_request = other._request;
+	this->_response = other._response;
+	// _server is a reference and cannot be re-assigned; it should remain bound
 
 	// std::cerr << "DEBUG: Operator = called for class Connection\n";
 	return (*this);
@@ -173,7 +179,7 @@ Connection &Connection::operator=(const Connection &other)
 // }
 
 Connection::Connection(int fd, const Server &server, unsigned int tmp_i): 
-_fd(fd), _state(CS_NONE), _request(server, tmp_i), _response(server), _server(server)
+_fd(fd), _wantedEvent(POLLIN), _state(CS_NONE), _request(server, tmp_i), _response(server), _server(server)
 {
 	std::cerr << "DEBUG: TMP Constructor called for class Connection\n";
 }

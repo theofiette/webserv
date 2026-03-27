@@ -29,7 +29,7 @@ class Request
 		size_t								_receivedBodyBytes;
 		int									_serverIndex;
 
-		const Server	&_currServ;
+		const Server	*_currServ;
 		TimeoutTracker	_tracker;
 
 		void 	setFirstLine(std::string);
@@ -58,7 +58,7 @@ class Request
 		
 		const std::string& 			getHeader() const;
 		const std::vector<char>&	getBody() const;
-		const Server&				getServer() const;
+		const Server				*getServer() const;
 		size_t						getRequestCode() const;
 		const bool&					isRequestTimedOut() const;
 		

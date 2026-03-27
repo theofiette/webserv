@@ -54,7 +54,7 @@ void	Response::clear()
 }
 
 Response::Response(const Server &server) : 
-_statusCode(200), _bytesSent(0), _currServ(server)
+_statusCode(200), _bytesSent(0), _currServ(&server)
 {
 	std::cerr << "DEBUG: Constructor called for class Response\n";
 	// TODO : ERROR_CODE dans flux connection
@@ -119,7 +119,7 @@ void Response::addHeader(std::string key, std::string value)
 
 std::map<string, Location>::const_reverse_iterator Response::findBestLocation(const std::string &uriPath)
 {
-	const std::map<std::string, Location>& loc = _currServ.getLocations();
+	const std::map<std::string, Location>& loc = _currServ->getLocations();
 	
 	for (std::map<string, Location>::const_reverse_iterator it = loc.rbegin(); it != loc.rend(); it++)
 	{
@@ -307,11 +307,11 @@ void Response::handleResponsesError()
 		localPath = errPage->second;
 	else
 	{
-		errPage = _currServ.getServerErrors().find(_statusCode);
-		if (errPage != _currServ.getServerErrors().end())
+		errPage = _currServ->getServerErrors().find(_statusCode);
+		if (errPage != _currServ->getServerErrors().end())
 			localPath = errPage->second;
 		else
-			localPath = _currServ.getServerErrors().find(0)->second;
+			localPath = _currServ->getServerErrors().find(0)->second;
 	}	
 	if (stat(localPath.c_str(), &s) != -1 && access(localPath.c_str(), R_OK) != -1)
 		readFileContent(localPath, s.st_size);
