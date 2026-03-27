@@ -18,7 +18,7 @@ void TimeoutTracker::processTime()
 
 bool TimeoutTracker::isExpired()
 {
-	std::cout << std::time(0) - _startTime << "\n";
+	// std::cout << "TIME IS : " << std::time(0) - _startTime << "\n";	
 	if (std::time(0) - _startTime >= _timeout)
 	{
 		_expired = true;

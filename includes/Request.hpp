@@ -54,8 +54,11 @@ class Request
 		// // TEMPORAIRE
 		void				display() const;
 		void 				displayInfos() const;
+
+
 		const bool &		isRequestComplete();
-		
+		void				setAsTimeout();
+
 		const std::string& 			getHeader() const;
 		const std::vector<char>&	getBody() const;
 		const Server				*getServer() const;

@@ -41,11 +41,13 @@ class Connection {
 
 		Request				_request;
 		Response			_response;
+		TimeoutTracker 		_timer;
 
 		const Server &		_server;
 		// Session				_session;
 
 		void	_clear();
+		void	_checkTimeout();
 
 		Connection();
 
@@ -53,6 +55,7 @@ class Connection {
 	
 		void	process(short revent);
 		void	processTmp(short revent);
+
 		
 		// short			getEvent() const;
 		int				getFd() const;

@@ -40,9 +40,9 @@ size_t	ConnectionManager::_setupPollfds()
 		else if (j < _connections.size())
 		{
 			_pollfds[i + j].fd = _connections[j].getFd();
-			std::cout << "wanted event for fd " << _connections[j].getFd() << " is : " << _connections[j].getWantedEvent() << "\n";
-			std::cout << "events for fd " << _pollfds[i + j].fd << " is : " << _pollfds[i + j].events << "\n";
-			std::cout << "state for fd " << _connections[j].getFd() << " is : " << _connections[j].getStateInterpreted() << "\n";
+			// std::cout << "wanted event for fd " << _connections[j].getFd() << " is : " << _connections[j].getWantedEvent() << "\n";
+			// std::cout << "events for fd " << _pollfds[i + j].fd << " is : " << _pollfds[i + j].events << "\n";
+			// std::cout << "state for fd " << _connections[j].getFd() << " is : " << _connections[j].getStateInterpreted() << "\n";
 			_pollfds[i + j].events = _connections[j].getWantedEvent();
 			j++;
 		}

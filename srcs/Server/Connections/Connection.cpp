@@ -7,7 +7,7 @@ void	Connection::setState(ConnectionState state)
 	else
 		_wantedEvent = POLLIN;
 	_state = state;
-	std::cout << BLUE << "state is now : " << getStateInterpreted() << "\n" END;
+	// std::cout << BLUE << "state is now : " << getStateInterpreted() << "\n" END;
 }
 
 short	Connection::getWantedEvent()
@@ -54,6 +54,26 @@ void	Connection::_clear()
 	_response.clear();
 }
 
+void	Connection::_checkTimeout(){
+	
+	if (_timer.isExpired() == true)
+	{
+ 		std::cerr << "TIMEDOUT AS CONNECTION : " << _fd << "\n";
+		std::cerr << BLUE << "state is now : " << getStateInterpreted() << "\n" END;
+		_request.setAsTimeout();
+		if (_state == CS_BUFFERING)
+			setState(CS_WRITING);
+		else if (_state == CS_WRITING)
+		{
+			// kill(pid);
+			std::cerr << "TODO : TIMEOUT CGI\n";
+		}
+		else
+			setState(CS_CLOSE);
+		_timer = TimeoutTracker();
+	}
+}
+
 void	Connection::processTmp(short revent)
 {
 	std::cerr << RED << "PROCESS: fd is " << _fd << "\n";
@@ -68,19 +88,16 @@ void	Connection::processTmp(short revent)
 		setState(CS_CLOSE);
 		return ;
 	}
-	if (_request.isRequestTimedOut() && (_state < CS_SENDING))
-	{
-		setState(CS_CLOSE);
-		return ;
-	}
+	_checkTimeout();
 	switch (_state)
 	{
 		case (CS_NONE):
+			if (!(revent & POLLIN))
+					return ;
 			setState(CS_BUFFERING);
-			break;
 		case (CS_BUFFERING):
 			if (!(revent & POLLIN))
-				return ;
+					return ;
 			_request.receiveRequestChunk(_fd);
 			if (_request.isRequestComplete())
 				setState(CS_PARSING);
@@ -93,8 +110,10 @@ void	Connection::processTmp(short revent)
 		case (CS_WRITING):
 			if (_request.getRequestCode() == OK)
 				_response.pickMethod(_request);
-			else
+			else{
+				_response.setStatusCode(_request.getRequestCode());
 				_response.handleResponsesError();
+			}
 			_response.buildRawResponse(_request);
 			setState(CS_SENDING);
 			break ;
@@ -129,25 +148,25 @@ void	Connection::processTmp(short revent)
 	}
 }
 
-void	Connection::process(short revent)
-{
-	switch (_state)
-	{
-		// std::cerr << "DEBUG: connexion state : ";
-		case (CS_NONE):
-			std::cerr << "fd is " << _fd << "\n";
-			std::cerr << "state is CS_NONE\n";
-			std::cerr << "event is " << revent << std::endl;
-			setState(CS_BUFFERING);
-			break;
-		default :
-			std::cerr << "fd is " << _fd << "\n";
-			std::cerr << "state is **default**\n";
-			std::cerr << "event is " << revent << std::endl;
-			setState(CS_CLOSE);
-			break;
-	}
-}
+// void	Connection::process(short revent)
+// {
+// 	switch (_state)
+// 	{
+// 		// std::cerr << "DEBUG: connexion state : ";
+// 		case (CS_NONE):
+// 			std::cerr << "fd is " << _fd << "\n";
+// 			std::cerr << "state is CS_NONE\n";
+// 			std::cerr << "event is " << revent << std::endl;
+// 			setState(CS_BUFFERING);
+// 			break;
+// 		default :
+// 			std::cerr << "fd is " << _fd << "\n";
+// 			std::cerr << "state is **default**\n";
+// 			std::cerr << "event is " << revent << std::endl;
+// 			setState(CS_CLOSE);
+// 			break;
+// 	}
+// }
 
 //	CANONICAL /////////////////////////////////////////////////////////////////
 
@@ -163,6 +182,7 @@ Connection &Connection::operator=(const Connection &other)
 	this->_state = other._state;
 	this->_request = other._request;
 	this->_response = other._response;
+	this->_timer = other._timer;
 	// _server is a reference and cannot be re-assigned; it should remain bound
 
 	// std::cerr << "DEBUG: Operator = called for class Connection\n";

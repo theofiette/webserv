@@ -81,6 +81,7 @@ void Request::readSocketChunk(int socketFd, char *buffer, size_t bufferSize, siz
 	if (_headerComplete == false)
 	{
 		_header.append(buffer, bytesRead);
+		std::cout << "ABOUT TO LOOK HEADEREND\n";
 		headerEnd = findHeaderEnd(_header);
 	}
 	else
@@ -137,14 +138,7 @@ void Request::receiveRequestChunk(int socketFd)
 {	
 	char buffer[SEND_SIZE] = {0};
 	size_t headerEnd = _header.size();
-
-	if (_tracker.isExpired() == true)
-	{
-		_requestComplete = true;
-		_requestCode = REQUEST_TIMEOUT;
-		_requestTimedOut = true;
-		return ;
-	}
+	std::cout << "GOING IN RECV\n";
 
 	readSocketChunk(socketFd, buffer, SEND_SIZE, headerEnd);
 	int contentLength = extractContentLength(_header); // est ce qu on stockerait pas le content length dans request
@@ -330,6 +324,12 @@ const std::vector<char>& Request::getBody() const
 const std::map<std::string, std::string>& Request::getMap() const
 {
 	return (_requestHeader);
+}
+
+void	Request::setAsTimeout(){
+	_requestComplete = true;
+	_requestCode = REQUEST_TIMEOUT;
+	_requestTimedOut = true;
 }
 
 const std::string& Request::getHeader() const

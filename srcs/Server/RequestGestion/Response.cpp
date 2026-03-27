@@ -319,8 +319,6 @@ void Response::handleResponsesError()
 	{
 		_body = "<html><head><link rel=\"stylesheet\" href=\"css/style/\"><title>Error " + intToString(_statusCode) + "</title></head>";
 		_body += "<body><h1>Error " + intToString(_statusCode);
-		if (_statusMap.find(_statusCode) == _statusMap.end())
-			std::cerr << "map::at error 4\n";
 		_body += _statusMap.at(_statusCode) + "</h1>";
 		_body += "<p>An error occurred while processing your request.</p></body></html>";
 	}
@@ -445,7 +443,7 @@ void Response::cgiMainProcess(int pipe_in[2], int pipe_out[2], Cgi &cgi, int pid
 
 	close(pipe_in[1]);
 
-	waitpid(pid, NULL, 0);
+	waitpid(pid, NULL, WNOHANG);
 
 	char buffer[4096] = {0};
 	int bytesRead;
@@ -520,13 +518,7 @@ void Response::buildRawResponse(const Request &_req)
 	if (_req.getMap().find("Protocol") == _req.getMap().end())
 		_rawResponse += "HTTP/1.1 ";
 	else
-	{
-		if (_req.getMap().find("Protocol") == _req.getMap().end())
-			std::cerr << "map::at error 1\n";
 		_rawResponse += _req.getMap().at("Protocol") + " ";
-	}
-	if (_statusMap.find(_statusCode) == _statusMap.end())
-			std::cerr << "map::at error 2\n";
 	_rawResponse += intToString(_statusCode) + " " + _statusMap.at(_statusCode) + "\r\n";
 
 	for (; it != _header.end(); it++)
