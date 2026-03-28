@@ -58,7 +58,7 @@ void	Connection::_checkTimeout(){
 	
 	if (_timer.isExpired() == true)
 	{
- 		std::cerr << "TIMEDOUT AS CONNECTION : " << _fd << "\n";
+		std::cerr << "TIMEDOUT AS CONNECTION : " << _fd << "\n";
 		std::cerr << BLUE << "state is now : " << getStateInterpreted() << "\n" END;
 		_request.setAsTimeout();
 		if (_state == CS_BUFFERING)
