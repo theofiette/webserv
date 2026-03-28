@@ -103,6 +103,8 @@ void	Connection::_checkTimeout()
 			{
 				std::cout << RED << "Killing CGI fd-> " << _socketFd << END << "\n";
 				_clearCgi();
+				// if (_cgiReadFd >= 0 || _cgiPid > 0)
+				// 	Cgi::killProcess(_cgiPid, _cgiReadFd);
 			}
 			setState(CS_CLOSE);
 		}
