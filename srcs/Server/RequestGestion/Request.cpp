@@ -70,9 +70,13 @@ int extractContentLength(const std::string &buffer)
 void Request::readSocketChunk(int socketFd, char *buffer, size_t bufferSize, size_t &headerEnd)
 {
 	ssize_t bytesRead = recv(socketFd, buffer, bufferSize, 0);
-	std::cout << BLUE BOLD << buffer << END << std::endl;
 	if (bytesRead < 0)
-		throw ExceptionRuntime("recv() error");
+	{
+		_requestCode = BAD_REQUEST;
+		_requestComplete = true;
+		return ;
+	}
+	std::cout << BLUE BOLD << std::string(buffer, bytesRead) << END << std::endl;
 	if (bytesRead == 0)
 	{
 		_requestComplete = true;
@@ -133,7 +137,6 @@ void	Request::storeBodyExceeding(const size_t &headerEnd)
 		_header = _header.substr(0, headerEnd);
 	}
 }
-//TODO: systeme diterations pour pas chercher la fin du header en boucle ? _iterations++ ? if _iterations < MAX_ITER
 void Request::receiveRequestChunk(int socketFd)
 {	
 	char buffer[SEND_SIZE] = {0};

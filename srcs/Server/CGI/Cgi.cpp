@@ -1,8 +1,13 @@
 #include "Cgi.hpp"
 #include "Request.hpp"
+#include "Response.hpp"
+#include "wrapper.hpp"
 
+#include <cerrno>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <fcntl.h>
+#include <signal.h>
 
 Cgi::Cgi(const Request &request)
 {
@@ -38,8 +43,8 @@ Cgi::Cgi(const Request &request)
 	// 	_metaVariables[it->first] = it->second;
 	// }
 
-	_cgiEnv = new char*[rm.size()];
-	int i = 0;
+	_cgiEnv = new char*[_metaVariables.size() + 1];
+	size_t i = 0;
 	for (std::map<std::string, std::string>::iterator it = _metaVariables.begin(); it != _metaVariables.end(); it++)
 	{
 		std::string metaVar = it->first + "=" + it->second;
@@ -52,14 +57,14 @@ Cgi::Cgi(const Request &request)
 
 void Cgi::cgiChildProcess(int pipe_in[2], int pipe_out[2])
 {
-	close(pipe_in[1]);
-	close(pipe_out[0]);
+	safeClose(pipe_in[1]);
+	safeClose(pipe_out[0]);
 
 	dup2(pipe_in[0], STDIN_FILENO); // pour lire le contenu du POST
 	if (dup2(pipe_out[1], STDOUT_FILENO) == -1)
 	{
-		close(pipe_in[0]);
-		close(pipe_out[1]);
+		safeClose(pipe_in[0]);
+		safeClose(pipe_out[1]);
 		exit(1);
 	}
 	std::string file = "./cgi/" + (getMetaVars().find("SCRIPT_NAME")->second);
@@ -73,10 +78,10 @@ void Cgi::cgiChildProcess(int pipe_in[2], int pipe_out[2])
 	exit(0);
 }
 
-void Cgi::cgiMainProcess(int pipe_in[2], int pipe_out[2], int pid, const Request &request, std::string &rawResponse)
+void Cgi::cgiMainProcess(int pipe_in[2], int pipe_out[2], const Request &request, int &readFd)
 {
-	close(pipe_in[0]);
-	close(pipe_out[1]);
+	safeClose(pipe_in[0]);
+	safeClose(pipe_out[1]);
 
 	if (request.getMap().find("Method") != request.getMap().end() && request.getMap().find("Method")->second == "POST")
 	{
@@ -85,28 +90,16 @@ void Cgi::cgiMainProcess(int pipe_in[2], int pipe_out[2], int pid, const Request
 		setBodyMessage(bodyStr);
 		if (write(pipe_in[1], getBodyMessage().c_str(), getBodyMessage().size()) == -1)
 		{
-			close(pipe_in[1]);
-			close(pipe_out[0]);
+			safeClose(pipe_in[1]);
+			safeClose(pipe_out[0]);
 			throw ExceptionWriteError();
 		}
 	}
-
-	close(pipe_in[1]);
-
-	waitpid(pid, NULL, WNOHANG);
-
-	char buffer[4096] = {0};
-	int bytesRead;
-
-	while ((bytesRead = read(pipe_out[0], buffer, sizeof(buffer))) > 0) // TODO: Attention au read sans poll
-		rawResponse += buffer;
-
-	close(pipe_out[0]);
-	if (bytesRead == -1)
-		throw ExceptionReadError();
+	safeClose(pipe_in[1]);
+	readFd = pipe_out[0];
 }
 
-void Cgi::_executeCgi(const Request &request, std::string &rawResponse)
+void Cgi::run(const Request &request, pid_t &pid, int &readFd)
 {
 	int pipe_in[2];
 	int pipe_out[2];
@@ -114,11 +107,55 @@ void Cgi::_executeCgi(const Request &request, std::string &rawResponse)
 	if (pipe(pipe_in) == -1 || pipe(pipe_out) == -1)
 		throw ExceptionCgiPipeError();
 
-	pid_t pid = fork();
+	pid = fork();
+	if (pid < 0)
+	{
+		closePipe(pipe_in);
+		closePipe(pipe_out);
+		throw ExceptionCgiPipeError();
+	}
 	if (!pid)
 		cgiChildProcess(pipe_in, pipe_out);
 	else
-		cgiMainProcess(pipe_in, pipe_out, pid, request, rawResponse);
+		cgiMainProcess(pipe_in, pipe_out, request, readFd);
+}
+
+bool Cgi::readFromCGI(pid_t &pid, int &readFd, Response &response)
+{
+	if (readFd < 0)
+		return (true);
+	char buffer[4096];
+
+	ssize_t bytesRead = read(readFd, buffer, sizeof(buffer));
+	if (bytesRead > 0)
+	{
+		response.appendRawResponse(buffer, bytesRead);
+		return (false);
+	}
+	if (bytesRead == 0) // EOF reached, we close the readFd -> eof -> POLLHUP 
+	{
+		safeClose(readFd);
+		if (pid > 0)
+		{
+			waitpid(pid, NULL, 0);
+			pid = -1;
+		}
+		return (true);
+	}
+	if (bytesRead < 0) 
+		return (false); // TODO: on peut rester stuck ici non ?
+	return (true); 
+}
+
+void Cgi::killProcess(pid_t &pid, int &readFd)
+{
+	safeClose(readFd);
+	if (pid > 0)
+	{
+		kill(pid, SIGKILL);
+		waitpid(pid, NULL, 0);
+		pid = -1;
+	}
 }
 
 Cgi::~Cgi()

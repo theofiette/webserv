@@ -204,7 +204,7 @@ _config(config), _gaiPtr(NULL), _connectionManager(_config), _pollfds(NULL), _po
 WebServer::~WebServer()
 {
 	for (unsigned int i = 0; i < _masterSockets.size(); i++)
-		close(_masterSockets[i]);
+		safeClose(_masterSockets[i]);
 	delete [] _pollfds ;
 	if (_gaiPtr)
 		freeaddrinfo(_gaiPtr);

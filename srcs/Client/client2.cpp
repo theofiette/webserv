@@ -50,7 +50,7 @@ int main()
         perror("recv");
 
     // closing socket
-    close(clientSocket);
+    safeClose(clientSocket);
 
     return 0;
 }

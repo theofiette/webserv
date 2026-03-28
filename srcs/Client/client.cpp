@@ -36,7 +36,7 @@ int main()
             std::cout << "Exception: " << e.what() << std::endl;
         }
     }
-    close(clientSocket);
+    safeClose(clientSocket);
 
     return 0;
 }

@@ -76,6 +76,21 @@ void	Poll(pollfd *pollfds, nfds_t socketCount, int timeout)
 		throw(ExceptionBadInit(strerror(errno)));
 }
 
+void	safeClose(int &fd)
+{
+	if (fd >= 0)
+	{
+		close(fd);
+		fd = -1;
+	}
+}
+
+void	closePipe(int pipefd[2])
+{
+	safeClose(pipefd[0]);
+	safeClose(pipefd[1]);
+}
+
 // int Send(int &fd, std::string const& chunckedStr)
 // {
 // 	int bytesSent = send(fd, chunckedStr.c_str(), chunckedStr.size(), 0);

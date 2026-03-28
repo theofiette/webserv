@@ -1,5 +1,6 @@
 #include "Connection.hpp"
 #include <sys/wait.h>
+#include "wrapper.hpp"
 
 void	Connection::setState(ConnectionState state)
 {
@@ -13,9 +14,9 @@ void	Connection::setState(ConnectionState state)
 
 int	Connection::getPollFd() const
 {
-	if (_state == CS_WAIT_CGI && _cgiReadFd >= 0)
+	if (_state == CS_WAIT_CGI && _cgiReadFd >= 0) // CGI CASE je surveille le pipe de lecture du CGI et pas le socket de la connection
 		return (_cgiReadFd);
-	return (_fd);
+	return (_socketFd);
 }
 
 short	Connection::getWantedEvent()
@@ -55,7 +56,7 @@ ConnectionState	Connection::getState() const
 
 int	Connection::getFd() const
 {
-	return (_fd);
+	return (_socketFd);
 }
 
 void	Connection::_clear()
@@ -64,82 +65,62 @@ void	Connection::_clear()
 	_response.clear();
 }
 
-void	Connection::_cleanupCgi(bool endProcess)
+void	Connection::_clearCgi()
 {
 	if (_cgiReadFd >= 0 || _cgiPid > 0)
-	{
-		if (endProcess)
-			Cgi::stop(_cgiPid, _cgiReadFd);
-		else
-		{
-			if (_cgiReadFd >= 0)
-			{
-				close(_cgiReadFd);
-				_cgiReadFd = -1;
-			}
-			if (_cgiPid > 0)
-			{
-				waitpid(_cgiPid, NULL, WNOHANG);
-				_cgiPid = -1;
-			}
-		}
-	}
+		Cgi::killProcess(_cgiPid, _cgiReadFd);
 }
 
 void	Connection::_startCgi()
 {
 	Cgi cgi(_request);
 
-	_cgiRawResponse.clear();
-	cgi.start(_request, _cgiPid, _cgiReadFd);
+	cgi.run(_request, _cgiPid, _cgiReadFd);
 	setState(CS_WAIT_CGI);
 }
 
 void	Connection::_processCgi(short revent)
 {
-	if (!(revent & (POLLIN)))
+	if (!(revent & (POLLIN) || revent & POLLHUP))
 		return ;
 
-	bool isDone = Cgi::readAvailable(_cgiReadFd, _cgiRawResponse);
-	if (!isDone)
+	if(!Cgi::readFromCGI(_cgiPid, _cgiReadFd, _response))
 		return ;
-
-	Cgi::finish(_cgiPid);
-	_response.setRawResponse(_cgiRawResponse);
 	setState(CS_SENDING);
 }
 
-void	Connection::_checkTimeout(){
-	
+void	Connection::_checkTimeout()
+{
 	if (_timer.isExpired() == true)
 	{
-		std::cerr << "TIMEDOUT AS CONNECTION : " << _fd << "\n";
 		std::cerr << BLUE << "state is now : " << getStateInterpreted() << "\n" END;
 		_request.setAsTimeout();
 		if (_state == CS_BUFFERING)
 			setState(CS_WRITING);
-		else if (_state == CS_WRITING || _state == CS_WAIT_CGI)
-		{
-			// kill(pid);
-			std::cerr << "TODO : TIMEOUT CGI\n";
-		}
 		else
+		{
+			if (_state == CS_WAIT_CGI)
+			{
+				std::cout << RED << "Killing CGI fd-> " << _socketFd << END << "\n";
+				_clearCgi();
+			}
 			setState(CS_CLOSE);
+		}
 		_timer = TimeoutTracker();
 	}
 }
 
 void	Connection::processTmp(short revent)
 {
-	std::cerr << RED << "PROCESS: fd is " << _fd << "\n";
 	std::string chunckedStr;
 
-	// std::cerr << "fd is " << _fd << "\n";
-	// std::cerr << "event is " << revent << std::endl;
-	// std::cerr << "DEBUG: connexion state : ";
-	if (revent & POLLERR || revent & POLLHUP || revent & POLLNVAL)
+	if (revent & POLLERR || revent & POLLNVAL)
 	{
-		std::cerr << RED BOLD << "Error !!!" << std::endl;
+		setState(CS_CLOSE);
+		return ;
+	}
+	if (_state != CS_WAIT_CGI && (revent & POLLHUP)) // POLLHUP trigger when CGI pipe is closed
+	{
 		setState(CS_CLOSE);
 		return ;
 	}
@@ -147,48 +128,54 @@ void	Connection::processTmp(short revent)
 	switch (_state)
 	{
 		case (CS_NONE):
-			if (!(revent & POLLIN))
+			if (!(revent & POLLIN)) // TODO: maybe erase ?
 					return ;
 			setState(CS_BUFFERING);
+
 		case (CS_BUFFERING):
-			if (!(revent & POLLIN))
+			if (!(revent & POLLIN)) // TODO: move those checks ?
 					return ;
-			_request.receiveRequestChunk(_fd);
+			_request.receiveRequestChunk(_socketFd);
 			if (_request.isRequestComplete())
 				setState(CS_PARSING);
 			else
 				break ;
+
 		case (CS_PARSING):
 			_request.parseRequest(_request.getHeader());
 			_response.setStatusCode(_request.getRequestCode());
 			setState(CS_WRITING);
+
 		case (CS_WRITING):
 			if (_request.getRequestCode() == OK)
 			{
 				if (_response.isCgi(_request))
 				{
-					_startCgi();
+					_startCgi(); // executes CGI script and sets CS_WAIT_CGI
 					break ;
 				}
 				_response.pickMethod(_request);
 			}
-			else{
+			else
+			{
 				_response.setStatusCode(_request.getRequestCode());
 				_response.handleResponsesError();
 			}
 			_response.buildRawResponse(_request);
 			setState(CS_SENDING);
 			break ;
+	
 		case (CS_WAIT_CGI):
-			_processCgi(revent);
+			_processCgi(revent); // reads CGI output and sets to SENDING when CGI is done
 			break ;
+
 		case (CS_SENDING):
 			if (!(revent & POLLOUT))
 				return ;
 			chunckedStr = _response.getChunckResp(SEND_SIZE);
 			int bytesSent;
-			std::cout << GREEN ITALIC << "SENDING>> " << chunckedStr << END << "\n";
-			bytesSent = send(_fd, chunckedStr.c_str(), chunckedStr.size(), 0);
+			std::cout << GREEN ITALIC << chunckedStr << END << "\n";
+			bytesSent = send(_socketFd, chunckedStr.c_str(), chunckedStr.size(), 0);
 			if (bytesSent <= 0)
 			{
 				setState(CS_CLOSE);
@@ -203,10 +190,12 @@ void	Connection::processTmp(short revent)
 					setState(CS_CLOSE);
 			}
 			break ;
+
 		case (CS_KEEP):
 			_clear();
 			setState(CS_NONE);
 			break ;
+
 		default :
 			setState(CS_CLOSE);
 			break;
@@ -219,13 +208,13 @@ void	Connection::processTmp(short revent)
 // 	{
 // 		// std::cerr << "DEBUG: connexion state : ";
 // 		case (CS_NONE):
-// 			std::cerr << "fd is " << _fd << "\n";
+// 			std::cerr << "fd is " << _socketFd << "\n";
 // 			std::cerr << "state is CS_NONE\n";
 // 			std::cerr << "event is " << revent << std::endl;
 // 			setState(CS_BUFFERING);
 // 			break;
 // 		default :
-// 			std::cerr << "fd is " << _fd << "\n";
+// 			std::cerr << "fd is " << _socketFd << "\n";
 // 			std::cerr << "state is **default**\n";
 // 			std::cerr << "event is " << revent << std::endl;
 // 			setState(CS_CLOSE);
@@ -242,7 +231,7 @@ Connection &Connection::operator=(const Connection &other)
 		std::cerr << "this is other\n";
 		return (*this);
 	}
-	this->_fd = other._fd;
+	this->_socketFd = other._socketFd;
 	this->_wantedEvent = other._wantedEvent;
 	this->_state = other._state;
 	this->_request = other._request;
@@ -258,13 +247,13 @@ Connection &Connection::operator=(const Connection &other)
 
 // Connection::Connection(int fd) :
 // {
-// 	_fd = fd;
+// 	_socketFd = fd;
 // 	_state = CS_NONE;
 // 	std::cerr << "DEBUG: Constructor called for class Connection\n";
 // }
 
 Connection::Connection(int fd, const Server &server, unsigned int tmp_i): 
-_fd(fd), _wantedEvent(POLLIN), _state(CS_NONE), _request(server, tmp_i), _response(server), _server(server)
+_socketFd(fd), _wantedEvent(POLLIN), _state(CS_NONE), _request(server, tmp_i), _response(server), _server(server)
 {
 	std::cerr << "DEBUG: TMP Constructor called for class Connection\n";
 }
@@ -278,7 +267,7 @@ _fd(fd), _wantedEvent(POLLIN), _state(CS_NONE), _request(server, tmp_i), _respon
 Connection::~Connection()
 {
 	std::cerr << "DEBUG: Destructor called for class Connection\n";
-	// close(_fd);
+	// close(_socketFd);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

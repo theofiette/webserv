@@ -436,12 +436,6 @@ bool Response::isCgi(const Request &_req)
 	return (false);
 }
 
-void Response::handleCgi(const Request &_req)
-{
-	Cgi cgi(_req);
-	cgi._executeCgi(_req, _rawResponse);
-}
-
 std::string Response::getChunckResp(int bytes)
 {
 	std::string chunckResp;
@@ -490,9 +484,9 @@ void Response::setStatusCode(const int statusCode)
 	_statusCode = statusCode;
 }
 
-void Response::setRawResponse(const std::string &rawResponse)
+void Response::appendRawResponse(const char *buffer, size_t bytesRead)
 {
-	_rawResponse = rawResponse;
+	_rawResponse.append(buffer, bytesRead);
 }
 
 void Response::setCurrLocation(const Location &loc)

@@ -3,6 +3,7 @@
 #include "Session.hpp"
 
 class Request;
+class Response;
 
 class Cgi
 {
@@ -11,7 +12,7 @@ class Cgi
 		std::string 						_bodyMessage;
 		char**								_cgiEnv;
 
-		void cgiMainProcess(int pipe_in[2], int pipe_out[2], int pid, const Request &request, std::string &rawResponse);
+		void cgiMainProcess(int pipe_in[2], int pipe_out[2], const Request &request, int &readFd);
 	public:
 		// Cgi(const Request &, const Session &);
 		Cgi(const Request &);
@@ -24,5 +25,9 @@ class Cgi
 
 		void setBodyMessage(const std::string &);
 		void cgiChildProcess(int[2], int[2]);
-		void _executeCgi(const Request &, std::string &);
+
+		void run(const Request &, pid_t &, int &);
+
+		static bool readFromCGI(pid_t &, int &, Response &);
+		static void killProcess(pid_t &, int &);
 };

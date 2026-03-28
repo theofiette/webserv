@@ -11,4 +11,7 @@ void	Setsockopt(int fd, int level, int optname);
 void	Bind(int fd, const sockaddr *addr, socklen_t len);
 void	Listen(int fd, int n);
 void	Poll(pollfd *pollfds, nfds_t socketCount, int timeout);
+void	safeClose(int &fd);
+void	closePipe(int pipefd[2]);
+
 // int		Send(int &fd, std::string const& chunckedStr);

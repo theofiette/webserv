@@ -31,7 +31,7 @@ class Connection {
 
 	private:
 
-		int			_fd;
+		int			_socketFd;
 		short		_wantedEvent;
 
 		ConnectionState			_state;
@@ -45,7 +45,6 @@ class Connection {
 
 		pid_t				_cgiPid;
 		int					_cgiReadFd;
-		std::string			_cgiRawResponse;
 
 		const Server &		_server;
 		// Session				_session;
@@ -55,7 +54,7 @@ class Connection {
 		
 		void	_startCgi();
 		void	_processCgi(short revent);
-		void	_cleanupCgi(bool killProcess);
+		void	_clearCgi();
 
 		Connection();
 

@@ -89,13 +89,13 @@ class Response
 
 	public:
 		// Response(const Request &, const Server &, Session &);
-		Response();
+		// Response();
 		Response(const Server &);
 		~Response();
 
 		void				setCurrLocation(const Location &);
 		void				setStatusCode(const int);
-		void				setRawResponse(const std::string &);
+		void				appendRawResponse(const char *, size_t);
 		void 				addHeader(std::string, std::string);
 
 		void 				handleResponsesError();
@@ -105,7 +105,6 @@ class Response
 		void			 	handleGet(const Request &_req);
 		void			 	handlePost(const Request &_req);
 		void			 	handleDelete(const Request &_req);
-		void			 	handleCgi(const Request &_req);
 
 		void 				buildRawResponse(const Request &_req);
 		std::string 		getChunckResp(int);
