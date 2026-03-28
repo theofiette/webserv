@@ -10,4 +10,5 @@ void	Getaddrinfo(const std::string name, const std::string service,
 void	Setsockopt(int fd, int level, int optname);
 void	Bind(int fd, const sockaddr *addr, socklen_t len);
 void	Listen(int fd, int n);
+void	Poll(pollfd *pollfds, nfds_t socketCount, int timeout);
 // int		Send(int &fd, std::string const& chunckedStr);

@@ -55,7 +55,7 @@ class Request
 		void				display() const;
 		void 				displayInfos() const;
 
-
+		bool				isKeepAlive() const;
 		const bool &		isRequestComplete();
 		void				setAsTimeout();
 

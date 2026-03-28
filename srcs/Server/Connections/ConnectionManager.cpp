@@ -33,16 +33,16 @@ size_t	ConnectionManager::_setupPollfds()
 	{
 		if (i < _masterSockets.size())
 		{
-			_pollfds[i].fd = _masterSockets[i];
-			_pollfds[i].events = POLLIN;
+			// _pollfds[i].fd = _masterSockets[i];
+			// _pollfds[i].events = POLLIN;
 			i++;
 		}
 		else if (j < _connections.size())
 		{
 			_pollfds[i + j].fd = _connections[j].getFd();
-			// std::cout << "wanted event for fd " << _connections[j].getFd() << " is : " << _connections[j].getWantedEvent() << "\n";
-			// std::cout << "events for fd " << _pollfds[i + j].fd << " is : " << _pollfds[i + j].events << "\n";
-			// std::cout << "state for fd " << _connections[j].getFd() << " is : " << _connections[j].getStateInterpreted() << "\n";
+			std::cout << "wanted event for fd " << _connections[j].getFd() << " is : " << _connections[j].getWantedEvent() << "\n";
+			std::cout << "events for fd " << _pollfds[i + j].fd << " is : " << _pollfds[i + j].events << "\n";
+			std::cout << "state for fd " << _connections[j].getFd() << " is : " << _connections[j].getStateInterpreted() << "\n";
 			_pollfds[i + j].events = _connections[j].getWantedEvent();
 			j++;
 		}
@@ -105,6 +105,7 @@ void	ConnectionManager::_checkOpenConnections()
 			newSocket = accept(_masterSockets[i], 0, 0);
 			if (newSocket < 0)
 				break ;
+			fcntl(newSocket, F_SETFL, O_NONBLOCK);
 			_openConnection(newSocket, _servers[i], i);
 			std::cerr << RED << "DEBUG: opening connection on fd " << newSocket << END << "\n";
 		}
@@ -142,7 +143,7 @@ void	ConnectionManager::_awaitEvents()
 	size_t socketCount;
 
 	socketCount = _setupPollfds();
-	poll(_pollfds, socketCount, TIMEOUT); //TODO : wrap for -1
+	Poll(_pollfds, socketCount, TIMEOUT); //TODO : wrap for -1
 }
 
 void	ConnectionManager::loop()

@@ -21,7 +21,7 @@ enum ConnectionState {
 	CS_BUFFERING,
 	CS_PARSING,
 	CS_WRITING,
-	CS_WRITTEN,
+	CS_WAIT_CGI,
 	CS_SENDING,
 	CS_KEEP,
 	CS_CLOSE
@@ -43,11 +43,19 @@ class Connection {
 		Response			_response;
 		TimeoutTracker 		_timer;
 
+		pid_t				_cgiPid;
+		int					_cgiReadFd;
+		std::string			_cgiRawResponse;
+
 		const Server &		_server;
 		// Session				_session;
 
 		void	_clear();
 		void	_checkTimeout();
+		
+		void	_startCgi();
+		void	_processCgi(short revent);
+		void	_cleanupCgi(bool killProcess);
 
 		Connection();
 
@@ -59,6 +67,7 @@ class Connection {
 		
 		// short			getEvent() const;
 		int				getFd() const;
+		int				getPollFd() const;
 		ConnectionState	getState() const;
 		string			getStateInterpreted() const;
 		void			setState(ConnectionState state);

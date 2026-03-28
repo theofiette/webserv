@@ -95,6 +95,7 @@ class Response
 
 		void				setCurrLocation(const Location &);
 		void				setStatusCode(const int);
+		void				setRawResponse(const std::string &);
 		void 				addHeader(std::string, std::string);
 
 		void 				handleResponsesError();
@@ -106,7 +107,6 @@ class Response
 		void			 	handleDelete(const Request &_req);
 		void			 	handleCgi(const Request &_req);
 
-		void				cgiMainProcess(int[2], int[2], Cgi&, int, const Request &_req);
 		void 				buildRawResponse(const Request &_req);
 		std::string 		getChunckResp(int);
 		void				updateBytesSent(int);

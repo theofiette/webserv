@@ -1,4 +1,5 @@
 #include "Connection.hpp"
+#include <sys/wait.h>
 
 void	Connection::setState(ConnectionState state)
 {
@@ -8,6 +9,13 @@ void	Connection::setState(ConnectionState state)
 		_wantedEvent = POLLIN;
 	_state = state;
 	// std::cout << BLUE << "state is now : " << getStateInterpreted() << "\n" END;
+}
+
+int	Connection::getPollFd() const
+{
+	if (_state == CS_WAIT_CGI && _cgiReadFd >= 0)
+		return (_cgiReadFd);
+	return (_fd);
 }
 
 short	Connection::getWantedEvent()
@@ -27,6 +35,8 @@ string	Connection::getStateInterpreted() const
 			return ("CS_PARSING");
 		case (CS_WRITING):
 			return ("CS_WRITING");
+		case (CS_WAIT_CGI):
+			return ("CS_WAIT_CGI");
 		case (CS_SENDING):
 			return ("CS_SENDING");
 		case (CS_KEEP):
@@ -54,6 +64,51 @@ void	Connection::_clear()
 	_response.clear();
 }
 
+void	Connection::_cleanupCgi(bool endProcess)
+{
+	if (_cgiReadFd >= 0 || _cgiPid > 0)
+	{
+		if (endProcess)
+			Cgi::stop(_cgiPid, _cgiReadFd);
+		else
+		{
+			if (_cgiReadFd >= 0)
+			{
+				close(_cgiReadFd);
+				_cgiReadFd = -1;
+			}
+			if (_cgiPid > 0)
+			{
+				waitpid(_cgiPid, NULL, WNOHANG);
+				_cgiPid = -1;
+			}
+		}
+	}
+}
+
+void	Connection::_startCgi()
+{
+	Cgi cgi(_request);
+
+	_cgiRawResponse.clear();
+	cgi.start(_request, _cgiPid, _cgiReadFd);
+	setState(CS_WAIT_CGI);
+}
+
+void	Connection::_processCgi(short revent)
+{
+	if (!(revent & (POLLIN)))
+		return ;
+
+	bool isDone = Cgi::readAvailable(_cgiReadFd, _cgiRawResponse);
+	if (!isDone)
+		return ;
+
+	Cgi::finish(_cgiPid);
+	_response.setRawResponse(_cgiRawResponse);
+	setState(CS_SENDING);
+}
+
 void	Connection::_checkTimeout(){
 	
 	if (_timer.isExpired() == true)
@@ -63,7 +118,7 @@ void	Connection::_checkTimeout(){
 		_request.setAsTimeout();
 		if (_state == CS_BUFFERING)
 			setState(CS_WRITING);
-		else if (_state == CS_WRITING)
+		else if (_state == CS_WRITING || _state == CS_WAIT_CGI)
 		{
 			// kill(pid);
 			std::cerr << "TODO : TIMEOUT CGI\n";
@@ -109,13 +164,23 @@ void	Connection::processTmp(short revent)
 			setState(CS_WRITING);
 		case (CS_WRITING):
 			if (_request.getRequestCode() == OK)
+			{
+				if (_response.isCgi(_request))
+				{
+					_startCgi();
+					break ;
+				}
 				_response.pickMethod(_request);
+			}
 			else{
 				_response.setStatusCode(_request.getRequestCode());
 				_response.handleResponsesError();
 			}
 			_response.buildRawResponse(_request);
 			setState(CS_SENDING);
+			break ;
+		case (CS_WAIT_CGI):
+			_processCgi(revent);
 			break ;
 		case (CS_SENDING):
 			if (!(revent & POLLOUT))

@@ -67,6 +67,15 @@ void	Listen(int fd, int n)
 		throw(ExceptionBadInit(strerror(errno)));
 }
 
+void	Poll(pollfd *pollfds, nfds_t socketCount, int timeout)
+{
+	int errCheck;
+
+	errCheck = poll(pollfds, socketCount, timeout);
+	if (errCheck == -1)
+		throw(ExceptionBadInit(strerror(errno)));
+}
+
 // int Send(int &fd, std::string const& chunckedStr)
 // {
 // 	int bytesSent = send(fd, chunckedStr.c_str(), chunckedStr.size(), 0);

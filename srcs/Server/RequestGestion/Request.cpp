@@ -341,6 +341,15 @@ const bool& Request::isRequestComplete()
 {
 	return (_requestComplete);
 }
+bool	Request::isKeepAlive() const
+{
+	if (getMap().find("Connection") != getMap().end())
+	{
+		if (getMap().find("Connection")->second == "keep-alive")
+			return (true);
+	}
+	return (false);
+}
 
 size_t Request::getRequestCode() const
 {

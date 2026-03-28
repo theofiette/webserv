@@ -9,7 +9,6 @@
 #include <sstream>
 
 #include <sys/stat.h>
-#include <sys/wait.h>
 
 const std::string Response::methods[METHODS_COUNT] = {"HEAD", "GET", "POST", "DELETE"};
 const std::string Response::mimeTable[MIME_SIZE] = {"html", "css", "png", "ico", "gif", "plain", "jpeg"};
@@ -78,17 +77,9 @@ void Response::pickMethod(const Request &_req)
 		&Response::handlePost,
 		&Response::handleDelete
 	};
-	if (isCgi(_req) == true)
-	{
-		handleCgi(_req);
-		return ;
-	}
-	else
-	{
-		for (int i = 0; i < METHODS_COUNT; i++)
-			if (_req.getMap().at("Method") == Response::methods[i])
-				(this->*methods[i])(_req);
-	}
+	for (int i = 0; i < METHODS_COUNT; i++)
+		if (_req.getMap().at("Method") == Response::methods[i])
+			(this->*methods[i])(_req);
 }
 
 std::string Response::MIMEtable(std::string localPath)
@@ -423,49 +414,19 @@ void Response::handleDelete(const Request &_req)
 	}
 }
 
-void Response::cgiMainProcess(int pipe_in[2], int pipe_out[2], Cgi &cgi, int pid, const Request &_req)
-{
-	close(pipe_in[0]);
-	close(pipe_out[1]);
-
-	if (_req.getMap().find("Method")->second == "POST")
-	{
-		const std::vector<char>& bodyVec = _req.getBody();
-		std::string bodyStr(bodyVec.begin(), bodyVec.end());
-		cgi.setBodyMessage(bodyStr); //write in stdout
-		if (write(pipe_in[1], cgi.getBodyMessage().c_str(), cgi.getBodyMessage().size()) == -1)
-		{
-			close(pipe_in[1]);
-			close(pipe_out[0]);
-			throw ExceptionWriteError();
-		}
-	}
-
-	close(pipe_in[1]);
-
-	waitpid(pid, NULL, WNOHANG);
-
-	char buffer[4096] = {0};
-	int bytesRead;
-
-	while ((bytesRead = read(pipe_out[0], buffer, sizeof(buffer))) > 0)
-		_rawResponse += buffer;
-
-	close(pipe_out[0]);
-	if (bytesRead == -1)
-		throw ExceptionReadError(); // vrai error
-}
-
 bool Response::isCgi(const Request &_req)
 {
 	if (_req.getMap().find("Path") == _req.getMap().end())
 		std::cerr << "map::at error 3\n";
+
 	std::string uriPath = _req.getMap().at("Path");
 	std::map<string, Location>::const_reverse_iterator loc = findBestLocation(uriPath);
 	Location location = loc->second;
+
 	size_t suffixPos = uriPath.find(".");
 	if (suffixPos == std::string::npos)
 		return (false);
+
 	std::string suffix = uriPath.substr(suffixPos);
 	std::vector<std::string>::const_iterator it = location.getCgi().begin();
 	for (; it != location.getCgi().end(); it++){
@@ -477,20 +438,8 @@ bool Response::isCgi(const Request &_req)
 
 void Response::handleCgi(const Request &_req)
 {
-	// Cgi cgi(_request, _session);
 	Cgi cgi(_req);
-
-	int pipe_in[2];
-	int pipe_out[2];
-
-	if (pipe(pipe_in) == -1 || pipe(pipe_out) == -1)
-		throw ExceptionCgiPipeError();
-	
-	pid_t pid = fork();
-	if (!pid)
-		cgi.cgiChildProcess(pipe_in, pipe_out);
-	else
-		cgiMainProcess(pipe_in, pipe_out, cgi, pid, _req);
+	cgi._executeCgi(_req, _rawResponse);
 }
 
 std::string Response::getChunckResp(int bytes)
@@ -521,6 +470,8 @@ void Response::buildRawResponse(const Request &_req)
 		_rawResponse += _req.getMap().at("Protocol") + " ";
 	_rawResponse += intToString(_statusCode) + " " + _statusMap.at(_statusCode) + "\r\n";
 
+	if (_req.isKeepAlive())
+		addHeader("Keep-alive", "timeout=5, max=200");
 	for (; it != _header.end(); it++)
 		_rawResponse += it->first + ": " + it->second + "\r\n";
 	
@@ -537,6 +488,11 @@ void Response::buildRawResponse(const Request &_req)
 void Response::setStatusCode(const int statusCode)
 {
 	_statusCode = statusCode;
+}
+
+void Response::setRawResponse(const std::string &rawResponse)
+{
+	_rawResponse = rawResponse;
 }
 
 void Response::setCurrLocation(const Location &loc)
