@@ -119,7 +119,7 @@ void	Connection::processTmp(short revent)
 		setState(CS_CLOSE);
 		return ;
 	}
-	if (_state != CS_WAIT_CGI && (revent & POLLHUP)) // POLLHUP trigger when CGI pipe is closed
+	if (_state != CS_WAIT_CGI && (revent & POLLHUP)) // POLLHUP trigger when CGI pipe is closed so we dont want to close 
 	{
 		setState(CS_CLOSE);
 		return ;
