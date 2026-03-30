@@ -57,7 +57,7 @@ class Request
 
 		bool				isKeepAlive() const;
 		const bool &		isRequestComplete();
-		void				setAsTimeout();
+		void				setAsTimeout(int);
 
 		const std::string& 			getHeader() const;
 		const std::vector<char>&	getBody() const;

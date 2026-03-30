@@ -9,7 +9,7 @@
 #include <fcntl.h>
 #include <signal.h>
 
-Cgi::Cgi(const Request &request)
+Cgi::Cgi(const Request &request) //TODO: function INIT METAVARIABLES
 {
 	std::map<std::string, std::string> rm = request.getMap();
 
@@ -142,7 +142,7 @@ bool Cgi::readFromCGI(pid_t &pid, int &readFd, Response &response)
 		}
 		return (true);
 	}
-	if (bytesRead < 0) 
+	if (bytesRead < 0)
 		return (false); // TODO: on peut rester stuck ici non ?
 	return (true); 
 }
@@ -152,7 +152,7 @@ void Cgi::killProcess(pid_t &pid, int &readFd)
 	safeClose(readFd);
 	if (pid > 0)
 	{
-		kill(pid, SIGKILL);
+		kill(pid, SIGKILL); // TODO: if (kill == -1? syscall)
 		waitpid(pid, NULL, 0);
 		pid = -1;
 	}

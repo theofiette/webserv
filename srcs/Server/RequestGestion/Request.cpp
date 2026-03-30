@@ -85,7 +85,6 @@ void Request::readSocketChunk(int socketFd, char *buffer, size_t bufferSize, siz
 	if (_headerComplete == false)
 	{
 		_header.append(buffer, bytesRead);
-		std::cout << "ABOUT TO LOOK HEADEREND\n";
 		headerEnd = findHeaderEnd(_header);
 	}
 	else
@@ -186,20 +185,17 @@ void Request::setFirstLine(std::string buffer)
 	if (!(iss >> method >> path >> protocol))
 	{
 		_requestCode = BAD_REQUEST;
-		std::cout << GREEN ITALIC  << "Exit 1\n";
 		return ;
 	}
 	else if (buffer.find("\r") == std::string::npos)
 	{
 		_requestCode = HTTP_VERSION_NOT_SUPPORTED;
-		std::cout << GREEN ITALIC  << "Exit 2\n";
 		return ;
 	}
 	std::string rest;
 	if (iss >> rest)
 	{
 		_requestCode = BAD_REQUEST;
-		std::cout << GREEN ITALIC  << "Exit 3\n";
 		return ;
 	}
 	if (!protocol.empty() && protocol[protocol.size() - 1] == '\r')
@@ -207,8 +203,6 @@ void Request::setFirstLine(std::string buffer)
     _requestHeader["Method"] = method;
     _requestHeader["Path"] = path;
     _requestHeader["Protocol"] = protocol; //TODO: check if correct ?? 
-		std::cout << GREEN ITALIC  << "Exit 4\n" END;
-
 }
 
 void Request::fillHeader(std::stringstream &requestStream, std::string &buffer) 
@@ -277,6 +271,8 @@ void Request::parseRequest(std::string request)
 	setFirstLine(buffer);
 	fillHeader(requestStream, buffer);
 	checkHeader();
+	if (_requestCode != OK)
+		return ;
 	stateRequestValidity();
 }
 
@@ -329,9 +325,10 @@ const std::map<std::string, std::string>& Request::getMap() const
 	return (_requestHeader);
 }
 
-void	Request::setAsTimeout(){
+void	Request::setAsTimeout(int errType)
+{
 	_requestComplete = true;
-	_requestCode = REQUEST_TIMEOUT;
+	_requestCode = errType;
 	_requestTimedOut = true;
 }
 

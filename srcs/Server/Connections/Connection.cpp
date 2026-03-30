@@ -81,7 +81,7 @@ void	Connection::_startCgi()
 
 void	Connection::_processCgi(short revent)
 {
-	if (!(revent & (POLLIN) || revent & POLLHUP))
+	if (!(revent & (POLLIN | POLLHUP)))
 		return ;
 
 	if(!Cgi::readFromCGI(_cgiPid, _cgiReadFd, _response))
@@ -93,21 +93,18 @@ void	Connection::_checkTimeout()
 {
 	if (_timer.isExpired() == true)
 	{
-		std::cerr << BLUE << "state is now : " << getStateInterpreted() << "\n" END;
-		_request.setAsTimeout();
+		_request.setAsTimeout(REQUEST_TIMEOUT);
 		if (_state == CS_BUFFERING)
 			setState(CS_WRITING);
-		else
+		else if (_state == CS_WAIT_CGI)
 		{
-			if (_state == CS_WAIT_CGI)
-			{
-				std::cout << RED << "Killing CGI fd-> " << _socketFd << END << "\n";
-				_clearCgi();
-				// if (_cgiReadFd >= 0 || _cgiPid > 0)
-				// 	Cgi::killProcess(_cgiPid, _cgiReadFd);
-			}
-			setState(CS_CLOSE);
+			_request.setAsTimeout(GATEWAY_TIMEOUT);
+			_clearCgi();
+			_response.clear();
+			setState(CS_WRITING);
 		}
+		else
+			setState(CS_CLOSE);
 		_timer = TimeoutTracker();
 	}
 }
@@ -116,7 +113,7 @@ void	Connection::processTmp(short revent)
 {
 	std::string chunckedStr;
 
-	if (revent & POLLERR || revent & POLLNVAL)
+	if (revent & (POLLERR | POLLNVAL))
 	{
 		setState(CS_CLOSE);
 		return ;
@@ -186,6 +183,11 @@ void	Connection::processTmp(short revent)
 			_response.updateBytesSent(bytesSent);
 			if (_response.isSent())
 			{
+				if (_request.isRequestTimedOut())
+				{
+					setState(CS_CLOSE);
+					break ;
+				}
 				if (_request.getMap().find("Connection") != _request.getMap().end() && _request.getMap().find("Connection")->second == "keep-alive")
 					setState(CS_KEEP);
 				else
@@ -255,7 +257,7 @@ Connection &Connection::operator=(const Connection &other)
 // }
 
 Connection::Connection(int fd, const Server &server, unsigned int tmp_i): 
-_socketFd(fd), _wantedEvent(POLLIN), _state(CS_NONE), _request(server, tmp_i), _response(server), _server(server)
+_socketFd(fd), _wantedEvent(POLLIN), _state(CS_NONE), _request(server, tmp_i), _response(server), _cgiPid(-1), _cgiReadFd(-1), _server(server)
 {
 	std::cerr << "DEBUG: TMP Constructor called for class Connection\n";
 }
