@@ -9,7 +9,7 @@
 #include <fcntl.h>
 #include <signal.h>
 
-Cgi::Cgi(const Request &request)
+Cgi::Cgi(const Request &request, const Session &session)
 {
 	std::map<std::string, std::string> rm = request.getMap();
 
@@ -34,14 +34,13 @@ Cgi::Cgi(const Request &request)
 	_metaVariables["protocol-var-name"] = "";
 	_metaVariables["extension-var-name"] = "";
 
-	// std::map<string, string>::const_iterator it, ite;
-	// it	= session.getCookies().begin();
-	// ite	= session.getCookies().end();
-
-	// for (; it != ite; it++)
-	// {
-	// 	_metaVariables[it->first] = it->second;
-	// }
+	std::map<string, string>::const_iterator it, ite;
+	it	= session.getCookies().begin();
+	ite	= session.getCookies().end();
+	for (; it != ite; it++)
+	{
+		_metaVariables[it->first] = it->second;
+	}
 
 	_cgiEnv = new char*[_metaVariables.size() + 1];
 	size_t i = 0;

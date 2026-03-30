@@ -83,7 +83,7 @@ class Response
 
 		void 				checkFileAccess(std::string &, int);
 		bool 				readFileContent(const std::string &, size_t);
-		void 				parseFormData(std::map<std::string, std::string> &, const Request &_req);
+		void 				parseFormData(std::map<std::string, std::string> &, const Request &_req, Session &session);
 		// void 				handleResponsesError();
 		void				allowedMethodsHeader();
 
@@ -99,12 +99,12 @@ class Response
 		void 				addHeader(std::string, std::string);
 
 		void 				handleResponsesError();
-		void 				pickMethod(const Request &_req);
+		void 				pickMethod(const Request &_req, Session &session);
 
-		void				handleHead(const Request &_req);
-		void			 	handleGet(const Request &_req);
-		void			 	handlePost(const Request &_req);
-		void			 	handleDelete(const Request &_req);
+		void				handleHead(const Request &_req, Session &session);
+		void			 	handleGet(const Request &_req, Session &session);
+		void			 	handlePost(const Request &_req, Session &session);
+		void			 	handleDelete(const Request &_req, Session &session);
 
 		void 				buildRawResponse(const Request &_req);
 		std::string 		getChunckResp(int);

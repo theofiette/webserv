@@ -126,26 +126,6 @@ void	WebServer::display()
 // 	request.events = POLLOUT; // on set le fd ready to send
 // }
 
-// void	WebServer::_sendResponse(pollfd &request)
-// {
-// 	if (_responsesMap.find(request.fd) == _responsesMap.end())
-// 		throw (ExceptionRuntime("Can't find corresponding response."));
-// 	Response &currResponse = _responsesMap.at(request.fd);
-
-// 	std::string chunckedStr = currResponse.getChunckResp(SEND_SIZE);
-// 	int bytesSent;
-// 	std::cout << chunckedStr << "\n";
-// 	try
-// 	{
-// 		bytesSent = Send(request.fd, chunckedStr);
-// 	}
-// 	catch (std::exception &e){
-// 		std::cerr << RED "Write Error in sendResponse." << std::endl;
-// 		_closeConnection(request, _pollfds);
-// 		return ;
-// 	}
-// 	currResponse.updateBytesSent(bytesSent);
-// }
 
 void	WebServer::run()
 {
@@ -158,37 +138,10 @@ void	WebServer::run()
 */
 void	WebServer::init()
 {
-	_sessionManager.setServerCount(_config.servers.size());
-	_sessionManager.initServerSessions();
 	_initMasterSocket();
 	_initPollFds();
 	_connectionManager.init(_pollSize, _masterSockets, _pollfds);
 }
-
-// void	WebServer::_awaitRequests()
-// {
-// 	int	socketsCount;
-
-// 	socketsCount = _masterSockets.size() + _connectionManager.size();
-// 	// std::cerr << "DEBUG: polling on " << socketsCount << "fds" << std::endl;
-// 	poll(_pollfds, socketsCount, TIMEOUT); //TODO : wrap for -1
-// }
-
-// void	WebServer::_closeConnection(pollfd &request, pollfd *fds)
-// {
-// 	(void)request;
-// 	(void)fds;
-// 	// _decrement = true;
-// 	// request.revents = 0;
-// 	// std::cout << RED ITALIC << "Closing fd " << request.fd << END << std::endl;
-// 	// if (_responsesMap.find(request.fd) != _responsesMap.end())
-// 	// 	_responsesMap.erase(_responsesMap.find(request.fd));
-// 	// if (_requestsMap.find(request.fd) != _requestsMap.end())
-// 	// 	_requestsMap.erase(_requestsMap.find(request.fd));
-// 	// close(request.fd);
-// 	// request = fds[_connectionsCount - 1];
-// 	// _connectionsCount--;
-// }
 
 // CONSTRUCTORS
 

@@ -15,7 +15,7 @@ class Cgi
 		void cgiMainProcess(int pipe_in[2], int pipe_out[2], const Request &request, int &readFd);
 	public:
 		// Cgi(const Request &, const Session &);
-		Cgi(const Request &);
+		Cgi(const Request &, const Session &);
 		~Cgi();
 		
 		void setupCgiFrame();

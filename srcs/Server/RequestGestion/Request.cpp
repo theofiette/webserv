@@ -35,9 +35,9 @@ void	Request::clear()
 	_tracker = TimeoutTracker();
 }
 
-Request::Request(const Server &server, unsigned int serverIndex) : 
+Request::Request(const Server &server) : 
 _totalBytes(0),_headerComplete(false), _requestCode(OK), _requestComplete(false), _requestTimedOut(false),
-_discardBody(false), _receivedBodyBytes(0), _serverIndex(serverIndex), _currServ(&server), _tracker(TimeoutTracker())
+_discardBody(false), _receivedBodyBytes(0), _currServ(&server), _tracker(TimeoutTracker())
 {
 	std::cerr << "DEBUG: Constructor called for class Request\n" END;
 }
@@ -309,10 +309,10 @@ const std::string Request::getCookieValue(const std::string & cookie_name) const
 	return (cookie_value);
 }
 
-unsigned int	Request::getServerIndex() const
-{
-	return (_serverIndex);
-}
+// unsigned int	Request::getServerIndex() const
+// {
+// 	return (_serverIndex);
+// }
 
 const Server *	Request::getServer() const
 {

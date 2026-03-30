@@ -73,7 +73,7 @@ void	Connection::_clearCgi()
 
 void	Connection::_startCgi()
 {
-	Cgi cgi(_request);
+	Cgi cgi(_request, *_session);
 
 	cgi.run(_request, _cgiPid, _cgiReadFd);
 	setState(CS_WAIT_CGI);
@@ -112,7 +112,7 @@ void	Connection::_checkTimeout()
 	}
 }
 
-void	Connection::processTmp(short revent)
+void	Connection::process(short revent)
 {
 	std::string chunckedStr;
 
@@ -149,6 +149,16 @@ void	Connection::processTmp(short revent)
 			setState(CS_WRITING);
 
 		case (CS_WRITING):
+			if (_session == NULL)
+			{
+				if (_request.getMap().find("SessionId") != _request.getMap().end())
+					_session = SessionManager::accessSession(_request.getMap().at("Method") , _serverId);
+				else
+				{
+					_session = SessionManager::accessSession("" , _serverId);
+					
+			}
+
 			if (_request.getRequestCode() == OK)
 			{
 				if (_response.isCgi(_request))
@@ -156,7 +166,7 @@ void	Connection::processTmp(short revent)
 					_startCgi(); // executes CGI script and sets CS_WAIT_CGI
 					break ;
 				}
-				_response.pickMethod(_request);
+				_response.pickMethod(_request, *_session);
 			}
 			else
 			{
@@ -239,6 +249,7 @@ Connection &Connection::operator=(const Connection &other)
 	this->_request = other._request;
 	this->_response = other._response;
 	this->_timer = other._timer;
+	this->_session = other._session;
 	// _server is a reference and cannot be re-assigned; it should remain bound
 
 	// std::cerr << "DEBUG: Operator = called for class Connection\n";
@@ -254,8 +265,9 @@ Connection &Connection::operator=(const Connection &other)
 // 	std::cerr << "DEBUG: Constructor called for class Connection\n";
 // }
 
-Connection::Connection(int fd, const Server &server, unsigned int tmp_i): 
-_socketFd(fd), _wantedEvent(POLLIN), _state(CS_NONE), _request(server, tmp_i), _response(server), _server(server)
+Connection::Connection(int fd, const Server &server, const unsigned int serverId): 
+_socketFd(fd), _wantedEvent(POLLIN), _state(CS_NONE), _request(server), _response(server),
+_server(server),  _serverId(serverId), _session(NULL)
 {
 	std::cerr << "DEBUG: TMP Constructor called for class Connection\n";
 }

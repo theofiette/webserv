@@ -68,9 +68,9 @@ Response::~Response()
 /*										METHODS											  	  */
 //*********************************************************************************************/
 
-void Response::pickMethod(const Request &_req)
+void Response::pickMethod(const Request &_req, Session &session)
 {
-	static void (Response::*methods[])(const Request &_req) = 
+	static void (Response::*methods[])(const Request &_req, Session &session) = 
 	{
 		&Response::handleHead,
 		&Response::handleGet,
@@ -79,7 +79,7 @@ void Response::pickMethod(const Request &_req)
 	};
 	for (int i = 0; i < METHODS_COUNT; i++)
 		if (_req.getMap().at("Method") == Response::methods[i])
-			(this->*methods[i])(_req);
+			(this->*methods[i])(_req, session);
 }
 
 std::string Response::MIMEtable(std::string localPath)
@@ -243,7 +243,7 @@ bool Response::readFileContent(const std::string &filePath, size_t fileSize)
 	return (true);
 }
 
-void Response::parseFormData(std::map<std::string, std::string> &data, const Request &_req)
+void Response::parseFormData(std::map<std::string, std::string> &data, const Request &_req, Session &session)
 {
 	size_t lastPos = 0;
 	std::string body(_req.getBody().begin(), _req.getBody().end());
@@ -256,11 +256,11 @@ void Response::parseFormData(std::map<std::string, std::string> &data, const Req
 		std::string key = body.substr((lastPos == 0 ? lastPos : lastPos + 1), i - (lastPos + (lastPos != 0))); // 🤮🤮🤮
 		std::string val = body.substr(i + 1, endPos - (i + 1));
 
-		// if (key.find(SESSION_PREFIXE) != std::string::npos)
-		// {
-		// 	key = key.substr(std::string(SESSION_PREFIXE).length());
-		// 	_session.insertCookieFromPair(std::pair<string, string>(key, val));
-		// }
+		if (key.find(SESSION_PREFIXE) != std::string::npos)
+		{
+			key = key.substr(std::string(SESSION_PREFIXE).length());
+			session.insertCookieFromPair(std::pair<string, string>(key, val));
+		}
 		
 		data.insert(std::make_pair(key, val));
 		lastPos = endPos;
@@ -321,8 +321,9 @@ void Response::handleResponsesError()
 /*										HANDLERS											  */
 //*********************************************************************************************/
 
-void	Response::handleHead(const Request &_req)
+void	Response::handleHead(const Request &_req, Session &session)
 {
+	(void)session;
 	std::string localPath;
 	struct stat	s;
 
@@ -336,8 +337,9 @@ void	Response::handleHead(const Request &_req)
 	_body.clear();
 }
 
-void Response::handleGet(const Request &_req)
+void Response::handleGet(const Request &_req, Session &session)
 {
+	(void)session;
 	std::string localPath;
 	struct stat s;
 
@@ -350,7 +352,7 @@ void Response::handleGet(const Request &_req)
 	addHeader("Content-Length", intToString(_body.length()));
 }
 
-void Response::handlePost(const Request &_req)
+void Response::handlePost(const Request &_req, Session &session)
 {
 	struct stat	s;
 	std::map<std::string, std::string>::const_iterator contentTypePos = _req.getMap().find("Content-Type");
@@ -391,7 +393,7 @@ void Response::handlePost(const Request &_req)
 		//TODO: RECUPER DYNAMIQUEMENT SUCCESS HTML via GLOBALSERVER ou REDIR (build full path...)
 		// std::string localPath = getSuccessPath();
 		std::map<std::string, std::string> formData; // TODO: utiliser cette data
-		parseFormData(formData, _req);
+		parseFormData(formData, _req, session);
 	}
 
 	_statusCode = SEE_OTHER;
@@ -399,8 +401,9 @@ void Response::handlePost(const Request &_req)
 	addHeader("Content-Length", "0"); // TODO: 0 ou body size si upload ?
 }
 
-void Response::handleDelete(const Request &_req)
+void Response::handleDelete(const Request &_req, Session &session)
 {
+	(void)session;
 	std::string localPath = buildLocalPath(_req);
 
     checkFileAccess(localPath, W_OK);

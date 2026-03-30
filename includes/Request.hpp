@@ -27,7 +27,6 @@ class Request
 		bool								_discardBody;
 		// size_t							_contentLength;
 		size_t								_receivedBodyBytes;
-		int									_serverIndex;
 
 		const Server	*_currServ;
 		TimeoutTracker	_tracker;
@@ -43,7 +42,7 @@ class Request
 
 	public:
 		Request();
-		Request(const Server &, unsigned int);
+		Request(const Server &);
 		~Request();
 
 		void 				stateRequestValidity();

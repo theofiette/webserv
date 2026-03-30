@@ -14,6 +14,9 @@ void	ConnectionManager::init(
 	_reserve(maxConnections);
 	if (_maxConnections == 0 || _masterSockets.empty() || pollfds == 0)
 		throw (ExceptionBadInit("Couldn't init ConnectionManager correctly"));
+
+	SessionManager::setServerCount(masterSockets.size());
+	SessionManager::initServerSessions();
 }
 
 /*
@@ -60,10 +63,10 @@ size_t	ConnectionManager::_setupPollfds()
 *	Creer une connection, remplir certaine choses ?? 
 *	Je pense a requete, response, session etc
 */
-void	ConnectionManager::_openConnection(int fd, const Server &tmp_serv, unsigned int tmp_int)
+void	ConnectionManager::_openConnection(int fd, const Server &server, const unsigned int serverId)
 {
 	// Connection	newConnection(fd);
-	Connection	newConnection(fd, tmp_serv, tmp_int);
+	Connection	newConnection(fd, server, serverId);
 
 	_connections.push_back(newConnection);
 }
@@ -125,7 +128,7 @@ void	ConnectionManager::_processConnections()
 		Connection	&currentConnection = *it;
 
 		std::cout << "revent is : " << _pollfds[i].revents << "\n";
-		currentConnection.processTmp(_pollfds[i].revents);
+		currentConnection.process(_pollfds[i].revents);
 		if (currentConnection.getState() == CS_CLOSE)
 		{
 			_to_close.push(it);
@@ -176,6 +179,7 @@ ConnectionManager::ConnectionManager(const WebServerConfig &config) : _servers(c
 
 ConnectionManager::~ConnectionManager()
 {
+	SessionManager::clean();
 	// std::cerr << "DEBUG: Destructor called for class ConnectionManager\n";
 }
 

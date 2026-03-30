@@ -34,10 +34,7 @@ class Connection {
 		int			_socketFd;
 		short		_wantedEvent;
 
-		ConnectionState			_state;
-		// HttpRequest			_request;
-		// HttpResponse			_response;
-		// HttpParser			_parser; <- could be static
+		ConnectionState		_state;
 
 		Request				_request;
 		Response			_response;
@@ -47,7 +44,8 @@ class Connection {
 		int					_cgiReadFd;
 
 		const Server &		_server;
-		// Session				_session;
+		const unsigned int	_serverId;
+		Session 			*_session;
 
 		void	_clear();
 		void	_checkTimeout();
@@ -61,8 +59,6 @@ class Connection {
 	public:
 	
 		void	process(short revent);
-		void	processTmp(short revent);
-
 		
 		// short			getEvent() const;
 		int				getFd() const;
@@ -75,7 +71,7 @@ class Connection {
 		Connection &operator=(const Connection &other);
 		// Connection(const Connection &other);
 		// Connection(int fd);
-		Connection(int fd, const Server &tmp_req_serv, unsigned int tmp_req_index);
+		Connection(int fd, const Server &server, const unsigned int serverId);
 		~Connection();
 
 };
