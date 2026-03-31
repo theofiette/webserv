@@ -140,10 +140,9 @@ void Request::receiveRequestChunk(int socketFd)
 {	
 	char buffer[SEND_SIZE] = {0};
 	size_t headerEnd = _header.size();
-	std::cout << "GOING IN RECV\n";
 
 	readSocketChunk(socketFd, buffer, SEND_SIZE, headerEnd);
-	int contentLength = extractContentLength(_header); // est ce qu on stockerait pas le content length dans request
+	int contentLength = extractContentLength(_header);
 	if (_headerComplete == true)
 	{
 		if (contentLength > 0 && contentLength > _currServ->getMaxBody())
@@ -152,7 +151,7 @@ void Request::receiveRequestChunk(int socketFd)
 			_discardBody = true;
 			storeBodyExceeding(headerEnd);
 			_body.clear();
-			if (_receivedBodyBytes >= static_cast<size_t>(contentLength)) // on peut plus utiliser _body.size() pcq  le body est vide, mais on veut quand meme saovir quand est ce qu on a lu tout le body
+			if (_receivedBodyBytes >= static_cast<size_t>(contentLength))
 				_requestComplete = true;
 			return ;
 		}

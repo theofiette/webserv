@@ -9,27 +9,27 @@
 #include <fcntl.h>
 #include <signal.h>
 
-Cgi::Cgi(const Request &request) //TODO: function INIT METAVARIABLES
+void	Cgi::setupMetavariables(const Request &request)
 {
 	std::map<std::string, std::string> rm = request.getMap();
 
-	// _metaVariables["AUTH_TYPE"] = "";
+	_metaVariables["AUTH_TYPE"] = "";
 	_metaVariables["CONTENT_LENGTH"] = (rm.find("Content-Length") != rm.end() ? rm.find("Content-Length")->second : "");
 	_metaVariables["CONTENT_TYPE"] = (rm.find("Content-Type") != rm.end() ? rm.find("Content-Type")->second : "");
 	_metaVariables["GATEWAY_INTERFACE"] = "CGI/1.1";
 	_metaVariables["PATH_INFO"] = "";
-	// _metaVariables["PATH_TRANSLATED"] = "";
-	// _metaVariables["QUERY_STRING"] = (rm.find("Path") != rm.end() ? rm.find("Path")->second : "");
-	// _metaVariables["REMOTE_ADDR"] = "";
-	// _metaVariables["REMOTE_HOST"] = "";
-	// _metaVariables["REMOTE_IDENT"] = "";
-	// _metaVariables["REMOTE_USER"] = "";
+	_metaVariables["PATH_TRANSLATED"] = "";
+	_metaVariables["QUERY_STRING"] = (rm.find("Path") != rm.end() ? rm.find("Path")->second : "");
+	_metaVariables["REMOTE_ADDR"] = "";
+	_metaVariables["REMOTE_HOST"] = "";
+	_metaVariables["REMOTE_IDENT"] = "";
+	_metaVariables["REMOTE_USER"] = "";
 	_metaVariables["REQUEST_METHOD"] = (rm.find("Method") != rm.end() ? rm.find("Method")->second : "");
 	_metaVariables["SCRIPT_NAME"] = (rm.find("Path") != rm.end() ? rm.find("Path")->second.substr(1) : ""); // TODO:substr
 	_metaVariables["SERVER_NAME"] = request.getServer()->getServerName();
 	_metaVariables["SERVER_PORT"] = request.getServer()->getListen();
 	_metaVariables["SERVER_PROTOCOL"] = (rm.find("Protocol") != rm.end() ? rm.find("Protocol")->second : "");
-	// _metaVariables["SERVER_SOFTWARE"] = "";
+	_metaVariables["SERVER_SOFTWARE"] = "";
 	_metaVariables["scheme"] = "";
 	_metaVariables["protocol-var-name"] = "";
 	_metaVariables["extension-var-name"] = "";
@@ -42,7 +42,10 @@ Cgi::Cgi(const Request &request) //TODO: function INIT METAVARIABLES
 	// {
 	// 	_metaVariables[it->first] = it->second;
 	// }
+}
 
+void	Cgi::setupEnv()
+{
 	_cgiEnv = new char*[_metaVariables.size() + 1];
 	size_t i = 0;
 	for (std::map<std::string, std::string>::iterator it = _metaVariables.begin(); it != _metaVariables.end(); it++)
@@ -54,6 +57,11 @@ Cgi::Cgi(const Request &request) //TODO: function INIT METAVARIABLES
 	_cgiEnv[i] = NULL;
 }
 
+Cgi::Cgi(const Request &request)//TODO: function INIT METAVARIABLES
+{
+	setupMetavariables(request);
+	setupEnv();
+}
 
 void Cgi::cgiChildProcess(int pipe_in[2], int pipe_out[2])
 {
@@ -168,7 +176,8 @@ Cgi::~Cgi()
 	}
 }
 
-const std::map<std::string, std::string>& Cgi::getMetaVars() const{
+const std::map<std::string, std::string>& Cgi::getMetaVars() const
+{
 	return (_metaVariables);
 }
 
@@ -186,6 +195,3 @@ void Cgi::setBodyMessage(const std::string &body)
 {
 	_bodyMessage = body;
 }
-
-void Cgi::setupCgiFrame()
-{}

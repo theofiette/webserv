@@ -10,6 +10,7 @@
 #include "Server.hpp"
 #include "TimeoutTracker.hpp"
 
+typedef std::map<std::string, std::string>::const_iterator mc_ss_it;
 typedef std::map<std::string, std::string>::iterator _req_map_it;
 
 class Request
