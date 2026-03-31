@@ -1,9 +1,0 @@
-
-
-class RequestPool qui contient une stack de class ARequest
-
-une ARequest peut etre :
-	ConnectionRequest <- si fd = masterSocket
-	ContentRequest <- si fd = client
-
-
