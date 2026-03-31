@@ -53,6 +53,7 @@ class Request
 		// // TEMPORAIRE
 		void				display() const;
 		void 				displayInfos() const;
+		void				displayHeader() const;
 
 		bool				isKeepAlive() const;
 		const bool &		isRequestComplete();
@@ -66,7 +67,7 @@ class Request
 		
 		const std::map<std::string, std::string>&	getMap() const;
 		const std::string							getCookieValue(const std::string &) const;
-		unsigned int								getServerIndex() const;
+		// unsigned int								getServerIndex() const;
 
 		void	clear();
 	

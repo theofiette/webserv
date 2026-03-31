@@ -12,7 +12,7 @@ class SessionManager
 		static unsigned int			_idCount;
 		static unsigned int			_serverCount;
 
-		static Session	*_createNewSession(unsigned int server);
+		static Session	*_createNewSession(unsigned int serverId, unsigned int sessionId);
 
 		SessionManager();
 		~SessionManager();

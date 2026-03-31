@@ -39,12 +39,12 @@ Request::Request(const Server &server) :
 _totalBytes(0),_headerComplete(false), _requestCode(OK), _requestComplete(false), _requestTimedOut(false),
 _discardBody(false), _receivedBodyBytes(0), _currServ(&server), _tracker(TimeoutTracker())
 {
-	std::cerr << "DEBUG: Constructor called for class Request\n" END;
+	// std::cerr << "DEBUG: Constructor called for class Request\n" END;
 }
 
 Request::~Request()
 {
-	std::cerr << "DEBUG: Destructor called for class Request\n";
+	// std::cerr << "DEBUG: Destructor called for class Request\n";
 }
 
 int extractContentLength(const std::string &buffer)
@@ -85,7 +85,6 @@ void Request::readSocketChunk(int socketFd, char *buffer, size_t bufferSize, siz
 	if (_headerComplete == false)
 	{
 		_header.append(buffer, bytesRead);
-		std::cout << "ABOUT TO LOOK HEADEREND\n";
 		headerEnd = findHeaderEnd(_header);
 	}
 	else
@@ -141,7 +140,6 @@ void Request::receiveRequestChunk(int socketFd)
 {	
 	char buffer[SEND_SIZE] = {0};
 	size_t headerEnd = _header.size();
-	std::cout << "GOING IN RECV\n";
 
 	readSocketChunk(socketFd, buffer, SEND_SIZE, headerEnd);
 	int contentLength = extractContentLength(_header); // est ce qu on stockerait pas le content length dans request
@@ -172,10 +170,10 @@ void Request::displayInfos() const
 {
 	std::map<std::string, std::string>::const_iterator it = _requestHeader.begin();
 	if (it == _requestHeader.end())
-		std::cout << "empty request header\n" << std::endl;
+		std::cerr << "empty request header\n" << std::endl;
 	for (; it != _requestHeader.end(); it++)
-		std::cout << it->first << " : " << it->second << "\n";
-	std::cout << std::endl;
+		std::cerr << it->first << " : " << it->second << "\n";
+	std::cerr << std::endl;
 }
 
 void Request::setFirstLine(std::string buffer)
@@ -183,6 +181,7 @@ void Request::setFirstLine(std::string buffer)
     std::istringstream iss(buffer);
     std::string method, path, protocol;
 
+	std::cout << GREEN BOLD << "BUFFER is --- " << buffer << END << std::endl;
 	if (!(iss >> method >> path >> protocol))
 	{
 		_requestCode = BAD_REQUEST;
@@ -239,6 +238,8 @@ void Request::fillHeader(std::stringstream &requestStream, std::string &buffer)
 
 void Request::stateRequestValidity()
 {
+	if (_requestCode != OK)
+		return ;
 	//TODO: if POST and no content length its invalid? 
 	if (_requestHeader["Protocol"] != "HTTP/1.1")
 	{
@@ -260,7 +261,8 @@ static bool isValidHeaderKey(const std::string key){
 	return (true);
 }
 
-void Request::checkHeader(){
+void Request::checkHeader()
+{
 	for (std::map<std::string, std::string>::iterator it = _requestHeader.begin(); it != _requestHeader.end(); it++){
 		if (!isValidHeaderKey(it->first))
 			_requestCode = BAD_REQUEST;
@@ -272,7 +274,11 @@ void Request::parseRequest(std::string request)
 	std::string buffer;
 	std::stringstream requestStream(request, std::ios_base::in);
 
-	// std::cout << request << "\n\n";
+	// if (request.empty())
+	// {
+	// 	_requestComplete = true;
+	// 	return ;
+	// }
 	std::getline(requestStream, buffer, '\n');
 	setFirstLine(buffer);
 	fillHeader(requestStream, buffer);
@@ -291,8 +297,12 @@ const std::string Request::getCookieValue(const std::string & cookie_name) const
 	if (cookie_name.length() == 0)
 		return ("");
 	if (_requestHeader.find("Cookie") == _requestHeader.end())
+	{
+		std::cerr << BLUE ITALIC << "Cookie is NOTNOTNOT found :( " << END << std::endl;	
 		return ("");
+	}
 	cookies = _requestHeader.find("Cookie")->second;
+	std::cerr << BLUE ITALIC << "Cookie is found : " << cookies << END << std::endl;
 	pos = cookies.find(cookie_name_updated);
 	if (pos == std::string::npos)
 		return ("");

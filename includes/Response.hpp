@@ -38,6 +38,7 @@ enum ErrorCode{
 	CONTENT_TOO_LARGE = 413,
 	UNSUPPORTED_MEDIA_TYPE = 415,
 	INTERNAL_SERVER_ERROR = 500,
+	GATEWAY_TIMEOUT = 504,
 	HTTP_VERSION_NOT_SUPPORTED = 505
 };
 
@@ -78,7 +79,6 @@ class Response
 
 		void 				appendIndexToDirectory(std::string &, const Location &);
 		void				appendCookieIndexToDirectory(std::string &, const std::string &);
-		void 				insertCookieHeader(std::string);
 		void				buildLocalPathFromCookie(std::string &localPath, const Location & location, const Request &_req);
 
 		void 				checkFileAccess(std::string &, int);
@@ -97,6 +97,7 @@ class Response
 		void				setStatusCode(const int);
 		void				appendRawResponse(const char *, size_t);
 		void 				addHeader(std::string, std::string);
+		void 				insertCookieHeader(std::string);
 
 		void 				handleResponsesError();
 		void 				pickMethod(const Request &_req, Session &session);

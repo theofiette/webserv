@@ -32,6 +32,7 @@ static std::map<int, std::string> initStatusMap()
 	m[413] = "Content Too Large";
 	m[415] = "Unsupported Media Type";
 	m[500] = "Internal Server Error";
+	m[504] = "Gateway timeout";
 	m[505] = "HTTP Version Not Supported";
 	return (m);
 }
@@ -55,13 +56,13 @@ void	Response::clear()
 Response::Response(const Server &server) : 
 _statusCode(200), _bytesSent(0), _currServ(&server)
 {
-	std::cerr << "DEBUG: Constructor called for class Response\n";
+	// std::cerr << "DEBUG: Constructor called for class Response\n";
 	// TODO : ERROR_CODE dans flux connection
 }
 
 Response::~Response()
 {
-	std::cerr << "DEBUG: Destructor called for class Response\n";
+	// std::cerr << "DEBUG: Destructor called for class Response\n";
 }
 
 //*********************************************************************************************/

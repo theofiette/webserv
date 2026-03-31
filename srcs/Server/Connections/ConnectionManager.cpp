@@ -31,7 +31,8 @@ size_t	ConnectionManager::_setupPollfds()
 	size_t	j;
 
 	i = 0;
-	j = 0;	
+	j = 0;
+	std::cout << "Setup Pollfd -- " << std::endl;
 	while (i + j < _maxConnections)
 	{
 		if (i < _masterSockets.size())
@@ -103,7 +104,7 @@ void	ConnectionManager::_checkOpenConnections()
 
 	for (size_t i = 0; i < _masterSockets.size(); i++)
 	{
-		while (_connections.size() < _maxConnections)
+		while (_connections.size() < _maxConnections && _pollfds[i].revents == POLLIN)
 		{
 			newSocket = accept(_masterSockets[i], 0, 0);
 			if (newSocket < 0)
@@ -162,7 +163,7 @@ void	ConnectionManager::loop()
 
 void	ConnectionManager::_reserve(size_t n)
 {
-	std::cerr << "DEBUG: reserved_connections for " << n << " possibles connections" << std::endl;
+	// std::cerr << "DEBUG: reserved_connections for " << n << " possibles connections" << std::endl;
 	_connections.reserve(n);
 }
 

@@ -9,7 +9,7 @@ void	Connection::setState(ConnectionState state)
 	else
 		_wantedEvent = POLLIN;
 	_state = state;
-	// std::cout << BLUE << "state is now : " << getStateInterpreted() << "\n" END;
+	std::cerr << BLUE << "state is now : " << getStateInterpreted() << "\n" END;
 }
 
 int	Connection::getPollFd() const
@@ -114,7 +114,9 @@ void	Connection::_checkTimeout()
 
 void	Connection::process(short revent)
 {
+	std::cerr << "\n\n\n";
 	std::string chunckedStr;
+	std::string	sessionStr;
 
 	if (revent & POLLERR || revent & POLLNVAL)
 	{
@@ -127,13 +129,14 @@ void	Connection::process(short revent)
 		return ;
 	}
 	_checkTimeout();
+	std::cerr << "Enterring state machine in state " << getStateInterpreted() << "for connection " << _socketFd << std::endl;
 	switch (_state)
 	{
 		case (CS_NONE):
 			if (!(revent & POLLIN)) // TODO: maybe erase ?
 					return ;
 			setState(CS_BUFFERING);
-
+			break ;
 		case (CS_BUFFERING):
 			if (!(revent & POLLIN)) // TODO: move those checks ?
 					return ;
@@ -151,12 +154,11 @@ void	Connection::process(short revent)
 		case (CS_WRITING):
 			if (_session == NULL)
 			{
-				if (_request.getMap().find("SessionId") != _request.getMap().end())
-					_session = SessionManager::accessSession(_request.getMap().at("Method") , _serverId);
-				else
-				{
-					_session = SessionManager::accessSession("" , _serverId);
-					
+				sessionStr = _request.getCookieValue("SessionId");
+				std::cerr << ORANGE << "sessionStr is : " << sessionStr << END << std::endl;
+				_session = SessionManager::accessSession(sessionStr , _serverId);
+				if (sessionStr.empty())
+					_response.insertCookieHeader("SessionId=" + _session->getId());
 			}
 
 			if (_request.getRequestCode() == OK)
@@ -269,7 +271,7 @@ Connection::Connection(int fd, const Server &server, const unsigned int serverId
 _socketFd(fd), _wantedEvent(POLLIN), _state(CS_NONE), _request(server), _response(server),
 _server(server),  _serverId(serverId), _session(NULL)
 {
-	std::cerr << "DEBUG: TMP Constructor called for class Connection\n";
+	// std::cerr << "DEBUG: TMP Constructor called for class Connection\n";
 }
 
 // Connection::Connection(const Connection &other)
@@ -280,7 +282,7 @@ _server(server),  _serverId(serverId), _session(NULL)
 
 Connection::~Connection()
 {
-	std::cerr << "DEBUG: Destructor called for class Connection\n";
+	// std::cerr << "DEBUG: Destructor called for class Connection\n";
 	// close(_socketFd);
 }
 
