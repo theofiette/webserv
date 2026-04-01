@@ -130,6 +130,7 @@ void	Connection::processTmp(short revent)
 			if (!(revent & POLLIN)) // TODO: maybe erase ?
 					return ;
 			setState(CS_BUFFERING);
+			break ;
 
 		case (CS_BUFFERING):
 			if (!(revent & POLLIN)) // TODO: move those checks ?
