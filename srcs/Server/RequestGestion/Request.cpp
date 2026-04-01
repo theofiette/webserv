@@ -31,6 +31,7 @@ void	Request::clear()
 	_requestHeader.clear();
 	_header.clear();
 	_body.clear();
+	_queryString.clear();
 
 	_tracker = TimeoutTracker();
 }
@@ -176,6 +177,16 @@ void Request::displayInfos() const
 	std::cout << std::endl;
 }
 
+void	Request::_extractQueryString(std::string &path)
+{
+	size_t querySeparator = path.find('?');
+	if (querySeparator == std::string::npos)
+		return ;
+
+	_queryString = path.substr(querySeparator + 1);
+	path.erase(querySeparator);
+}
+
 void Request::setFirstLine(std::string buffer)
 {
     std::istringstream iss(buffer);
@@ -199,6 +210,7 @@ void Request::setFirstLine(std::string buffer)
 	}
 	if (!protocol.empty() && protocol[protocol.size() - 1] == '\r')
 		protocol[protocol.size() - 1] = 0;
+	_extractQueryString(path);
     _requestHeader["Method"] = method;
     _requestHeader["Path"] = path;
     _requestHeader["Protocol"] = protocol; //TODO: check if correct ?? 
@@ -317,6 +329,11 @@ const Server *	Request::getServer() const
 const std::vector<char>& Request::getBody() const
 {
 	return (_body);
+}
+
+const std::string& Request::getQueryString() const
+{
+	return (_queryString);
 }
 
 const std::map<std::string, std::string>& Request::getMap() const

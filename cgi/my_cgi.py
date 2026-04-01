@@ -8,6 +8,7 @@ server_name = os.environ.get("SERVER_NAME", "unknown")
 server_port = os.environ.get("SERVER_PORT", "unknown")
 server_protocol = os.environ.get("SERVER_PROTOCOL", "HTTP/1.1")
 script_name = os.environ.get("SCRIPT_NAME", "unknown")
+query_string = os.environ.get("QUERY_STRING", "unknown")
 
 # Récupération des données POST (safe)
 
@@ -35,6 +36,7 @@ if request_method == "GET":
                 Server is : [{server_name}]<br>
                 J'ecoute sur le port [{server_port}] via le [{server_protocol}]<br>
                 Je suis le cgi [{script_name}] et je fonctionne correctement avec <p>[{request_method}]</p>
+                Query-string [{query_string}]
             </h1>
         </div>
     </body>

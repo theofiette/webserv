@@ -19,7 +19,7 @@ void	Cgi::setupMetavariables(const Request &request)
 	_metaVariables["GATEWAY_INTERFACE"] = "CGI/1.1";
 	_metaVariables["PATH_INFO"] = "";
 	_metaVariables["PATH_TRANSLATED"] = "";
-	_metaVariables["QUERY_STRING"] = (rm.find("Path") != rm.end() ? rm.find("Path")->second : "");
+	_metaVariables["QUERY_STRING"] = request.getQueryString();
 	_metaVariables["REMOTE_ADDR"] = "";
 	_metaVariables["REMOTE_HOST"] = "";
 	_metaVariables["REMOTE_IDENT"] = "";

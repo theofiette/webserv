@@ -29,11 +29,13 @@ class Request
 		// size_t							_contentLength;
 		size_t								_receivedBodyBytes;
 		int									_serverIndex;
+		std::string							_queryString;
 
 		const Server	*_currServ;
 		TimeoutTracker	_tracker;
 
 		void 	setFirstLine(std::string);
+		void	_extractQueryString(std::string&);
 		void	readSocketChunk(int, char *, size_t, size_t&);
 
 		size_t	findHeaderEnd(std::string);
@@ -61,6 +63,7 @@ class Request
 		void				setAsTimeout(int);
 
 		const std::string& 			getHeader() const;
+		const std::string&			getQueryString() const;
 		const std::vector<char>&	getBody() const;
 		const Server				*getServer() const;
 		size_t						getRequestCode() const;
