@@ -219,7 +219,7 @@ std::string Response::buildLocalPath(const Request &_req)
 void	Response::insertCookieHeader(std::string cookie)
 {
 	_header.insert(std::pair<string, string>("Set-Cookie", cookie + ";" + COOKIE_DURATION));
-	std::cout << BLUE ITALIC << cookie << ";" << COOKIE_DURATION << std::endl;
+	// std::cout << BLUE ITALIC << cookie << ";" << COOKIE_DURATION << std::endl;
 }
 
 void Response::checkFileAccess(std::string &localPath, int requiredAccess)

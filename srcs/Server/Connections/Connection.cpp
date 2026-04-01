@@ -9,7 +9,7 @@ void	Connection::setState(ConnectionState state)
 	else
 		_wantedEvent = POLLIN;
 	_state = state;
-	std::cerr << BLUE << "state is now : " << getStateInterpreted() << "\n" END;
+	// std::cerr << BLUE << "state is now : " << getStateInterpreted() << "\n" END;
 }
 
 int	Connection::getPollFd() const
@@ -111,7 +111,7 @@ void	Connection::_checkTimeout()
 
 void	Connection::process(short revent)
 {
-	std::cerr << "\n\n\n";
+	// std::cerr << "\n\n\n";
 	std::string chunckedStr;
 	std::string	sessionStr;
 
@@ -126,7 +126,7 @@ void	Connection::process(short revent)
 		return ;
 	}
 	_checkTimeout();
-	std::cerr << "Enterring state machine in state " << getStateInterpreted() << "for connection " << _socketFd << std::endl;
+	// std::cerr << "Entering state machine in state " << getStateInterpreted() << "for connection " << _socketFd << std::endl;
 	switch (_state)
 	{
 		case (CS_NONE):
@@ -153,7 +153,7 @@ void	Connection::process(short revent)
 			if (_session == NULL)
 			{
 				sessionStr = _request.getCookieValue("SessionId");
-				std::cerr << ORANGE << "sessionStr is : " << sessionStr << END << std::endl;
+				// std::cerr << ORANGE << "sessionStr is : " << sessionStr << END << std::endl;
 				_session = SessionManager::accessSession(sessionStr , _serverId);
 				if (sessionStr.empty())
 					_response.insertCookieHeader("SessionId=" + _session->getId());

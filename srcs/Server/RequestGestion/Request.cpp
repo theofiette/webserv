@@ -192,7 +192,7 @@ void Request::setFirstLine(std::string buffer)
     std::istringstream iss(buffer);
     std::string method, path, protocol;
 
-	std::cout << GREEN BOLD << "BUFFER is --- " << buffer << END << std::endl;
+	// std::cout << GREEN BOLD << "BUFFER is --- " << buffer << END << std::endl;
 	if (!(iss >> method >> path >> protocol))
 	{
 		_requestCode = BAD_REQUEST;
@@ -307,11 +307,11 @@ const std::string Request::getCookieValue(const std::string & cookie_name) const
 		return ("");
 	if (_requestHeader.find("Cookie") == _requestHeader.end())
 	{
-		std::cerr << BLUE ITALIC << "Cookie is NOTNOTNOT found :( " << END << std::endl;	
+		// std::cerr << BLUE ITALIC << "Cookie is NOTNOTNOT found :( " << END << std::endl;	
 		return ("");
 	}
 	cookies = _requestHeader.find("Cookie")->second;
-	std::cerr << BLUE ITALIC << "Cookie is found : " << cookies << END << std::endl;
+	// std::cerr << BLUE ITALIC << "Cookie is found : " << cookies << END << std::endl;
 	pos = cookies.find(cookie_name_updated);
 	if (pos == std::string::npos)
 		return ("");

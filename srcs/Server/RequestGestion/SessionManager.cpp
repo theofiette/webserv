@@ -7,7 +7,7 @@ unsigned int		SessionManager::_idCount = 0;
 Session	*SessionManager::_createNewSession(unsigned int serverId, unsigned int sessionId)
 {
 	Session *ptr = new Session(intToString(sessionId));
-	std::cerr << RED BOLD << "new session created in server " << serverId << std::endl << END;
+	// std::cerr << RED BOLD << "new session created in server " << serverId << std::endl << END;
 
 	_idCount++;
 	_sessions[serverId].push_back(ptr);
@@ -16,7 +16,7 @@ Session	*SessionManager::_createNewSession(unsigned int serverId, unsigned int s
 
 Session *SessionManager::accessSession(const std::string &id, unsigned int serverId)
 {
-	std::cerr << GREEN ITALIC << "Looking for session from id : " << id << END << std::endl;
+	// std::cerr << GREEN ITALIC << "Looking for session from id : " << id << END << std::endl;
 	if (serverId > _serverCount)
 		throw (ExceptionRuntime("Session manager tried to access a non existing server"));
 
@@ -38,7 +38,7 @@ Session *SessionManager::accessSession(const std::string &id, unsigned int serve
 				std::cerr << ORANGE BOLD << "found corresponding session in server " << serverId << std::endl << END;
 			}
 		}
-		std::cerr << ORANGE BOLD << "No cookie found, creating new one -> " << _idCount << END << std::endl;
+		// std::cerr << ORANGE BOLD << "No cookie found, creating new one -> " << _idCount << END << std::endl;
 
 		return (_createNewSession(serverId, _idCount));	
 	}
@@ -48,12 +48,12 @@ Session *SessionManager::accessSession(const std::string &id, unsigned int serve
 	{
 		if ((*it)->getId() == id)
 		{
-			std::cerr << ORANGE BOLD << "Cookie found, using -> " << id << END << std::endl;
+			// std::cerr << ORANGE BOLD << "Cookie found, using -> " << id << END << std::endl;
 
 			return (*it);
 		}
 	}
-	std::cerr << ORANGE BOLD << "Cookie found with an ID but no session registered, using -> " << id << END << std::endl;
+	// std::cerr << ORANGE BOLD << "Cookie found with an ID but no session registered, using -> " << id << END << std::endl;
 
 	// Didn't find existing session, inserting empty with same id
 	return (_createNewSession(serverId, stringToInt(id)));

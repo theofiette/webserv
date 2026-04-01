@@ -32,7 +32,7 @@ size_t	ConnectionManager::_setupPollfds()
 
 	i = 0;
 	j = 0;
-	std::cout << "Setup Pollfd -- " << std::endl;
+	// std::cout << "Setup Pollfd -- " << std::endl;
 	while (i + j < _maxConnections)
 	{
 		if (i < _masterSockets.size())
@@ -44,9 +44,9 @@ size_t	ConnectionManager::_setupPollfds()
 		else if (j < _connections.size())
 		{
 			_pollfds[i + j].fd = _connections[j].getPollFd();
-			std::cout << "wanted event for fd " << _connections[j].getPollFd() << " is : " << _connections[j].getWantedEvent() << "\n";
-			std::cout << "events for fd " << _pollfds[i + j].fd << " is : " << _pollfds[i + j].events << "\n";
-			std::cout << "state for fd " << _connections[j].getPollFd() << " is : " << _connections[j].getStateInterpreted() << "\n";
+			// std::cout << "wanted event for fd " << _connections[j].getPollFd() << " is : " << _connections[j].getWantedEvent() << "\n";
+			// std::cout << "events for fd " << _pollfds[i + j].fd << " is : " << _pollfds[i + j].events << "\n";
+			// std::cout << "state for fd " << _connections[j].getPollFd() << " is : " << _connections[j].getStateInterpreted() << "\n";
 			_pollfds[i + j].events = _connections[j].getWantedEvent();
 			j++;
 		}
@@ -128,7 +128,7 @@ void	ConnectionManager::_processConnections()
 	{
 		Connection	&currentConnection = *it;
 
-		std::cout << "revent is : " << _pollfds[i].revents << "\n";
+		// std::cout << "revent is : " << _pollfds[i].revents << "\n";
 		currentConnection.process(_pollfds[i].revents);
 		if (currentConnection.getState() == CS_CLOSE)
 		{

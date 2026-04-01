@@ -56,7 +56,7 @@ void	Cgi::setupEnv()
 	_cgiEnv[i] = NULL;
 }
 
-Cgi::Cgi(const Request &request, const Session &session)//TODO: function INIT METAVARIABLES
+Cgi::Cgi(const Request &request, const Session &session) //TODO: function INIT METAVARIABLES
 {
 	setupMetavariables(request, session);
 	setupEnv();
