@@ -36,7 +36,6 @@ void	Getaddrinfo(const std::string name, const std::string service,
 	if (errCheck != 0)
 		throw (ExceptionBadInit(gai_strerror(errCheck)));
 }
-	
 
 void	Setsockopt(int fd, int level, int optname)
 {

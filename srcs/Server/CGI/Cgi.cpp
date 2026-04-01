@@ -74,7 +74,7 @@ void Cgi::cgiChildProcess(int pipe_in[2], int pipe_out[2])
 		safeClose(pipe_out[1]);
 		exit(1);
 	}
-	std::string file = "./cgi/" + (getMetaVars().find("SCRIPT_NAME")->second);
+	std::string file = "./cgi/" + (getMetaVars().find("SCRIPT_NAME")->second); // TODO chdir ?
 	
 	char **tmp = new char*[2];
 	tmp[0] = strdup(file.c_str());

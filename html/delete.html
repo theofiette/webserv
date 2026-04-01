@@ -2,12 +2,26 @@
 <html lang="fr">
 	<head>
 		<meta charset="UTF-8">
-		<title>TeamRequette's Webserv - Delete</title>
+		<title>TeamRequette's Webserv - GET</title>
 		<link rel="stylesheet" href="css/style/style.css">
 	</head>
-	<body>
-		<form method="delete" modelAttribute="person" action="/todelete/file1.html" > 
-			<input type="submit" class="btn btn-success btn-lg" value="Delete"></input>
-		</form>
-	</body>
+
 </html>
+<button type="button" onclick="deleteFile()">Press to delete</button>
+
+<script>
+function deleteFile() 
+{
+    fetch('/todelete/file1.html', {
+        method: 'DELETE'
+    })
+    .then(response => {
+        if (response.ok) alert('File deleted');
+        else alert('Erreur lors de la suppression');
+    });
+}
+</script>
+
+<div>
+	<a class="button2" href="/index.html"> Back</a>
+</div>

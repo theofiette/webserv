@@ -197,17 +197,16 @@ std::string Response::buildLocalPath(const Request &_req)
 	if (_req.getMap().find("Path") == _req.getMap().end())
 			std::cerr << "map::at error 6\n";
 	std::string uriPath = _req.getMap().at("Path");
-	std::map<string, Location>::const_reverse_iterator bestMatch = findBestLocation(uriPath);
-	const Location	&location = bestMatch->second;
+	findBestLocation(uriPath);
 	
-	validateMethodAllowed(bestMatch->second, _req);
+	validateMethodAllowed(_currLocation, _req);
 	
-	std::string localPath = location.getRoot() + uriPath;
+	std::string localPath = _currLocation.getRoot() + uriPath;
 
-	if (location.isCookie())
-		buildLocalPathFromCookie(localPath, location, _req);
+	if (_currLocation.isCookie())
+		buildLocalPathFromCookie(localPath, _currLocation, _req);
 	else
-		appendIndexToDirectory(localPath, location);
+		appendIndexToDirectory(localPath, _currLocation);
 	
 	return (localPath);
 }

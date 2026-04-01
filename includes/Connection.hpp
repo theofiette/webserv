@@ -51,14 +51,22 @@ class Connection {
 		void	_checkTimeout();
 		
 		void	_startCgi();
-		void	_processCgi(short revent);
 		void	_clearCgi();
+
+		void	_retrieveSession();
 
 		Connection();
 
 	public:
 	
 		void	process(short revent);
+
+		bool	processBuffering();
+		void	processParsing();
+		void	processWriting();
+		void	processCgi(short revent);
+		void	processSending();
+
 		
 		// short			getEvent() const;
 		int				getFd() const;
