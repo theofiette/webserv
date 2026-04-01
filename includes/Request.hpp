@@ -10,6 +10,7 @@
 #include "Server.hpp"
 #include "TimeoutTracker.hpp"
 
+typedef std::map<std::string, std::string>::const_iterator mc_ss_it;
 typedef std::map<std::string, std::string>::iterator _req_map_it;
 
 class Request
@@ -27,11 +28,13 @@ class Request
 		bool								_discardBody;
 		// size_t							_contentLength;
 		size_t								_receivedBodyBytes;
+		std::string							_queryString;
 
 		const Server	*_currServ;
 		TimeoutTracker	_tracker;
 
 		void 	setFirstLine(std::string);
+		void	_extractQueryString(std::string&);
 		void	readSocketChunk(int, char *, size_t, size_t&);
 
 		size_t	findHeaderEnd(std::string);
@@ -57,9 +60,10 @@ class Request
 
 		bool				isKeepAlive() const;
 		const bool &		isRequestComplete();
-		void				setAsTimeout();
+		void				setAsTimeout(int);
 
 		const std::string& 			getHeader() const;
+		const std::string&			getQueryString() const;
 		const std::vector<char>&	getBody() const;
 		const Server				*getServer() const;
 		size_t						getRequestCode() const;

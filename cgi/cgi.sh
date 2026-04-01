@@ -35,6 +35,7 @@ if [ "$REQUEST_METHOD" = "GET" ]; then
 					Server is : $SERVER_NAME<br>
 					J'ecoute sur le port $SERVER_PORT via le $SERVER_PROTOCOL<br>
 					Je suis un CGI et je fonctionne correctement avec <p> $REQUEST_METHOD <p>
+					Query-string: $QUERY_STRING
 				</h1>
 			</div>
 		</body>
@@ -88,6 +89,7 @@ elif [ "$REQUEST_METHOD" = "POST" ]; then
 					J'ecoute sur le port $SERVER_PORT via le $SERVER_PROTOCOL<br>
 					Je suis un CGI et je fonctionne correctement avec <p> $REQUEST_METHOD </p>
 					Form data: $INPUT
+					Query-string: $QUERY_STRING
 				</h1>
 			</div>
 		</body>

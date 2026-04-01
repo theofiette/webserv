@@ -32,7 +32,7 @@ static std::map<int, std::string> initStatusMap()
 	m[413] = "Content Too Large";
 	m[415] = "Unsupported Media Type";
 	m[500] = "Internal Server Error";
-	m[504] = "Gateway timeout";
+	m[504] = "Gateway Timeout";
 	m[505] = "HTTP Version Not Supported";
 	return (m);
 }

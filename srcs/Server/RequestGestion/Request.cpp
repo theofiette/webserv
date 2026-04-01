@@ -31,6 +31,7 @@ void	Request::clear()
 	_requestHeader.clear();
 	_header.clear();
 	_body.clear();
+	_queryString.clear();
 
 	_tracker = TimeoutTracker();
 }
@@ -142,7 +143,7 @@ void Request::receiveRequestChunk(int socketFd)
 	size_t headerEnd = _header.size();
 
 	readSocketChunk(socketFd, buffer, SEND_SIZE, headerEnd);
-	int contentLength = extractContentLength(_header); // est ce qu on stockerait pas le content length dans request
+	int contentLength = extractContentLength(_header);
 	if (_headerComplete == true)
 	{
 		if (contentLength > 0 && contentLength > _currServ->getMaxBody())
@@ -151,7 +152,7 @@ void Request::receiveRequestChunk(int socketFd)
 			_discardBody = true;
 			storeBodyExceeding(headerEnd);
 			_body.clear();
-			if (_receivedBodyBytes >= static_cast<size_t>(contentLength)) // on peut plus utiliser _body.size() pcq  le body est vide, mais on veut quand meme saovir quand est ce qu on a lu tout le body
+			if (_receivedBodyBytes >= static_cast<size_t>(contentLength))
 				_requestComplete = true;
 			return ;
 		}
@@ -176,6 +177,16 @@ void Request::displayInfos() const
 	std::cerr << std::endl;
 }
 
+void	Request::_extractQueryString(std::string &path)
+{
+	size_t querySeparator = path.find('?');
+	if (querySeparator == std::string::npos)
+		return ;
+
+	_queryString = path.substr(querySeparator + 1);
+	path.erase(querySeparator);
+}
+
 void Request::setFirstLine(std::string buffer)
 {
     std::istringstream iss(buffer);
@@ -185,29 +196,25 @@ void Request::setFirstLine(std::string buffer)
 	if (!(iss >> method >> path >> protocol))
 	{
 		_requestCode = BAD_REQUEST;
-		std::cout << GREEN ITALIC  << "Exit 1\n";
 		return ;
 	}
 	else if (buffer.find("\r") == std::string::npos)
 	{
 		_requestCode = HTTP_VERSION_NOT_SUPPORTED;
-		std::cout << GREEN ITALIC  << "Exit 2\n";
 		return ;
 	}
 	std::string rest;
 	if (iss >> rest)
 	{
 		_requestCode = BAD_REQUEST;
-		std::cout << GREEN ITALIC  << "Exit 3\n";
 		return ;
 	}
 	if (!protocol.empty() && protocol[protocol.size() - 1] == '\r')
 		protocol[protocol.size() - 1] = 0;
+	_extractQueryString(path);
     _requestHeader["Method"] = method;
     _requestHeader["Path"] = path;
     _requestHeader["Protocol"] = protocol; //TODO: check if correct ?? 
-		std::cout << GREEN ITALIC  << "Exit 4\n" END;
-
 }
 
 void Request::fillHeader(std::stringstream &requestStream, std::string &buffer) 
@@ -283,6 +290,8 @@ void Request::parseRequest(std::string request)
 	setFirstLine(buffer);
 	fillHeader(requestStream, buffer);
 	checkHeader();
+	if (_requestCode != OK)
+		return ;
 	stateRequestValidity();
 }
 
@@ -334,14 +343,20 @@ const std::vector<char>& Request::getBody() const
 	return (_body);
 }
 
+const std::string& Request::getQueryString() const
+{
+	return (_queryString);
+}
+
 const std::map<std::string, std::string>& Request::getMap() const
 {
 	return (_requestHeader);
 }
 
-void	Request::setAsTimeout(){
+void	Request::setAsTimeout(int errType)
+{
 	_requestComplete = true;
-	_requestCode = REQUEST_TIMEOUT;
+	_requestCode = errType;
 	_requestTimedOut = true;
 }
 

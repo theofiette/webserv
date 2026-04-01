@@ -81,7 +81,7 @@ void	Connection::_startCgi()
 
 void	Connection::_processCgi(short revent)
 {
-	if (!(revent & (POLLIN) || revent & POLLHUP))
+	if (!(revent & (POLLIN | POLLHUP)))
 		return ;
 
 	if(!Cgi::readFromCGI(_cgiPid, _cgiReadFd, _response))
@@ -93,21 +93,18 @@ void	Connection::_checkTimeout()
 {
 	if (_timer.isExpired() == true)
 	{
-		std::cerr << BLUE << "state is now : " << getStateInterpreted() << "\n" END;
-		_request.setAsTimeout();
+		_request.setAsTimeout(REQUEST_TIMEOUT);
 		if (_state == CS_BUFFERING)
 			setState(CS_WRITING);
-		else
+		else if (_state == CS_WAIT_CGI)
 		{
-			if (_state == CS_WAIT_CGI)
-			{
-				std::cout << RED << "Killing CGI fd-> " << _socketFd << END << "\n";
-				_clearCgi();
-				// if (_cgiReadFd >= 0 || _cgiPid > 0)
-				// 	Cgi::killProcess(_cgiPid, _cgiReadFd);
-			}
-			setState(CS_CLOSE);
+			_request.setAsTimeout(GATEWAY_TIMEOUT);
+			_clearCgi();
+			_response.clear();
+			setState(CS_WRITING);
 		}
+		else
+			setState(CS_CLOSE);
 		_timer = TimeoutTracker();
 	}
 }
@@ -118,7 +115,7 @@ void	Connection::process(short revent)
 	std::string chunckedStr;
 	std::string	sessionStr;
 
-	if (revent & POLLERR || revent & POLLNVAL)
+	if (revent & (POLLERR | POLLNVAL))
 	{
 		setState(CS_CLOSE);
 		return ;
@@ -137,6 +134,7 @@ void	Connection::process(short revent)
 					return ;
 			setState(CS_BUFFERING);
 			break ;
+
 		case (CS_BUFFERING):
 			if (!(revent & POLLIN)) // TODO: move those checks ?
 					return ;
@@ -198,6 +196,11 @@ void	Connection::process(short revent)
 			_response.updateBytesSent(bytesSent);
 			if (_response.isSent())
 			{
+				if (_request.isRequestTimedOut())
+				{
+					setState(CS_CLOSE);
+					break ;
+				}
 				if (_request.getMap().find("Connection") != _request.getMap().end() && _request.getMap().find("Connection")->second == "keep-alive")
 					setState(CS_KEEP);
 				else
@@ -267,9 +270,9 @@ Connection &Connection::operator=(const Connection &other)
 // 	std::cerr << "DEBUG: Constructor called for class Connection\n";
 // }
 
-Connection::Connection(int fd, const Server &server, const unsigned int serverId): 
-_socketFd(fd), _wantedEvent(POLLIN), _state(CS_NONE), _request(server), _response(server),
-_server(server),  _serverId(serverId), _session(NULL)
+Connection::Connection(int fd, const Server &server, unsigned int serverId): 
+_socketFd(fd), _wantedEvent(POLLIN), _state(CS_NONE), _request(server), _response(server), _cgiPid(-1), 
+_cgiReadFd(-1), _server(server),  _serverId(serverId), _session(NULL)
 {
 	// std::cerr << "DEBUG: TMP Constructor called for class Connection\n";
 }

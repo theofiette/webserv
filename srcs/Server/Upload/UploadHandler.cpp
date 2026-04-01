@@ -7,8 +7,6 @@
 #include <algorithm>
 #include <fstream>
 
-typedef std::map<std::string, std::string>::const_iterator mc_ss_it;
-
 UploadHandler::UploadHandler(const Request &request, const std::string &uploadDirectory) :
 _request(request), _uploadDirectory(uploadDirectory), _statusCode(CREATED) {}
 
