@@ -17,6 +17,14 @@ std::string intToString(int num)
     return (ss.str());
 }
 
+size_t hexToDec(const std::string& hexString){
+	int result;
+	std::stringstream hexStream;
+	hexStream << hexString << std::hex;
+	hexStream >> result;
+	return (result);
+}
+
 int stringToInt(const std::string &num)
 {
 	std::stringstream ss(num);

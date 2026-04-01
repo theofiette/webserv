@@ -1,7 +1,6 @@
 #include "webserv.hpp"
 #include "Request.hpp"
 #include "Response.hpp"
-#include "safemath.hpp"
 #include <map>
 #include <sstream>
 
@@ -27,7 +26,12 @@ void	Request::clear()
 	_requestTimedOut = false;
 	_discardBody = false;
 	_receivedBodyBytes = 0;
-
+	_isChunked = false;
+	_encodingCheck = false;
+	_chunkDataRead = 0;
+	_chunkExpectSize = 0;
+	_chunkDone = false;
+	_chunkBuffer.clear();
 	_requestHeader.clear();
 	_header.clear();
 	_body.clear();
@@ -37,7 +41,8 @@ void	Request::clear()
 
 Request::Request(const Server &server, unsigned int serverIndex) : 
 _totalBytes(0),_headerComplete(false), _requestCode(OK), _requestComplete(false), _requestTimedOut(false),
-_discardBody(false), _receivedBodyBytes(0), _serverIndex(serverIndex), _currServ(&server), _tracker(TimeoutTracker())
+_discardBody(false), _isChunked(false), _encodingCheck(false),_chunkDone(false), _chunkExpectSize(0), _chunkDataRead(0),
+_receivedBodyBytes(0), _serverIndex(serverIndex), _currServ(&server), _tracker(TimeoutTracker())
 {
 	std::cerr << "DEBUG: Constructor called for class Request\n" END;
 }
@@ -67,6 +72,82 @@ int extractContentLength(const std::string &buffer)
 	return (contentLength);
 }
 
+void 	Request::_insertChunkedBody(const char *begin, const char *end){
+	if (begin == end || _chunkDone == true)
+		return ;
+	_chunkBuffer.append(begin, end);
+
+	while (1)
+	{
+		if (_chunkExpectSize == 0 && _chunkDataRead == 0) // IM ON THE SIZE LINE -> EXTRACT THE HEX SIZE CONVERT IT THEN ERASE
+		{
+			size_t pos = _chunkBuffer.find("\r\n");
+			if (pos == std::string::npos)
+				return ; // IF CRLF NOT FIND, KEEP READ TO FIND THE END OF THE SIZE LINE
+			std::string line = _chunkBuffer.substr(0, pos);
+			_chunkExpectSize = hexToDec(line);
+			_chunkBuffer.erase(0, pos + 2); // ERASE SIZE + CRLF
+		}
+		if (_chunkExpectSize == 0)
+		{
+			if (_chunkBuffer.size() < 2) // CHECK SIZE BEFORE CHECK CRLF TO AVOID SEGFAULT
+				return ;
+			if (_chunkBuffer[0] != '\r' || _chunkBuffer[1] != '\n')
+			{
+				_requestCode = BAD_REQUEST;
+				_requestComplete = true;
+				return ;
+			}
+			_chunkBuffer.erase(0, 2);
+			_chunkDone = true;
+			_requestComplete = true;
+			for(std::vector<char>::iterator it = _body.begin(); it != _body.end(); it++)
+				std::cout << *it;
+			std::cout << _body.size();
+			return ;
+		}
+		size_t remainingData = _chunkExpectSize - _chunkDataRead; // GET HOW MANY BYTES ALREADY READ ON PAST LOOP
+		size_t availableData = _chunkBuffer.size(); // TOTAL DATA TO READ
+
+		if (availableData < remainingData + 2) // IF SIZE OF THE BUFFER IS LT THE DATA I NEED TO READ -> INSERT THE THE REST OF THE BUFFER / THERE WILL BE MISSING INFO OF THIS CHUNK
+		{
+			size_t partialData;
+			if (remainingData < availableData) // IS REMAINING DATA (LAST SIZE - BYTES READ) LT THE BUFFER WE READ ?  
+				partialData = remainingData;
+			else
+				partialData = availableData;
+			if (partialData > 0)
+			{
+				_body.insert(_body.end(), _chunkBuffer.begin(), _chunkBuffer.begin() + partialData);
+				_chunkDataRead += partialData;
+				_chunkBuffer.erase(0, partialData);
+			}
+			return ;
+		}
+
+		if (remainingData > 0)
+		{
+			_body.insert(_body.end(), _chunkBuffer.begin(), _chunkBuffer.begin() + remainingData);
+			_chunkBuffer.erase(0, remainingData);
+			_chunkDataRead += remainingData;
+		}
+		// HERE IM SUPPOSED TO HAVE READ THE WHOLE CHUNK, AND AFTER ERASING WHAT I JUST INSERTED IN BUFFER, _CHUNKBUFFER SUPPOSED TO START WITH CRLF. IF NOT, BAD REQUEST
+		// IF ITS OK, ERASE CRLF AND KEEP GOING WITH NEXT CHUNK
+
+		if (_chunkBuffer.size() < 2)
+			return ;
+		if (_chunkBuffer[0] != '\r' || _chunkBuffer[1] != '\n')
+		{
+			_requestCode = BAD_REQUEST;
+			_requestComplete = true;
+			return ;
+		}
+		_chunkBuffer.erase(0, 2); // ERASE LAST \r\n
+		_chunkExpectSize = 0; // RESET DATA IF END OF CHUNK
+		_chunkDataRead = 0;
+	}
+}
+
 void Request::readSocketChunk(int socketFd, char *buffer, size_t bufferSize, size_t &headerEnd)
 {
 	ssize_t bytesRead = recv(socketFd, buffer, bufferSize, 0);
@@ -90,7 +171,7 @@ void Request::readSocketChunk(int socketFd, char *buffer, size_t bufferSize, siz
 	else
 	{
 		if (_discardBody == false)
-			_body.insert(_body.end(), buffer, buffer + bytesRead);
+			_insertBody(buffer, buffer + bytesRead);
 		_receivedBodyBytes += bytesRead;
 	}
 	_totalBytes += bytesRead;
@@ -125,27 +206,55 @@ void	Request::endRequestWithoutBody(const size_t& headerEnd)
 	}
 }
 
+void	Request::_insertBody(const char *begin, const char* end){
+	if (_isChunked == true)
+		_insertChunkedBody(begin, end);
+	else
+		_body.insert(_body.end(), begin, end);
+}
+
 void	Request::storeBodyExceeding(const size_t &headerEnd)
 { 
 	if (headerEnd != std::string::npos && headerEnd != _header.size())
 	{
 		std::string bodyStr = _header.substr(headerEnd);
 		if (_discardBody == false)
-			_body.insert(_body.end(), bodyStr.begin(), bodyStr.end());
+			_insertBody(bodyStr.c_str(), bodyStr.c_str() + bodyStr.size());
 		_receivedBodyBytes += bodyStr.size();
 		_header = _header.substr(0, headerEnd);
 	}
 }
+
+void	Request::_checkEncoding(std::string buffer){
+	_encodingCheck = true;
+	size_t pos = buffer.find("Transfer-Encoding:");
+
+	if (pos == std::string::npos)
+		return ;
+
+	pos += 18;
+	while (pos < buffer.size() && (buffer[pos] == ' ' || buffer[pos] == '\t'))
+		pos++;
+
+	size_t end = buffer.find("\r", pos);
+	if (end == std::string::npos || end == pos)
+		return ;
+	if (buffer.substr(pos, end - pos) == "chunked")
+		_isChunked = true;
+}
+
 void Request::receiveRequestChunk(int socketFd)
 {	
 	char buffer[SEND_SIZE] = {0};
 	size_t headerEnd = _header.size();
-	std::cout << "GOING IN RECV\n";
 
 	readSocketChunk(socketFd, buffer, SEND_SIZE, headerEnd);
 	int contentLength = extractContentLength(_header); // est ce qu on stockerait pas le content length dans request
+	
 	if (_headerComplete == true)
 	{
+		if (_encodingCheck == false)
+			_checkEncoding(_header);
 		if (contentLength > 0 && contentLength > _currServ->getMaxBody())
 		{
 			_requestCode = CONTENT_TOO_LARGE;
@@ -156,7 +265,7 @@ void Request::receiveRequestChunk(int socketFd)
 				_requestComplete = true;
 			return ;
 		}
-		if (contentLength <= 0)
+		if (contentLength <= 0 && _isChunked == false)
 			endRequestWithoutBody(headerEnd);
 		storeBodyExceeding(headerEnd);
 	}
