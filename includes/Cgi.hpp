@@ -17,13 +17,13 @@ class Cgi
 		void				cgiMainProcess(int pipe_in[2], int pipe_out[2], const Request &request, int &readFd);
 	public:
 		// Cgi(const Request &, const Session &);
-		Cgi(const Request &, const Session &);
+		Cgi();
 		~Cgi();
 		
 
 		void				cgiChildProcess(int[2], int[2]);
 		
-		void				run(const Request &, pid_t &, int &);
+		pid_t				run(const Request &, pid_t &, int &);
 		
 
 		void				setBodyMessage(const std::string &);
@@ -32,7 +32,7 @@ class Cgi
 		const std::string&	getBodyMessage() const;
 		const std::map<std::string, std::string>& getMetaVars() const;
 
-
+		void 				launchCgi(const Request &, const Session &);
 		static bool			readFromCGI(pid_t &, int &, Response &);
 		static void			killProcess(pid_t &, int &);
 };

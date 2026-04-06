@@ -1,6 +1,6 @@
 #include "TimeoutTracker.hpp"
 
-TimeoutTracker::TimeoutTracker() : _timerStarted(false), _expired(false), _startTime(0), _timeout(5)
+TimeoutTracker::TimeoutTracker() : _timerStarted(false), _expired(false), _startTime(0), _timeout(10)
 {
 	processTime();
 }

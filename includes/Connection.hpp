@@ -21,6 +21,7 @@ enum ConnectionState {
 	CS_BUFFERING,
 	CS_PARSING,
 	CS_WRITING,
+	CS_LAUNCH_CGI,
 	CS_WAIT_CGI,
 	CS_SENDING,
 	CS_KEEP,
@@ -66,6 +67,8 @@ class Connection {
 		void	processWriting();
 		void	processCgi(short revent);
 		void	processSending();
+
+		void	processLaunchCgi(const Request &, const Session &);
 
 		
 		// short			getEvent() const;

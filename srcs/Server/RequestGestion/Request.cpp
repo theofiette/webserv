@@ -77,7 +77,7 @@ void Request::readSocketChunk(int socketFd, char *buffer, size_t bufferSize, siz
 		_requestComplete = true;
 		return ;
 	}
-	std::cout << BLUE BOLD << std::string(buffer, bytesRead) << END << std::endl;
+	// std::cout << BLUE BOLD << std::string(buffer, bytesRead) << END << std::endl;
 	if (bytesRead == 0)
 	{
 		_requestComplete = true;

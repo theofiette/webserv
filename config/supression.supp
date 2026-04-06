@@ -1,0 +1,51 @@
+{
+   bash_all
+   Memcheck:Leak
+   match-leak-kinds: all
+   ...
+   obj:/usr/bin/bash
+}
+
+{
+   bash_cond
+   Memcheck:Cond
+   ...
+   obj:/usr/bin/bash
+}
+
+{
+   bash_value
+   Memcheck:Value8
+   ...
+   obj:/usr/bin/bash
+}
+
+{
+   python3_all
+   Memcheck:Leak
+   match-leak-kinds: all
+   ...
+   obj:/usr/bin/python3*
+}
+
+{
+   python3_libpython_all
+   Memcheck:Leak
+   match-leak-kinds: all
+   ...
+   obj:/usr/lib/x86_64-linux-gnu/libpython3*
+}
+
+{
+   python3_cond
+   Memcheck:Cond
+   ...
+   obj:/usr/bin/python3*
+}
+
+{
+   python3_value
+   Memcheck:Value8
+   ...
+   obj:/usr/bin/python3*
+}

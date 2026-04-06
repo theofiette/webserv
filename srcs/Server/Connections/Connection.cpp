@@ -36,6 +36,8 @@ string	Connection::getStateInterpreted() const
 			return ("CS_PARSING");
 		case (CS_WRITING):
 			return ("CS_WRITING");
+		case (CS_LAUNCH_CGI):
+			return ("CS_LAUNCH_CGI");
 		case (CS_WAIT_CGI):
 			return ("CS_WAIT_CGI");
 		case (CS_SENDING):
@@ -73,10 +75,15 @@ void	Connection::_clearCgi()
 
 void	Connection::_startCgi()
 {
-	Cgi cgi(_request, *_session);
+	Cgi cgi;
 
-	cgi.run(_request, _cgiPid, _cgiReadFd);
-	setState(CS_WAIT_CGI);
+	if (cgi.run(_request, _cgiPid, _cgiReadFd) == 0)
+	{
+		setState(CS_LAUNCH_CGI);
+		std::cerr << RED << "Connection is CS_LAUNCH_CGI\n" << END;
+	}
+	else
+		setState(CS_WAIT_CGI);
 }
 
 void	Connection::_retrieveSession()
@@ -161,7 +168,7 @@ void	Connection::processSending()
 
 	chunckedStr = _response.getChunckResp(SEND_SIZE);
 
-	std::cout << GREEN ITALIC << chunckedStr << END << "\n";
+	// std::cout << GREEN ITALIC << chunckedStr << END << "\n";
 
 	bytesSent = send(_socketFd, chunckedStr.c_str(), chunckedStr.size(), 0);
 	if (bytesSent <= 0)
@@ -183,6 +190,13 @@ void	Connection::processSending()
 			setState(CS_CLOSE);
 	}
 }
+
+void	Connection::processLaunchCgi(const Request &request, const Session &session)
+{
+	Cgi cgi;
+	cgi.launchCgi(request, session);
+}
+
 
 void	Connection::process(short revent)
 {
@@ -218,6 +232,9 @@ void	Connection::process(short revent)
 			processWriting();
 			if (getState() == CS_WRITING)
 				setState(CS_SENDING);
+			break ;
+		case (CS_LAUNCH_CGI):
+			processLaunchCgi(_request, *_session);
 			break ;
 		case (CS_WAIT_CGI):
 			processCgi(revent); // reads CGI output and sets to SENDING when CGI is done

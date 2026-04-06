@@ -371,6 +371,7 @@ void Response::handlePost(const Request &_req, Session &session)
 		if ((stat(localPath.c_str(), &s) == -1) || _statusCode != OK)
 			return ;
 		std::string uploadDirectory = _currLocation.getUploadDir();
+		std::cout << ORANGE << uploadDirectory << END << std::endl;
 
 		UploadHandler handler(_req, uploadDirectory);
 

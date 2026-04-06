@@ -130,10 +130,14 @@ void	ConnectionManager::_processConnections()
 
 		// std::cout << "revent is : " << _pollfds[i].revents << "\n";
 		currentConnection.process(_pollfds[i].revents);
-		if (currentConnection.getState() == CS_CLOSE)
+		if (currentConnection.getState() == CS_LAUNCH_CGI)
 		{
-			_to_close.push(it);
+			//close FDS
+			std::cerr << RED ITALIC << "Bolo balls\n" << END;
+			currentConnection.process(0);
 		}
+		if (currentConnection.getState() == CS_CLOSE)
+			_to_close.push(it);
 		i++;
 	}
 }
@@ -181,6 +185,14 @@ ConnectionManager::ConnectionManager(const WebServerConfig &config) : _servers(c
 ConnectionManager::~ConnectionManager()
 {
 	SessionManager::clean();
+	if (!_connections.empty())
+	{
+		for (std::vector<Connection>::iterator it = _connections.begin(); it != _connections.end(); it++)
+		{
+			if (it->getFd() != -1)
+				close(it->getFd());
+		}
+	}
 	// std::cerr << "DEBUG: Destructor called for class ConnectionManager\n";
 }
 

@@ -60,11 +60,14 @@ std::string	UploadHandler::_extractFilename() const // faire juste size_t Cursor
 	return (filename);
 }
 
-bool	UploadHandler::_writeFile(const std::string & filename, std::vector<char> &content) const
+bool	UploadHandler::_writeFile(const std::string &filename, std::vector<char> &content)
 {
 	std::ofstream outfile(filename.c_str());
 	if (!outfile.is_open())
-		;
+	{
+		_statusCode = INTERNAL_SERVER_ERROR;
+		return (false);
+	}
 	std::string bodyStr;
 	bodyStr.reserve(content.size());
 	for (std::vector<char>::iterator it = content.begin(); it != content.end(); it++)
@@ -111,6 +114,13 @@ std::vector<char> UploadHandler::_trimBody(const std::string &boundary)
 	return (body);
 }
 
+std::string UploadHandler::_finalizePath(const std::string filename)
+{
+	if (_uploadDirectory[_uploadDirectory.size() - 1] == '/')
+		return (_uploadDirectory + filename);
+	return (_uploadDirectory + "/" + filename);
+}
+
 int	UploadHandler::processUpload()
 {
 	const std::string filename = _extractFilename();
@@ -134,8 +144,8 @@ int	UploadHandler::processUpload()
 		_statusCode = BAD_REQUEST;
 		return (_statusCode);
 	}
-
-	if (_writeFile(filename,fileContent) == false)
+	std::string finalPath = _finalizePath(filename);
+	if (_writeFile(finalPath, fileContent) == false)
 		return (_statusCode);
 
 	_statusCode = CREATED;

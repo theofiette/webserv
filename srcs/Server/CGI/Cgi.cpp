@@ -56,11 +56,8 @@ void	Cgi::setupEnv()
 	_cgiEnv[i] = NULL;
 }
 
-Cgi::Cgi(const Request &request, const Session &session) //TODO: function INIT METAVARIABLES
-{
-	setupMetavariables(request, session);
-	setupEnv();
-}
+Cgi::Cgi() //TODO: function INIT METAVARIABLES
+{}
 
 void Cgi::cgiChildProcess(int pipe_in[2], int pipe_out[2])
 {
@@ -74,6 +71,14 @@ void Cgi::cgiChildProcess(int pipe_in[2], int pipe_out[2])
 		safeClose(pipe_out[1]);
 		exit(1);
 	}
+	safeClose(pipe_in[0]);
+	safeClose(pipe_out[1]);
+}
+
+void Cgi::launchCgi(const Request &request, const Session &session)
+{
+	setupMetavariables(request, session);
+	setupEnv();
 	std::string file = "./cgi/" + (getMetaVars().find("SCRIPT_NAME")->second); // TODO chdir ?
 	
 	char **tmp = new char*[2];
@@ -106,7 +111,7 @@ void Cgi::cgiMainProcess(int pipe_in[2], int pipe_out[2], const Request &request
 	readFd = pipe_out[0];
 }
 
-void Cgi::run(const Request &request, pid_t &pid, int &readFd)
+pid_t Cgi::run(const Request &request, pid_t &pid, int &readFd)
 {
 	int pipe_in[2];
 	int pipe_out[2];
@@ -125,6 +130,7 @@ void Cgi::run(const Request &request, pid_t &pid, int &readFd)
 		cgiChildProcess(pipe_in, pipe_out);
 	else
 		cgiMainProcess(pipe_in, pipe_out, request, readFd);
+	return (pid);
 }
 
 bool Cgi::readFromCGI(pid_t &pid, int &readFd, Response &response)
@@ -167,12 +173,12 @@ void Cgi::killProcess(pid_t &pid, int &readFd)
 
 Cgi::~Cgi()
 {
-	if (_cgiEnv)
-	{
-		for (int i = 0; _cgiEnv[i] != NULL; i++)
-			free(_cgiEnv[i]);
-		delete[] _cgiEnv;
-	}
+	// if (_cgiEnv)
+	// {
+	// 	for (int i = 0; _cgiEnv[i] != NULL; i++)
+	// 		free(_cgiEnv[i]);
+	// 	delete[] _cgiEnv;
+	// }
 }
 
 const std::map<std::string, std::string>& Cgi::getMetaVars() const
