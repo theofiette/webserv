@@ -255,6 +255,11 @@ bool Location::isCookie() const
 	return (_cookie);
 }
 
+bool Location::isAutoIndex() const
+{
+	return (_autoIndex);
+}
+
 const string&	Location::getUploadDir() const
 {
 	return (_uploadDir);

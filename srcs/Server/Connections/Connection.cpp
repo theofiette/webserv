@@ -99,7 +99,7 @@ void	Connection::_retrieveSession()
 	}
 }
 
-void	Connection::processCgi(short revent)
+void	Connection::_processCgi(short revent)
 {
 	if (!(revent & (POLLIN | POLLHUP)))
 		return ;
@@ -129,19 +129,19 @@ void	Connection::_checkTimeout()
 	}
 }
 
-bool	Connection::processBuffering()
+bool	Connection::_processBuffering()
 {
 	_request.receiveRequestChunk(_socketFd);
 	return (_request.isRequestComplete());
 }
 
-void	Connection::processParsing()
+void	Connection::_processParsing()
 {
 	_request.parseRequest(_request.getHeader());
 	_response.setStatusCode(_request.getRequestCode());
 }
 
-void	Connection::processWriting()
+void	Connection::_processWriting()
 {
 	_retrieveSession();
 	if (_request.getRequestCode() == OK)
@@ -161,14 +161,12 @@ void	Connection::processWriting()
 	_response.buildRawResponse(_request);
 }
 
-void	Connection::processSending()
+void	Connection::_processSending()
 {
 	std::string	chunckedStr;
 	int			bytesSent;
 
 	chunckedStr = _response.getChunckResp(SEND_SIZE);
-
-	// std::cout << GREEN ITALIC << chunckedStr << END << "\n";
 
 	bytesSent = send(_socketFd, chunckedStr.c_str(), chunckedStr.size(), 0);
 	if (bytesSent <= 0)
@@ -191,7 +189,7 @@ void	Connection::processSending()
 	}
 }
 
-void	Connection::processLaunchCgi(const Request &request, const Session &session)
+void	Connection::_processLaunchCgi(const Request &request, const Session &session)
 {
 	Cgi cgi;
 	cgi.launchCgi(request, session);
@@ -220,29 +218,29 @@ void	Connection::process(short revent)
 			break ;
 		case (CS_BUFFERING):
 			if (!(revent & POLLIN))
-					return ;
-			if (processBuffering() == true)
+				return ;
+			if (_processBuffering() == true)
 				setState(CS_PARSING);
 			else
 				break ;
 		case (CS_PARSING):
-			processParsing();
+			_processParsing();
 			setState(CS_WRITING);
 		case (CS_WRITING):
-			processWriting();
+			_processWriting();
 			if (getState() == CS_WRITING)
 				setState(CS_SENDING);
 			break ;
 		case (CS_LAUNCH_CGI):
-			processLaunchCgi(_request, *_session);
+			_processLaunchCgi(_request, *_session);
 			break ;
 		case (CS_WAIT_CGI):
-			processCgi(revent); // reads CGI output and sets to SENDING when CGI is done
+			_processCgi(revent); // reads CGI output and sets to SENDING when CGI is done
 			break ;
 		case (CS_SENDING):
 			if (!(revent & POLLOUT))
 				return ;
-			processSending();
+			_processSending();
 			break ;
 		case (CS_KEEP):
 			_clear();
@@ -257,10 +255,7 @@ void	Connection::process(short revent)
 Connection &Connection::operator=(const Connection &other)
 {
 	if (this == &other)
-	{
-		std::cerr << "this is other\n";
 		return (*this);
-	}
 	this->_socketFd = other._socketFd;
 	this->_wantedEvent = other._wantedEvent;
 	this->_state = other._state;

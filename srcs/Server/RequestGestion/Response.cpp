@@ -7,6 +7,7 @@
 
 #include <fstream>
 #include <sstream>
+#include <dirent.h>
 
 #include <sys/stat.h>
 
@@ -47,6 +48,8 @@ void	Response::clear()
 {
 	_statusCode = 200;
 	_bytesSent = 0;
+
+	_directoryPath.clear();
 
 	_rawResponse.clear();
 	_header.clear();
@@ -155,12 +158,14 @@ void Response::appendIndexToDirectory(std::string &localPath, const Location &lo
 
 	if (stat(localPath.c_str(), &s) != -1 && S_ISDIR(s.st_mode))
 	{
+		setDirectoryPath(localPath);
 		std::string index = location.getIndex();
 		if (localPath[localPath.size() - 1] != '/')
 			localPath += "/";
 		localPath += index;
 	}
 }
+
 void Response::appendCookieIndexToDirectory(
 	std::string &localPath, const std::string &cookie_value)
 {
@@ -194,14 +199,20 @@ void	Response::buildLocalPathFromCookie(std::string &localPath, const Location &
 
 std::string Response::buildLocalPath(const Request &_req)
 {
-	if (_req.getMap().find("Path") == _req.getMap().end())
-			std::cerr << "map::at error 6\n";
 	std::string uriPath = _req.getMap().at("Path");
+
 	findBestLocation(uriPath);
+	
+	size_t			pos;
 	
 	validateMethodAllowed(_currLocation, _req);
 	
 	std::string localPath = _currLocation.getRoot() + uriPath;
+
+	while ((pos = (localPath.find(".."))) != string::npos)
+		localPath.erase(pos, 2);
+	while ((pos = (localPath.find("//"))) != string::npos)
+		localPath.erase(pos, 1);
 
 	if (_currLocation.isCookie())
 		buildLocalPathFromCookie(localPath, _currLocation, _req);
@@ -224,9 +235,15 @@ void	Response::insertCookieHeader(std::string cookie)
 void Response::checkFileAccess(std::string &localPath, int requiredAccess)
 {
 	struct stat s;
+
 	if (stat(localPath.c_str(), &s) == -1) {
-		_statusCode = NOT_FOUND;
-		handleResponsesError();
+		if (!_directoryPath.empty() && _currLocation.isAutoIndex())
+			handleAutoIndex();
+		else
+		{
+			_statusCode = NOT_FOUND;
+			handleResponsesError();
+		}
 	}
 	else if (!S_ISREG(s.st_mode) || access(localPath.c_str(), requiredAccess) == -1) {
 		_statusCode = FORBIDDEN;
@@ -240,6 +257,7 @@ bool Response::readFileContent(const std::string &filePath, size_t fileSize)
 	std::ifstream infile(filePath.c_str(), std::ios::binary);
 	if (fileSize > 0)
 		infile.read(&_body[0], fileSize);
+	std::cout << _body << "\n";
 	return (true);
 }
 
@@ -303,7 +321,10 @@ void Response::handleResponsesError()
 			localPath = errPage->second;
 		else
 			localPath = _currServ->getServerErrors().find(0)->second;
-	}	
+	}
+	for (std::multimap<std::string, std::string>::iterator it = _header.begin(); it != _header.end(); it++)
+		std::cout << it->first << " - " << it->second << "\n";
+	std::cout << localPath << "\n";
 	if (stat(localPath.c_str(), &s) != -1 && access(localPath.c_str(), R_OK) != -1)
 		readFileContent(localPath, s.st_size);
 	else
@@ -316,6 +337,33 @@ void Response::handleResponsesError()
 	addHeader("Content-Type", "text/html");
 	addHeader("Content-Length", intToString(_body.length()));
 }
+
+
+void Response::handleAutoIndex()
+{
+	DIR		*dir = opendir(_directoryPath.c_str());
+	dirent	*fileInfo = NULL;
+
+	_body += "<html><head><title>TeamRequette's Webserv - AutoIndex</title></head><body>";
+	if (!dir)
+	{
+		_statusCode = INTERNAL_SERVER_ERROR;
+		handleResponsesError();
+		return ;
+	}
+	while ((fileInfo = readdir(dir)) != NULL)
+	{
+		if (fileInfo->d_name[0] == '.')
+			continue ;
+		_body += "<a href=\"" + std::string(fileInfo->d_name) + "\">" + std::string(fileInfo->d_name) + "</a><br>\n";
+	}
+	_body += "</body></html>";
+	free(dir);
+
+	addHeader("Content-Type", "text/html");
+	addHeader("Content-Length", intToString(_body.length()));
+}
+
 
 //*********************************************************************************************/
 /*										HANDLERS											  */
@@ -394,6 +442,7 @@ void Response::handlePost(const Request &_req, Session &session)
 		//TODO: RECUPER DYNAMIQUEMENT SUCCESS HTML via GLOBALSERVER ou REDIR (build full path...)
 		// std::string localPath = getSuccessPath();
 		std::map<std::string, std::string> formData; // TODO: utiliser cette data
+
 		parseFormData(formData, _req, session);
 	}
 
@@ -460,7 +509,6 @@ bool	Response::isSent()
 
 void Response::buildRawResponse(const Request &_req)
 {
-	std::map<std::string, std::string>::iterator it = _header.begin();
 
 	if (_req.getMap().find("Protocol") == _req.getMap().end())
 		_rawResponse += "HTTP/1.1 ";
@@ -468,8 +516,11 @@ void Response::buildRawResponse(const Request &_req)
 		_rawResponse += _req.getMap().at("Protocol") + " ";
 	_rawResponse += intToString(_statusCode) + " " + _statusMap.at(_statusCode) + "\r\n";
 
-	if (_req.isKeepAlive())
+	if (_req.isKeepAlive()){
+		addHeader("Connection", "keep-alive");
 		addHeader("Keep-alive", "timeout=5, max=200");
+	}
+	std::map<std::string, std::string>::iterator it = _header.begin();
 	for (; it != _header.end(); it++)
 		_rawResponse += it->first + ": " + it->second + "\r\n";
 	
@@ -482,6 +533,16 @@ void Response::buildRawResponse(const Request &_req)
 //*********************************************************************************************/
 /*										GETTERS											  	  */
 //*********************************************************************************************/
+
+void	Response::setDirectoryPath(const std::string &str)
+{
+	_directoryPath = str;
+}
+
+const std::string	Response::getDirectoryPath() const
+{
+	return (_directoryPath);
+}
 
 void Response::setStatusCode(const int statusCode)
 {

@@ -64,7 +64,6 @@ elif request_method == "POST":
 # Headers CGI
 print(f"{server_protocol} 200 OK")
 print("Content-Type: text/html")
-print("Set-Cookie: theo=leplusbo")
 print(f"Content-Length: {len(body)}")
 print()  # ligne vide obligatoire
 print(body)

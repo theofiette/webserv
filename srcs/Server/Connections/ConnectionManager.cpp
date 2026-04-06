@@ -37,26 +37,18 @@ size_t	ConnectionManager::_setupPollfds()
 	{
 		if (i < _masterSockets.size())
 		{
-			// _pollfds[i].fd = _masterSockets[i];
-			// _pollfds[i].events = POLLIN;
+			_pollfds[i].events = POLLIN;
 			i++;
 		}
 		else if (j < _connections.size())
 		{
 			_pollfds[i + j].fd = _connections[j].getPollFd();
-			// std::cout << "wanted event for fd " << _connections[j].getPollFd() << " is : " << _connections[j].getWantedEvent() << "\n";
-			// std::cout << "events for fd " << _pollfds[i + j].fd << " is : " << _pollfds[i + j].events << "\n";
-			// std::cout << "state for fd " << _connections[j].getPollFd() << " is : " << _connections[j].getStateInterpreted() << "\n";
 			_pollfds[i + j].events = _connections[j].getWantedEvent();
 			j++;
 		}
 		else
 			return (i + j);
 	}
-	// std::cerr << RED << "PollTab: ";
-	// for (size_t k = 0; k < i + j; k++)
-	// 	std::cerr << _pollfds[i].fd << " | ";
-	// std::cerr << std::endl;
 	return (_maxConnections);
 }
 
@@ -66,7 +58,6 @@ size_t	ConnectionManager::_setupPollfds()
 */
 void	ConnectionManager::_openConnection(int fd, const Server &server, const unsigned int serverId)
 {
-	// Connection	newConnection(fd);
 	Connection	newConnection(fd, server, serverId);
 
 	_connections.push_back(newConnection);
@@ -109,7 +100,7 @@ void	ConnectionManager::_checkOpenConnections()
 			newSocket = accept(_masterSockets[i], 0, 0);
 			if (newSocket < 0)
 				break ;
-			fcntl(newSocket, F_SETFL, O_NONBLOCK);
+			Fcntl(newSocket, F_SETFL, O_NONBLOCK);
 			_openConnection(newSocket, _servers[i], i);
 			std::cerr << RED << "DEBUG: opening connection on fd " << newSocket << END << "\n";
 		}
@@ -133,7 +124,6 @@ void	ConnectionManager::_processConnections()
 		if (currentConnection.getState() == CS_LAUNCH_CGI)
 		{
 			//close FDS
-			std::cerr << RED ITALIC << "Bolo balls\n" << END;
 			currentConnection.process(0);
 		}
 		if (currentConnection.getState() == CS_CLOSE)

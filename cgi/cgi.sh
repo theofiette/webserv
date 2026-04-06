@@ -98,7 +98,6 @@ elif [ "$REQUEST_METHOD" = "POST" ]; then
 	CONTENT_LENGTH=${#BODY}
 	echo -ne "$SERVER_PROTOCOL 200 OK\r\n"
 	echo -ne "Content-Type: text/html\r\n"
-	echo -ne "Set-Cookie: theo=leplusbo\r\n"
 	echo -ne "Content-Length: $CONTENT_LENGTH\r\n"
 	echo -ne "\r\n"
 	echo -n "$BODY"

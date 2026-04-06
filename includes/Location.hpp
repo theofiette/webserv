@@ -69,5 +69,6 @@ class Location
 		const string&						getUploadDir() const;
 		bool								getUpload() const;
 		bool								isCookie() const;
+		bool								isAutoIndex() const;
 	};
 

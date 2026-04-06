@@ -1,7 +1,6 @@
 #include "webserv.hpp"
 #include "Request.hpp"
 #include "Response.hpp"
-#include "safemath.hpp"
 #include <map>
 #include <sstream>
 
@@ -28,6 +27,15 @@ void	Request::clear()
 	_discardBody = false;
 	_receivedBodyBytes = 0;
 
+
+	_isChunked = false;
+	_encodingCheck = false;
+	_chunkDataRead = 0;
+	_chunkExpectSize = 0;
+	_chunkDone = false;
+	_chunkBuffer.clear();
+
+
 	_requestHeader.clear();
 	_header.clear();
 	_body.clear();
@@ -38,7 +46,8 @@ void	Request::clear()
 
 Request::Request(const Server &server) : 
 _totalBytes(0),_headerComplete(false), _requestCode(OK), _requestComplete(false), _requestTimedOut(false),
-_discardBody(false), _receivedBodyBytes(0), _currServ(&server), _tracker(TimeoutTracker())
+_discardBody(false), _isChunked(false), _encodingCheck(false),_chunkDone(false), _chunkExpectSize(0), _chunkDataRead(0),
+_receivedBodyBytes(0), _currServ(&server), _tracker(TimeoutTracker())
 {
 	// std::cerr << "DEBUG: Constructor called for class Request\n" END;
 }
@@ -68,6 +77,92 @@ int extractContentLength(const std::string &buffer)
 	return (contentLength);
 }
 
+static bool checkCrlf(std::string &chunkBuffer, size_t &requestCode, bool &requestComplete)
+{
+	if (chunkBuffer.size() < 2) // CHECK SIZE BEFORE CHECK CRLF TO AVOID SEGFAULT
+		return (false);
+	if (chunkBuffer[0] != '\r' || chunkBuffer[1] != '\n')
+	{
+		requestCode = BAD_REQUEST;
+		requestComplete = true;
+		return (false);
+	}
+	return (true);
+}
+
+static bool extractSizeLine(std::string &chunkBuffer, size_t &chunkSize){
+	size_t pos = chunkBuffer.find("\r\n");
+	if (pos == std::string::npos)
+		return (false);
+	std::string line = chunkBuffer.substr(0, pos);
+	chunkSize = hexToDec(line);
+	chunkBuffer.erase(0, pos + 2);
+	return (true);
+}
+
+static bool handleLastChunk(std::string &chunkBuffer, bool &chunkDone, bool &requestComplete, size_t &requestCode)
+{
+	if (checkCrlf(chunkBuffer, requestCode, requestComplete) == false)
+		return (false);
+	chunkBuffer.clear();
+	chunkDone = true;
+	requestComplete = true;
+	return (true);
+}
+
+bool Request::_insertInBody()
+{
+	size_t remainingBytes = _chunkExpectSize - _chunkDataRead;
+	size_t availableBytes = _chunkBuffer.size();
+	if (availableBytes < remainingBytes + 2)
+	{
+		size_t actualBytes;
+		if (remainingBytes < availableBytes)
+			actualBytes = remainingBytes;
+		else
+			actualBytes = availableBytes;
+		if (actualBytes > 0)
+		{
+			_body.insert(_body.end(), _chunkBuffer.begin(), _chunkBuffer.begin() + actualBytes);
+			_chunkDataRead += actualBytes;
+			_chunkBuffer.erase(0, actualBytes);
+		}
+		return (false);
+	}
+	if (remainingBytes > 0)
+	{
+		_body.insert(_body.end(), _chunkBuffer.begin(), _chunkBuffer.begin() + remainingBytes);
+		_chunkBuffer.erase(0, remainingBytes);
+		_chunkDataRead += remainingBytes;
+	}
+	return (true);
+}
+
+void 	Request::_insertChunkedBody(const char *begin, const char *end)
+{
+	_chunkBuffer.append(begin, end);
+	while (1)
+	{
+		if (_chunkExpectSize == 0 && _chunkDataRead == 0)
+			if (extractSizeLine(_chunkBuffer, _chunkExpectSize) == false)
+				return ;
+		if (_chunkExpectSize == 0){
+			handleLastChunk(_chunkBuffer, _chunkDone, _requestComplete, _requestCode);
+			for (std::vector<char>::iterator it = _body.begin(); it != _body.end(); it++)
+				std::cout << *it;
+			std::cout << "\n" << _body.size() << "\n";
+			return ;
+		}
+		if (_insertInBody() == false)
+			return ;
+		if (checkCrlf(_chunkBuffer, _requestCode, _requestComplete) == false)
+			return ;
+		_chunkBuffer.erase(0, 2);
+		_chunkExpectSize = 0;
+		_chunkDataRead = 0;
+	}
+}
+
 void Request::readSocketChunk(int socketFd, char *buffer, size_t bufferSize, size_t &headerEnd)
 {
 	ssize_t bytesRead = recv(socketFd, buffer, bufferSize, 0);
@@ -77,7 +172,6 @@ void Request::readSocketChunk(int socketFd, char *buffer, size_t bufferSize, siz
 		_requestComplete = true;
 		return ;
 	}
-	// std::cout << BLUE BOLD << std::string(buffer, bytesRead) << END << std::endl;
 	if (bytesRead == 0)
 	{
 		_requestComplete = true;
@@ -90,8 +184,9 @@ void Request::readSocketChunk(int socketFd, char *buffer, size_t bufferSize, siz
 	}
 	else
 	{
-		if (_discardBody == false)
-			_body.insert(_body.end(), buffer, buffer + bytesRead);
+		if (_discardBody == false){
+			_insertBody(buffer, buffer + bytesRead);
+		}
 		_receivedBodyBytes += bytesRead;
 	}
 	_totalBytes += bytesRead;
@@ -126,17 +221,43 @@ void	Request::endRequestWithoutBody(const size_t& headerEnd)
 	}
 }
 
+void	Request::_insertBody(const char *begin, const char* end){
+	if (_isChunked == true)
+		_insertChunkedBody(begin, end);
+	else
+		_body.insert(_body.end(), begin, end);
+}
+
 void	Request::storeBodyExceeding(const size_t &headerEnd)
 { 
 	if (headerEnd != std::string::npos && headerEnd != _header.size())
 	{
 		std::string bodyStr = _header.substr(headerEnd);
 		if (_discardBody == false)
-			_body.insert(_body.end(), bodyStr.begin(), bodyStr.end());
+			_insertBody(bodyStr.c_str(), bodyStr.c_str() + bodyStr.size());
 		_receivedBodyBytes += bodyStr.size();
 		_header = _header.substr(0, headerEnd);
 	}
 }
+
+void	Request::_checkEncoding(std::string buffer){
+	_encodingCheck = true;
+	size_t pos = buffer.find("Transfer-Encoding:");
+
+	if (pos == std::string::npos)
+		return ;
+
+	pos += 18;
+	while (pos < buffer.size() && (buffer[pos] == ' ' || buffer[pos] == '\t'))
+		pos++;
+
+	size_t end = buffer.find("\r", pos);
+	if (end == std::string::npos || end == pos)
+		return ;
+	if (buffer.substr(pos, end - pos) == "chunked")
+		_isChunked = true;
+}
+
 void Request::receiveRequestChunk(int socketFd)
 {	
 	char buffer[SEND_SIZE] = {0};
@@ -146,6 +267,8 @@ void Request::receiveRequestChunk(int socketFd)
 	int contentLength = extractContentLength(_header);
 	if (_headerComplete == true)
 	{
+		if (_encodingCheck == false)
+			_checkEncoding(_header);
 		if (contentLength > 0 && contentLength > _currServ->getMaxBody())
 		{
 			_requestCode = CONTENT_TOO_LARGE;
@@ -156,7 +279,7 @@ void Request::receiveRequestChunk(int socketFd)
 				_requestComplete = true;
 			return ;
 		}
-		if (contentLength <= 0)
+		if (contentLength <= 0 && _isChunked == false)
 			endRequestWithoutBody(headerEnd);
 		storeBodyExceeding(headerEnd);
 	}
@@ -214,7 +337,7 @@ void Request::setFirstLine(std::string buffer)
 	_extractQueryString(path);
     _requestHeader["Method"] = method;
     _requestHeader["Path"] = path;
-    _requestHeader["Protocol"] = protocol; //TODO: check if correct ?? 
+    _requestHeader["Protocol"] = protocol;
 }
 
 void Request::fillHeader(std::stringstream &requestStream, std::string &buffer) 

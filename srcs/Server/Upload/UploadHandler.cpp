@@ -151,8 +151,3 @@ int	UploadHandler::processUpload()
 	_statusCode = CREATED;
 	return (_statusCode);
 }
-
-// int UploadHandler::getUploadStatus() const
-// {
-// 	return (_statusCode);
-// }

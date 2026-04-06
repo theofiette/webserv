@@ -8,6 +8,7 @@
 #include <map>
 
 #include "Server.hpp"
+#include "safemath.hpp"
 #include "TimeoutTracker.hpp"
 
 typedef std::map<std::string, std::string>::const_iterator mc_ss_it;
@@ -18,7 +19,6 @@ class Request
 	private:
 		size_t								_totalBytes;
 		std::map<std::string, std::string>	_requestHeader;
-		// std::string 						_rawRequest;
 		std::string 						_header;
 		std::vector<char> 					_body;
 		bool 								_headerComplete;
@@ -26,7 +26,15 @@ class Request
 		bool								_requestComplete;
 		bool								_requestTimedOut;
 		bool								_discardBody;
-		// size_t							_contentLength;
+
+
+		bool								_isChunked;
+		bool								_encodingCheck;
+		bool								_chunkDone;
+		size_t								_chunkExpectSize;
+		size_t								_chunkDataRead;
+		std::string							_chunkBuffer;
+		
 		size_t								_receivedBodyBytes;
 		std::string							_queryString;
 
@@ -41,7 +49,12 @@ class Request
 		void	endRequestWithoutBody(const size_t&);
 		void	storeBodyExceeding(size_t const&);
 		bool	finalizeWithoutBody(int);
-		// void	setBody(size_t, int);
+
+		void	_insertBody(const char *, const char *);
+		bool	_insertInBody();
+		void 	_insertChunkedBody(const char *, const char *);
+
+		void 	_checkEncoding(std::string);
 
 	public:
 		Request();

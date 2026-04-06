@@ -82,12 +82,11 @@ void Cgi::launchCgi(const Request &request, const Session &session)
 	std::string file = "./cgi/" + (getMetaVars().find("SCRIPT_NAME")->second); // TODO chdir ?
 	
 	char **tmp = new char*[2];
-	tmp[0] = strdup(file.c_str());
+	tmp[0] = strdup(file.c_str()); //TODO : FIND A WAY TO CLOSE ALL SOCKET + FREE EVERYTHING
 	// tmp[0] = strdup((std::string("cgi_tester")).c_str());
 	tmp[1] = NULL;
 	execve(tmp[0], tmp, getEnv());
 	perror("execve");
-	exit(0);
 }
 
 void Cgi::cgiMainProcess(int pipe_in[2], int pipe_out[2], const Request &request, int &readFd)
@@ -165,6 +164,7 @@ void Cgi::killProcess(pid_t &pid, int &readFd)
 	safeClose(readFd);
 	if (pid > 0)
 	{
+		std::cerr << RED BOLD "KILLING PID CGI \n";
 		kill(pid, SIGKILL); // TODO: if (kill == -1? syscall)
 		waitpid(pid, NULL, 0);
 		pid = -1;

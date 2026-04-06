@@ -48,6 +48,14 @@ class Connection {
 		const unsigned int	_serverId;
 		Session 			*_session;
 
+		bool	_processBuffering();
+		void	_processParsing();
+		void	_processWriting();
+		void	_processCgi(short revent);
+		void	_processSending();
+		void	_processLaunchCgi(const Request &, const Session &);
+
+
 		void	_clear();
 		void	_checkTimeout();
 		
@@ -61,16 +69,6 @@ class Connection {
 	public:
 	
 		void	process(short revent);
-
-		bool	processBuffering();
-		void	processParsing();
-		void	processWriting();
-		void	processCgi(short revent);
-		void	processSending();
-
-		void	processLaunchCgi(const Request &, const Session &);
-
-		
 		// short			getEvent() const;
 		int				getFd() const;
 		int				getPollFd() const;
