@@ -45,11 +45,9 @@ int main()
 
     send(clientSocket, headers, strlen(headers), 0);
 
-    // 🔥 création d’un gros chunk (> 4096 bytes)
-    const size_t CHUNK_SIZE = 8192; // 8 KB
+    const size_t CHUNK_SIZE = 8192;
     std::string bigChunk(CHUNK_SIZE, 'A');
 
-    // buffer assez grand pour contenir taille + data
     std::string requestChunk;
 
     char sizeBuffer[32];
@@ -59,10 +57,8 @@ int main()
     requestChunk.append(bigChunk);
     requestChunk.append("\r\n");
 
-    // envoi du gros chunk
     send(clientSocket, requestChunk.c_str(), requestChunk.size(), 0);
 
-    // 🔥 tu peux aussi envoyer plusieurs gros chunks
     std::string bigChunk2(CHUNK_SIZE, 'B');
 
     requestChunk.clear();
@@ -74,10 +70,8 @@ int main()
 
     send(clientSocket, requestChunk.c_str(), requestChunk.size(), 0);
 
-    // chunk final
     send(clientSocket, "0\r\n\r\n", 5, 0);
 
-    // réception
     char recvBuffer[4096];
     int bytesRead;
     while ((bytesRead = recv(clientSocket, recvBuffer, sizeof(recvBuffer) - 1, 0)) > 0)

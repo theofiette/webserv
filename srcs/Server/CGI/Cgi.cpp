@@ -70,7 +70,7 @@ void Cgi::cgiChildProcess(int pipe_in[2], int pipe_out[2])
 	std::string file = "./cgi/" + (getMetaVars().find("SCRIPT_NAME")->second);
 	
 	char **tmp = new char*[2];
-	tmp[0] = strdup(file.c_str());
+	tmp[0] = strdup(file.c_str()); //TODO : FIND A WAY TO CLOSE ALL SOCKET + FREE EVERYTHING
 	// tmp[0] = strdup((std::string("cgi_tester")).c_str());
 	tmp[1] = NULL;
 	execve(tmp[0], tmp, getEnv());

@@ -72,78 +72,88 @@ int extractContentLength(const std::string &buffer)
 	return (contentLength);
 }
 
-void 	Request::_insertChunkedBody(const char *begin, const char *end){
-	if (begin == end || _chunkDone == true)
-		return ;
-	_chunkBuffer.append(begin, end);
+static bool checkCrlf(std::string &chunkBuffer, size_t &requestCode, bool &requestComplete)
+{
+	if (chunkBuffer.size() < 2) // CHECK SIZE BEFORE CHECK CRLF TO AVOID SEGFAULT
+		return (false);
+	if (chunkBuffer[0] != '\r' || chunkBuffer[1] != '\n')
+	{
+		requestCode = BAD_REQUEST;
+		requestComplete = true;
+		return (false);
+	}
+	return (true);
+}
 
+static bool extractSizeLine(std::string &chunkBuffer, size_t &chunkSize){
+	size_t pos = chunkBuffer.find("\r\n");
+	if (pos == std::string::npos)
+		return (false);
+	std::string line = chunkBuffer.substr(0, pos);
+	chunkSize = hexToDec(line);
+	chunkBuffer.erase(0, pos + 2);
+	return (true);
+}
+
+static bool handleLastChunk(std::string &chunkBuffer, bool &chunkDone, bool &requestComplete, size_t &requestCode)
+{
+	if (checkCrlf(chunkBuffer, requestCode, requestComplete) == false)
+		return (false);
+	chunkBuffer.clear();
+	chunkDone = true;
+	requestComplete = true;
+	return (true);
+}
+
+bool Request::_insertInBody()
+{
+	size_t remainingBytes = _chunkExpectSize - _chunkDataRead;
+	size_t availableBytes = _chunkBuffer.size();
+	if (availableBytes < remainingBytes + 2)
+	{
+		size_t actualBytes;
+		if (remainingBytes < availableBytes)
+			actualBytes = remainingBytes;
+		else
+			actualBytes = availableBytes;
+		if (actualBytes > 0)
+		{
+			_body.insert(_body.end(), _chunkBuffer.begin(), _chunkBuffer.begin() + actualBytes);
+			_chunkDataRead += actualBytes;
+			_chunkBuffer.erase(0, actualBytes);
+		}
+		return (false);
+	}
+	if (remainingBytes > 0)
+	{
+		_body.insert(_body.end(), _chunkBuffer.begin(), _chunkBuffer.begin() + remainingBytes);
+		_chunkBuffer.erase(0, remainingBytes);
+		_chunkDataRead += remainingBytes;
+	}
+	return (true);
+}
+
+void 	Request::_insertChunkedBody(const char *begin, const char *end)
+{
+	_chunkBuffer.append(begin, end);
 	while (1)
 	{
-		if (_chunkExpectSize == 0 && _chunkDataRead == 0) // IM ON THE SIZE LINE -> EXTRACT THE HEX SIZE CONVERT IT THEN ERASE
-		{
-			size_t pos = _chunkBuffer.find("\r\n");
-			if (pos == std::string::npos)
-				return ; // IF CRLF NOT FIND, KEEP READ TO FIND THE END OF THE SIZE LINE
-			std::string line = _chunkBuffer.substr(0, pos);
-			_chunkExpectSize = hexToDec(line);
-			_chunkBuffer.erase(0, pos + 2); // ERASE SIZE + CRLF
-		}
-		if (_chunkExpectSize == 0)
-		{
-			if (_chunkBuffer.size() < 2) // CHECK SIZE BEFORE CHECK CRLF TO AVOID SEGFAULT
+		if (_chunkExpectSize == 0 && _chunkDataRead == 0)
+			if (extractSizeLine(_chunkBuffer, _chunkExpectSize) == false)
 				return ;
-			if (_chunkBuffer[0] != '\r' || _chunkBuffer[1] != '\n')
-			{
-				_requestCode = BAD_REQUEST;
-				_requestComplete = true;
-				return ;
-			}
-			_chunkBuffer.erase(0, 2);
-			_chunkDone = true;
-			_requestComplete = true;
-			for(std::vector<char>::iterator it = _body.begin(); it != _body.end(); it++)
+		if (_chunkExpectSize == 0){
+			handleLastChunk(_chunkBuffer, _chunkDone, _requestComplete, _requestCode);
+			for (std::vector<char>::iterator it = _body.begin(); it != _body.end(); it++)
 				std::cout << *it;
-			std::cout << _body.size();
+			std::cout << "\n" << _body.size() << "\n";
 			return ;
 		}
-		size_t remainingData = _chunkExpectSize - _chunkDataRead; // GET HOW MANY BYTES ALREADY READ ON PAST LOOP
-		size_t availableData = _chunkBuffer.size(); // TOTAL DATA TO READ
-
-		if (availableData < remainingData + 2) // IF SIZE OF THE BUFFER IS LT THE DATA I NEED TO READ -> INSERT THE THE REST OF THE BUFFER / THERE WILL BE MISSING INFO OF THIS CHUNK
-		{
-			size_t partialData;
-			if (remainingData < availableData) // IS REMAINING DATA (LAST SIZE - BYTES READ) LT THE BUFFER WE READ ?  
-				partialData = remainingData;
-			else
-				partialData = availableData;
-			if (partialData > 0)
-			{
-				_body.insert(_body.end(), _chunkBuffer.begin(), _chunkBuffer.begin() + partialData);
-				_chunkDataRead += partialData;
-				_chunkBuffer.erase(0, partialData);
-			}
+		if (_insertInBody() == false)
 			return ;
-		}
-
-		if (remainingData > 0)
-		{
-			_body.insert(_body.end(), _chunkBuffer.begin(), _chunkBuffer.begin() + remainingData);
-			_chunkBuffer.erase(0, remainingData);
-			_chunkDataRead += remainingData;
-		}
-		// HERE IM SUPPOSED TO HAVE READ THE WHOLE CHUNK, AND AFTER ERASING WHAT I JUST INSERTED IN BUFFER, _CHUNKBUFFER SUPPOSED TO START WITH CRLF. IF NOT, BAD REQUEST
-		// IF ITS OK, ERASE CRLF AND KEEP GOING WITH NEXT CHUNK
-
-		if (_chunkBuffer.size() < 2)
+		if (checkCrlf(_chunkBuffer, _requestCode, _requestComplete) == false)
 			return ;
-		if (_chunkBuffer[0] != '\r' || _chunkBuffer[1] != '\n')
-		{
-			_requestCode = BAD_REQUEST;
-			_requestComplete = true;
-			return ;
-		}
-		_chunkBuffer.erase(0, 2); // ERASE LAST \r\n
-		_chunkExpectSize = 0; // RESET DATA IF END OF CHUNK
+		_chunkBuffer.erase(0, 2);
+		_chunkExpectSize = 0;
 		_chunkDataRead = 0;
 	}
 }
@@ -157,7 +167,6 @@ void Request::readSocketChunk(int socketFd, char *buffer, size_t bufferSize, siz
 		_requestComplete = true;
 		return ;
 	}
-	std::cout << BLUE BOLD << std::string(buffer, bytesRead) << END << std::endl;
 	if (bytesRead == 0)
 	{
 		_requestComplete = true;
@@ -311,7 +320,7 @@ void Request::setFirstLine(std::string buffer)
 		protocol[protocol.size() - 1] = 0;
     _requestHeader["Method"] = method;
     _requestHeader["Path"] = path;
-    _requestHeader["Protocol"] = protocol; //TODO: check if correct ?? 
+    _requestHeader["Protocol"] = protocol;
 }
 
 void Request::fillHeader(std::stringstream &requestStream, std::string &buffer) 

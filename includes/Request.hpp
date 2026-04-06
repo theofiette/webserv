@@ -18,7 +18,6 @@ class Request
 	private:
 		size_t								_totalBytes;
 		std::map<std::string, std::string>	_requestHeader;
-		// std::string 						_rawRequest;
 		std::string 						_header;
 		std::vector<char> 					_body;
 		bool 								_headerComplete;
@@ -35,7 +34,6 @@ class Request
 		size_t								_chunkDataRead;
 		std::string							_chunkBuffer;
 		
-		// size_t							_contentLength;
 		size_t								_receivedBodyBytes;
 		int									_serverIndex;
 
@@ -51,10 +49,10 @@ class Request
 		bool	finalizeWithoutBody(int);
 
 		void	_insertBody(const char *, const char *);
+		bool	_insertInBody();
 		void 	_insertChunkedBody(const char *, const char *);
 
 		void 	_checkEncoding(std::string);
-		// void	setBody(size_t, int);
 
 	public:
 		Request();
