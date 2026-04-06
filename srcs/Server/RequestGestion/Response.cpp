@@ -7,6 +7,7 @@
 
 #include <fstream>
 #include <sstream>
+#include <dirent.h>
 
 #include <sys/stat.h>
 
@@ -48,6 +49,8 @@ void	Response::clear()
 	_statusCode = 200;
 	_bytesSent = 0;
 
+	_directoryPath.clear();
+
 	_rawResponse.clear();
 	_header.clear();
 	_body.clear();
@@ -56,22 +59,22 @@ void	Response::clear()
 Response::Response(const Server &server) : 
 _statusCode(200), _bytesSent(0), _currServ(&server)
 {
-	std::cerr << "DEBUG: Constructor called for class Response\n";
+	// std::cerr << "DEBUG: Constructor called for class Response\n";
 	// TODO : ERROR_CODE dans flux connection
 }
 
 Response::~Response()
 {
-	std::cerr << "DEBUG: Destructor called for class Response\n";
+	// std::cerr << "DEBUG: Destructor called for class Response\n";
 }
 
 //*********************************************************************************************/
 /*										METHODS											  	  */
 //*********************************************************************************************/
 
-void Response::pickMethod(const Request &_req)
+void Response::pickMethod(const Request &_req, Session &session)
 {
-	static void (Response::*methods[])(const Request &_req) = 
+	static void (Response::*methods[])(const Request &_req, Session &session) = 
 	{
 		&Response::handleHead,
 		&Response::handleGet,
@@ -80,7 +83,7 @@ void Response::pickMethod(const Request &_req)
 	};
 	for (int i = 0; i < METHODS_COUNT; i++)
 		if (_req.getMap().at("Method") == Response::methods[i])
-			(this->*methods[i])(_req);
+			(this->*methods[i])(_req, session);
 }
 
 std::string Response::MIMEtable(std::string localPath)
@@ -155,12 +158,14 @@ void Response::appendIndexToDirectory(std::string &localPath, const Location &lo
 
 	if (stat(localPath.c_str(), &s) != -1 && S_ISDIR(s.st_mode))
 	{
+		setDirectoryPath(localPath);
 		std::string index = location.getIndex();
 		if (localPath[localPath.size() - 1] != '/')
 			localPath += "/";
 		localPath += index;
 	}
 }
+
 void Response::appendCookieIndexToDirectory(
 	std::string &localPath, const std::string &cookie_value)
 {
@@ -194,20 +199,27 @@ void	Response::buildLocalPathFromCookie(std::string &localPath, const Location &
 
 std::string Response::buildLocalPath(const Request &_req)
 {
-	if (_req.getMap().find("Path") == _req.getMap().end())
-			std::cerr << "map::at error 6\n";
 	std::string uriPath = _req.getMap().at("Path");
-	std::map<string, Location>::const_reverse_iterator bestMatch = findBestLocation(uriPath);
-	const Location	&location = bestMatch->second;
-	
-	validateMethodAllowed(bestMatch->second, _req);
-	
-	std::string localPath = location.getRoot() + uriPath;
 
-	if (location.isCookie())
-		buildLocalPathFromCookie(localPath, location, _req);
+	findBestLocation(uriPath);
+	
+	size_t			pos = string::npos;
+	
+	validateMethodAllowed(_currLocation, _req);
+	
+	std::string localPath = _currLocation.getRoot() + uriPath;
+
+	std::cout << ORANGE BOLD << "localpath is : " << localPath << std::endl;
+	while ((pos = (localPath.find(".."))) != string::npos)
+		localPath.erase(pos, 2);
+	while ((pos = (localPath.find("//"))) != string::npos)
+		localPath.erase(pos, 1);
+	std::cout << ORANGE BOLD << "localpath is : " << localPath << END << std::endl;
+
+	if (_currLocation.isCookie())
+		buildLocalPathFromCookie(localPath, _currLocation, _req);
 	else
-		appendIndexToDirectory(localPath, location);
+		appendIndexToDirectory(localPath, _currLocation);
 	
 	return (localPath);
 }
@@ -219,15 +231,21 @@ std::string Response::buildLocalPath(const Request &_req)
 void	Response::insertCookieHeader(std::string cookie)
 {
 	_header.insert(std::pair<string, string>("Set-Cookie", cookie + ";" + COOKIE_DURATION));
-	std::cout << BLUE ITALIC << cookie << ";" << COOKIE_DURATION << std::endl;
+	// std::cout << BLUE ITALIC << cookie << ";" << COOKIE_DURATION << std::endl;
 }
 
 void Response::checkFileAccess(std::string &localPath, int requiredAccess)
 {
 	struct stat s;
+
 	if (stat(localPath.c_str(), &s) == -1) {
-		_statusCode = NOT_FOUND;
-		handleResponsesError();
+		if (!_directoryPath.empty() && _currLocation.isAutoIndex())
+			handleAutoIndex();
+		else
+		{
+			_statusCode = NOT_FOUND;
+			handleResponsesError();
+		}
 	}
 	else if (!S_ISREG(s.st_mode) || access(localPath.c_str(), requiredAccess) == -1) {
 		_statusCode = FORBIDDEN;
@@ -241,10 +259,11 @@ bool Response::readFileContent(const std::string &filePath, size_t fileSize)
 	std::ifstream infile(filePath.c_str(), std::ios::binary);
 	if (fileSize > 0)
 		infile.read(&_body[0], fileSize);
+	std::cout << _body << "\n";
 	return (true);
 }
 
-void Response::parseFormData(std::map<std::string, std::string> &data, const Request &_req)
+void Response::parseFormData(std::map<std::string, std::string> &data, const Request &_req, Session &session)
 {
 	size_t lastPos = 0;
 	std::string body(_req.getBody().begin(), _req.getBody().end());
@@ -257,11 +276,13 @@ void Response::parseFormData(std::map<std::string, std::string> &data, const Req
 		std::string key = body.substr((lastPos == 0 ? lastPos : lastPos + 1), i - (lastPos + (lastPos != 0))); // 🤮🤮🤮
 		std::string val = body.substr(i + 1, endPos - (i + 1));
 
-		// if (key.find(SESSION_PREFIXE) != std::string::npos)
-		// {
-		// 	key = key.substr(std::string(SESSION_PREFIXE).length());
-		// 	_session.insertCookieFromPair(std::pair<string, string>(key, val));
-		// }
+		std::cerr << ORANGE << "DID NOTNOTNT FOUND SESSION PRFIXE" << END << std::endl;
+		if (key.find(SESSION_PREFIXE) != std::string::npos)
+		{
+			std::cerr << ORANGE << "FOUND SESSION PRFIXE" << END << std::endl;
+			key = key.substr(std::string(SESSION_PREFIXE).length());
+			session.insertCookieFromPair(std::pair<string, string>(key, val));
+		}
 		
 		data.insert(std::make_pair(key, val));
 		lastPos = endPos;
@@ -304,7 +325,10 @@ void Response::handleResponsesError()
 			localPath = errPage->second;
 		else
 			localPath = _currServ->getServerErrors().find(0)->second;
-	}	
+	}
+	for (std::multimap<std::string, std::string>::iterator it = _header.begin(); it != _header.end(); it++)
+		std::cout << it->first << " - " << it->second << "\n";
+	std::cout << localPath << "\n";
 	if (stat(localPath.c_str(), &s) != -1 && access(localPath.c_str(), R_OK) != -1)
 		readFileContent(localPath, s.st_size);
 	else
@@ -318,12 +342,40 @@ void Response::handleResponsesError()
 	addHeader("Content-Length", intToString(_body.length()));
 }
 
+
+void Response::handleAutoIndex()
+{
+	DIR		*dir = opendir(_directoryPath.c_str());
+	dirent	*fileInfo = NULL;
+
+	_body += "<html><head><title>TeamRequette's Webserv - AutoIndex</title></head><body>";
+	if (!dir)
+	{
+		_statusCode = INTERNAL_SERVER_ERROR;
+		handleResponsesError();
+		return ;
+	}
+	while ((fileInfo = readdir(dir)) != NULL)
+	{
+		if (fileInfo->d_name[0] == '.')
+			continue ;
+		_body += "<a href=\"" + std::string(fileInfo->d_name) + "\">" + std::string(fileInfo->d_name) + "</a><br>\n";
+	}
+	_body += "</body></html>";
+	free(dir);
+
+	addHeader("Content-Type", "text/html");
+	addHeader("Content-Length", intToString(_body.length()));
+}
+
+
 //*********************************************************************************************/
 /*										HANDLERS											  */
 //*********************************************************************************************/
 
-void	Response::handleHead(const Request &_req)
+void	Response::handleHead(const Request &_req, Session &session)
 {
+	(void)session;
 	std::string localPath;
 	struct stat	s;
 
@@ -337,8 +389,9 @@ void	Response::handleHead(const Request &_req)
 	_body.clear();
 }
 
-void Response::handleGet(const Request &_req)
+void Response::handleGet(const Request &_req, Session &session)
 {
+	(void)session;
 	std::string localPath;
 	struct stat s;
 
@@ -351,7 +404,7 @@ void Response::handleGet(const Request &_req)
 	addHeader("Content-Length", intToString(_body.length()));
 }
 
-void Response::handlePost(const Request &_req)
+void Response::handlePost(const Request &_req, Session &session)
 {
 	struct stat	s;
 	std::map<std::string, std::string>::const_iterator contentTypePos = _req.getMap().find("Content-Type");
@@ -392,7 +445,8 @@ void Response::handlePost(const Request &_req)
 		//TODO: RECUPER DYNAMIQUEMENT SUCCESS HTML via GLOBALSERVER ou REDIR (build full path...)
 		// std::string localPath = getSuccessPath();
 		std::map<std::string, std::string> formData; // TODO: utiliser cette data
-		parseFormData(formData, _req);
+
+		parseFormData(formData, _req, session);
 	}
 
 	_statusCode = SEE_OTHER;
@@ -400,8 +454,9 @@ void Response::handlePost(const Request &_req)
 	addHeader("Content-Length", "0"); // TODO: 0 ou body size si upload ?
 }
 
-void Response::handleDelete(const Request &_req)
+void Response::handleDelete(const Request &_req, Session &session)
 {
+	(void)session;
 	std::string localPath = buildLocalPath(_req);
 
     checkFileAccess(localPath, W_OK);
@@ -457,7 +512,6 @@ bool	Response::isSent()
 
 void Response::buildRawResponse(const Request &_req)
 {
-	std::map<std::string, std::string>::iterator it = _header.begin();
 
 	if (_req.getMap().find("Protocol") == _req.getMap().end())
 		_rawResponse += "HTTP/1.1 ";
@@ -465,8 +519,11 @@ void Response::buildRawResponse(const Request &_req)
 		_rawResponse += _req.getMap().at("Protocol") + " ";
 	_rawResponse += intToString(_statusCode) + " " + _statusMap.at(_statusCode) + "\r\n";
 
-	if (_req.isKeepAlive())
+	if (_req.isKeepAlive()){
+		addHeader("Connection", "keep-alive");
 		addHeader("Keep-alive", "timeout=5, max=200");
+	}
+	std::map<std::string, std::string>::iterator it = _header.begin();
 	for (; it != _header.end(); it++)
 		_rawResponse += it->first + ": " + it->second + "\r\n";
 	
@@ -479,6 +536,16 @@ void Response::buildRawResponse(const Request &_req)
 //*********************************************************************************************/
 /*										GETTERS											  	  */
 //*********************************************************************************************/
+
+void	Response::setDirectoryPath(const std::string &str)
+{
+	_directoryPath = str;
+}
+
+const std::string	Response::getDirectoryPath() const
+{
+	return (_directoryPath);
+}
 
 void Response::setStatusCode(const int statusCode)
 {

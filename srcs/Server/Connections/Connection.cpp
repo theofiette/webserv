@@ -9,7 +9,7 @@ void	Connection::setState(ConnectionState state)
 	else
 		_wantedEvent = POLLIN;
 	_state = state;
-	// std::cout << BLUE << "state is now : " << getStateInterpreted() << "\n" END;
+	std::cerr << BLUE << "state is now : " << getStateInterpreted() <<  " for fd : " << getPollFd() <<  "\n" END;
 }
 
 int	Connection::getPollFd() const
@@ -73,10 +73,23 @@ void	Connection::_clearCgi()
 
 void	Connection::_startCgi()
 {
-	Cgi cgi(_request);
+	Cgi cgi(_request, *_session);
 
 	cgi.run(_request, _cgiPid, _cgiReadFd);
 	setState(CS_WAIT_CGI);
+}
+
+void	Connection::_retrieveSession()
+{
+	std::string	sessionStr;
+
+	if (_session == NULL)
+	{
+		sessionStr = _request.getCookieValue("SessionId");
+		_session = SessionManager::accessSession(sessionStr , _serverId);
+		if (sessionStr.empty())
+			_response.insertCookieHeader("SessionId=" + _session->getId());
+	}
 }
 
 void	Connection::_processCgi(short revent)
@@ -109,10 +122,69 @@ void	Connection::_checkTimeout()
 	}
 }
 
-void	Connection::processTmp(short revent)
+bool	Connection::_processBuffering()
 {
-	std::string chunckedStr;
+	_request.receiveRequestChunk(_socketFd);
+	return (_request.isRequestComplete());
+}
 
+void	Connection::_processParsing()
+{
+	_request.parseRequest(_request.getHeader());
+	_response.setStatusCode(_request.getRequestCode());
+}
+
+void	Connection::_processWriting()
+{
+	_retrieveSession();
+	if (_request.getRequestCode() == OK)
+	{
+		if (_response.isCgi(_request))
+		{
+			_startCgi(); // executes CGI script and sets CS_WAIT_CGI
+			return ;
+		}
+		_response.pickMethod(_request, *_session);
+	}
+	else
+	{
+		_response.setStatusCode(_request.getRequestCode());
+		_response.handleResponsesError();
+	}
+	_response.buildRawResponse(_request);
+}
+
+void	Connection::_processSending()
+{
+	std::string	chunckedStr;
+	int			bytesSent;
+
+	chunckedStr = _response.getChunckResp(SEND_SIZE);
+
+
+	bytesSent = send(_socketFd, chunckedStr.c_str(), chunckedStr.size(), 0);
+	if (bytesSent <= 0)
+	{
+		setState(CS_CLOSE);
+		return ;
+	}
+	_response.updateBytesSent(bytesSent);
+	if (_response.isSent())
+	{
+		if (_request.isRequestTimedOut())
+		{
+			setState(CS_CLOSE);
+			return ;
+		}
+		if (_request.getMap().find("Connection") != _request.getMap().end() && _request.getMap().find("Connection")->second == "keep-alive")
+			setState(CS_KEEP);
+		else
+			setState(CS_CLOSE);
+	}
+}
+
+void	Connection::process(short revent)
+{
 	if (revent & (POLLERR | POLLNVAL))
 	{
 		setState(CS_CLOSE);
@@ -127,120 +199,54 @@ void	Connection::processTmp(short revent)
 	switch (_state)
 	{
 		case (CS_NONE):
-			if (!(revent & POLLIN)) // TODO: maybe erase ?
+			if (!(revent & POLLIN))
 					return ;
 			setState(CS_BUFFERING);
-
+			break ;
 		case (CS_BUFFERING):
-			if (!(revent & POLLIN)) // TODO: move those checks ?
-					return ;
-			_request.receiveRequestChunk(_socketFd);
-			if (_request.isRequestComplete())
+			if (!(revent & POLLIN))
+				return ;
+			if (_processBuffering() == true)
 				setState(CS_PARSING);
 			else
 				break ;
-
 		case (CS_PARSING):
-			_request.parseRequest(_request.getHeader());
-			_response.setStatusCode(_request.getRequestCode());
+			_processParsing();
 			setState(CS_WRITING);
-
 		case (CS_WRITING):
-			if (_request.getRequestCode() == OK)
-			{
-				if (_response.isCgi(_request))
-				{
-					_startCgi(); // executes CGI script and sets CS_WAIT_CGI
-					break ;
-				}
-				_response.pickMethod(_request);
-			}
-			else
-			{
-				_response.setStatusCode(_request.getRequestCode());
-				_response.handleResponsesError();
-			}
-			_response.buildRawResponse(_request);
-			setState(CS_SENDING);
+			_processWriting();
+			if (getState() == CS_WRITING)
+				setState(CS_SENDING);
 			break ;
-	
 		case (CS_WAIT_CGI):
 			_processCgi(revent); // reads CGI output and sets to SENDING when CGI is done
 			break ;
-
 		case (CS_SENDING):
 			if (!(revent & POLLOUT))
 				return ;
-			chunckedStr = _response.getChunckResp(SEND_SIZE);
-			int bytesSent;
-			std::cout << GREEN ITALIC << chunckedStr << END << "\n";
-			bytesSent = send(_socketFd, chunckedStr.c_str(), chunckedStr.size(), 0);
-			if (bytesSent <= 0)
-			{
-				setState(CS_CLOSE);
-				return ;
-			}
-			_response.updateBytesSent(bytesSent);
-			if (_response.isSent())
-			{
-				if (_request.isRequestTimedOut())
-				{
-					setState(CS_CLOSE);
-					break ;
-				}
-				if (_request.getMap().find("Connection") != _request.getMap().end() && _request.getMap().find("Connection")->second == "keep-alive")
-					setState(CS_KEEP);
-				else
-					setState(CS_CLOSE);
-			}
+			_processSending();
 			break ;
-
 		case (CS_KEEP):
 			_clear();
 			setState(CS_NONE);
 			break ;
-
 		default :
 			setState(CS_CLOSE);
 			break;
 	}
 }
 
-// void	Connection::process(short revent)
-// {
-// 	switch (_state)
-// 	{
-// 		// std::cerr << "DEBUG: connexion state : ";
-// 		case (CS_NONE):
-// 			std::cerr << "fd is " << _socketFd << "\n";
-// 			std::cerr << "state is CS_NONE\n";
-// 			std::cerr << "event is " << revent << std::endl;
-// 			setState(CS_BUFFERING);
-// 			break;
-// 		default :
-// 			std::cerr << "fd is " << _socketFd << "\n";
-// 			std::cerr << "state is **default**\n";
-// 			std::cerr << "event is " << revent << std::endl;
-// 			setState(CS_CLOSE);
-// 			break;
-// 	}
-// }
-
-//	CANONICAL /////////////////////////////////////////////////////////////////
-
 Connection &Connection::operator=(const Connection &other)
 {
 	if (this == &other)
-	{
-		std::cerr << "this is other\n";
 		return (*this);
-	}
 	this->_socketFd = other._socketFd;
 	this->_wantedEvent = other._wantedEvent;
 	this->_state = other._state;
 	this->_request = other._request;
 	this->_response = other._response;
 	this->_timer = other._timer;
+	this->_session = other._session;
 	// _server is a reference and cannot be re-assigned; it should remain bound
 
 	// std::cerr << "DEBUG: Operator = called for class Connection\n";
@@ -256,10 +262,11 @@ Connection &Connection::operator=(const Connection &other)
 // 	std::cerr << "DEBUG: Constructor called for class Connection\n";
 // }
 
-Connection::Connection(int fd, const Server &server, unsigned int tmp_i): 
-_socketFd(fd), _wantedEvent(POLLIN), _state(CS_NONE), _request(server, tmp_i), _response(server), _cgiPid(-1), _cgiReadFd(-1), _server(server)
+Connection::Connection(int fd, const Server &server, unsigned int serverId): 
+_socketFd(fd), _wantedEvent(POLLIN), _state(CS_NONE), _request(server), _response(server), _cgiPid(-1), 
+_cgiReadFd(-1), _server(server),  _serverId(serverId), _session(NULL)
 {
-	std::cerr << "DEBUG: TMP Constructor called for class Connection\n";
+	// std::cerr << "DEBUG: TMP Constructor called for class Connection\n";
 }
 
 // Connection::Connection(const Connection &other)
@@ -270,7 +277,7 @@ _socketFd(fd), _wantedEvent(POLLIN), _state(CS_NONE), _request(server, tmp_i), _
 
 Connection::~Connection()
 {
-	std::cerr << "DEBUG: Destructor called for class Connection\n";
+	// std::cerr << "DEBUG: Destructor called for class Connection\n";
 	// close(_socketFd);
 }
 

@@ -11,6 +11,7 @@
 #include "safemath.hpp"
 #include "TimeoutTracker.hpp"
 
+typedef std::map<std::string, std::string>::const_iterator mc_ss_it;
 typedef std::map<std::string, std::string>::iterator _req_map_it;
 
 class Request
@@ -35,12 +36,13 @@ class Request
 		std::string							_chunkBuffer;
 		
 		size_t								_receivedBodyBytes;
-		int									_serverIndex;
+		std::string							_queryString;
 
 		const Server	*_currServ;
 		TimeoutTracker	_tracker;
 
 		void 	setFirstLine(std::string);
+		void	_extractQueryString(std::string&);
 		void	readSocketChunk(int, char *, size_t, size_t&);
 
 		size_t	findHeaderEnd(std::string);
@@ -56,7 +58,7 @@ class Request
 
 	public:
 		Request();
-		Request(const Server &, unsigned int);
+		Request(const Server &);
 		~Request();
 
 		void 				stateRequestValidity();
@@ -67,12 +69,14 @@ class Request
 		// // TEMPORAIRE
 		void				display() const;
 		void 				displayInfos() const;
+		void				displayHeader() const;
 
 		bool				isKeepAlive() const;
 		const bool &		isRequestComplete();
 		void				setAsTimeout(int);
 
 		const std::string& 			getHeader() const;
+		const std::string&			getQueryString() const;
 		const std::vector<char>&	getBody() const;
 		const Server				*getServer() const;
 		size_t						getRequestCode() const;
@@ -80,7 +84,7 @@ class Request
 		
 		const std::map<std::string, std::string>&	getMap() const;
 		const std::string							getCookieValue(const std::string &) const;
-		unsigned int								getServerIndex() const;
+		// unsigned int								getServerIndex() const;
 
 		void	clear();
 	

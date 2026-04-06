@@ -32,7 +32,7 @@ class ConnectionManager
 
 		// void	_openConnection(int fd);
 		// TMP ////////////////////////////////////////////////////////////////
-		void	_openConnection(int fd, const Server &tmp_serv, unsigned int tmp_int);
+		void	_openConnection(int fd, const Server &tmp_serv, const unsigned int serverId);
 		///////////////////////////////////////////////////////////////////////
 
 		void	_processConnections();

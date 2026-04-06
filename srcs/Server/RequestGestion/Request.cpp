@@ -26,30 +26,35 @@ void	Request::clear()
 	_requestTimedOut = false;
 	_discardBody = false;
 	_receivedBodyBytes = 0;
+
+
 	_isChunked = false;
 	_encodingCheck = false;
 	_chunkDataRead = 0;
 	_chunkExpectSize = 0;
 	_chunkDone = false;
 	_chunkBuffer.clear();
+
+
 	_requestHeader.clear();
 	_header.clear();
 	_body.clear();
+	_queryString.clear();
 
 	_tracker = TimeoutTracker();
 }
 
-Request::Request(const Server &server, unsigned int serverIndex) : 
+Request::Request(const Server &server) : 
 _totalBytes(0),_headerComplete(false), _requestCode(OK), _requestComplete(false), _requestTimedOut(false),
 _discardBody(false), _isChunked(false), _encodingCheck(false),_chunkDone(false), _chunkExpectSize(0), _chunkDataRead(0),
-_receivedBodyBytes(0), _serverIndex(serverIndex), _currServ(&server), _tracker(TimeoutTracker())
+_receivedBodyBytes(0), _currServ(&server), _tracker(TimeoutTracker())
 {
-	std::cerr << "DEBUG: Constructor called for class Request\n" END;
+	// std::cerr << "DEBUG: Constructor called for class Request\n" END;
 }
 
 Request::~Request()
 {
-	std::cerr << "DEBUG: Destructor called for class Request\n";
+	// std::cerr << "DEBUG: Destructor called for class Request\n";
 }
 
 int extractContentLength(const std::string &buffer)
@@ -179,8 +184,9 @@ void Request::readSocketChunk(int socketFd, char *buffer, size_t bufferSize, siz
 	}
 	else
 	{
-		if (_discardBody == false)
+		if (_discardBody == false){
 			_insertBody(buffer, buffer + bytesRead);
+		}
 		_receivedBodyBytes += bytesRead;
 	}
 	_totalBytes += bytesRead;
@@ -258,8 +264,7 @@ void Request::receiveRequestChunk(int socketFd)
 	size_t headerEnd = _header.size();
 
 	readSocketChunk(socketFd, buffer, SEND_SIZE, headerEnd);
-	int contentLength = extractContentLength(_header); // est ce qu on stockerait pas le content length dans request
-	
+	int contentLength = extractContentLength(_header);
 	if (_headerComplete == true)
 	{
 		if (_encodingCheck == false)
@@ -270,7 +275,7 @@ void Request::receiveRequestChunk(int socketFd)
 			_discardBody = true;
 			storeBodyExceeding(headerEnd);
 			_body.clear();
-			if (_receivedBodyBytes >= static_cast<size_t>(contentLength)) // on peut plus utiliser _body.size() pcq  le body est vide, mais on veut quand meme saovir quand est ce qu on a lu tout le body
+			if (_receivedBodyBytes >= static_cast<size_t>(contentLength))
 				_requestComplete = true;
 			return ;
 		}
@@ -289,10 +294,20 @@ void Request::displayInfos() const
 {
 	std::map<std::string, std::string>::const_iterator it = _requestHeader.begin();
 	if (it == _requestHeader.end())
-		std::cout << "empty request header\n" << std::endl;
+		std::cerr << "empty request header\n" << std::endl;
 	for (; it != _requestHeader.end(); it++)
-		std::cout << it->first << " : " << it->second << "\n";
-	std::cout << std::endl;
+		std::cerr << it->first << " : " << it->second << "\n";
+	std::cerr << std::endl;
+}
+
+void	Request::_extractQueryString(std::string &path)
+{
+	size_t querySeparator = path.find('?');
+	if (querySeparator == std::string::npos)
+		return ;
+
+	_queryString = path.substr(querySeparator + 1);
+	path.erase(querySeparator);
 }
 
 void Request::setFirstLine(std::string buffer)
@@ -300,6 +315,7 @@ void Request::setFirstLine(std::string buffer)
     std::istringstream iss(buffer);
     std::string method, path, protocol;
 
+	// std::cout << GREEN BOLD << "BUFFER is --- " << buffer << END << std::endl;
 	if (!(iss >> method >> path >> protocol))
 	{
 		_requestCode = BAD_REQUEST;
@@ -318,6 +334,7 @@ void Request::setFirstLine(std::string buffer)
 	}
 	if (!protocol.empty() && protocol[protocol.size() - 1] == '\r')
 		protocol[protocol.size() - 1] = 0;
+	_extractQueryString(path);
     _requestHeader["Method"] = method;
     _requestHeader["Path"] = path;
     _requestHeader["Protocol"] = protocol;
@@ -351,6 +368,8 @@ void Request::fillHeader(std::stringstream &requestStream, std::string &buffer)
 
 void Request::stateRequestValidity()
 {
+	if (_requestCode != OK)
+		return ;
 	//TODO: if POST and no content length its invalid? 
 	if (_requestHeader["Protocol"] != "HTTP/1.1")
 	{
@@ -372,7 +391,8 @@ static bool isValidHeaderKey(const std::string key){
 	return (true);
 }
 
-void Request::checkHeader(){
+void Request::checkHeader()
+{
 	for (std::map<std::string, std::string>::iterator it = _requestHeader.begin(); it != _requestHeader.end(); it++){
 		if (!isValidHeaderKey(it->first))
 			_requestCode = BAD_REQUEST;
@@ -384,7 +404,11 @@ void Request::parseRequest(std::string request)
 	std::string buffer;
 	std::stringstream requestStream(request, std::ios_base::in);
 
-	// std::cout << request << "\n\n";
+	// if (request.empty())
+	// {
+	// 	_requestComplete = true;
+	// 	return ;
+	// }
 	std::getline(requestStream, buffer, '\n');
 	setFirstLine(buffer);
 	fillHeader(requestStream, buffer);
@@ -405,8 +429,12 @@ const std::string Request::getCookieValue(const std::string & cookie_name) const
 	if (cookie_name.length() == 0)
 		return ("");
 	if (_requestHeader.find("Cookie") == _requestHeader.end())
+	{
+		// std::cerr << BLUE ITALIC << "Cookie is NOTNOTNOT found :( " << END << std::endl;	
 		return ("");
+	}
 	cookies = _requestHeader.find("Cookie")->second;
+	// std::cerr << BLUE ITALIC << "Cookie is found : " << cookies << END << std::endl;
 	pos = cookies.find(cookie_name_updated);
 	if (pos == std::string::npos)
 		return ("");
@@ -423,10 +451,10 @@ const std::string Request::getCookieValue(const std::string & cookie_name) const
 	return (cookie_value);
 }
 
-unsigned int	Request::getServerIndex() const
-{
-	return (_serverIndex);
-}
+// unsigned int	Request::getServerIndex() const
+// {
+// 	return (_serverIndex);
+// }
 
 const Server *	Request::getServer() const
 {
@@ -436,6 +464,11 @@ const Server *	Request::getServer() const
 const std::vector<char>& Request::getBody() const
 {
 	return (_body);
+}
+
+const std::string& Request::getQueryString() const
+{
+	return (_queryString);
 }
 
 const std::map<std::string, std::string>& Request::getMap() const

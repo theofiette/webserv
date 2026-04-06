@@ -13,9 +13,10 @@ class UploadHandler
 		int				_statusCode;
 		std::string		_boundary;
 
+		std::string 		_finalizePath(const std::string filename);
 		std::string			_extractBoundary(const std::string &);
 		std::string			_extractFilename() const;
-		bool				_writeFile(const std::string &, std::vector<char>&) const;
+		bool				_writeFile(const std::string &, std::vector<char>&);
 		std::vector<char>	_trimBody(const std::string&);
 		
 	public:

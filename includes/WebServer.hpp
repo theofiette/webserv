@@ -35,7 +35,7 @@ class WebServer
 		pollfd 						*_pollfds;
 		size_t						_pollSize;
 
-		SessionManager				_sessionManager;
+		// SessionManager				_sessionManager;
 
 		void	_initMasterSocket();
 		void	_initReferenceSocket(struct addrinfo &hints);

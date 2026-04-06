@@ -14,6 +14,9 @@ void	ConnectionManager::init(
 	_reserve(maxConnections);
 	if (_maxConnections == 0 || _masterSockets.empty() || pollfds == 0)
 		throw (ExceptionBadInit("Couldn't init ConnectionManager correctly"));
+
+	SessionManager::setServerCount(masterSockets.size());
+	SessionManager::initServerSessions();
 }
 
 /*
@@ -28,31 +31,24 @@ size_t	ConnectionManager::_setupPollfds()
 	size_t	j;
 
 	i = 0;
-	j = 0;	
+	j = 0;
+	// std::cout << "Setup Pollfd -- " << std::endl;
 	while (i + j < _maxConnections)
 	{
 		if (i < _masterSockets.size())
 		{
-			// _pollfds[i].fd = _masterSockets[i];
-			// _pollfds[i].events = POLLIN;
+			_pollfds[i].events = POLLIN;
 			i++;
 		}
 		else if (j < _connections.size())
 		{
 			_pollfds[i + j].fd = _connections[j].getPollFd();
-			std::cout << "wanted event for fd " << _connections[j].getPollFd() << " is : " << _connections[j].getWantedEvent() << "\n";
-			std::cout << "events for fd " << _pollfds[i + j].fd << " is : " << _pollfds[i + j].events << "\n";
-			std::cout << "state for fd " << _connections[j].getPollFd() << " is : " << _connections[j].getStateInterpreted() << "\n";
 			_pollfds[i + j].events = _connections[j].getWantedEvent();
 			j++;
 		}
 		else
 			return (i + j);
 	}
-	// std::cerr << RED << "PollTab: ";
-	// for (size_t k = 0; k < i + j; k++)
-	// 	std::cerr << _pollfds[i].fd << " | ";
-	// std::cerr << std::endl;
 	return (_maxConnections);
 }
 
@@ -60,10 +56,9 @@ size_t	ConnectionManager::_setupPollfds()
 *	Creer une connection, remplir certaine choses ?? 
 *	Je pense a requete, response, session etc
 */
-void	ConnectionManager::_openConnection(int fd, const Server &tmp_serv, unsigned int tmp_int)
+void	ConnectionManager::_openConnection(int fd, const Server &server, const unsigned int serverId)
 {
-	// Connection	newConnection(fd);
-	Connection	newConnection(fd, tmp_serv, tmp_int);
+	Connection	newConnection(fd, server, serverId);
 
 	_connections.push_back(newConnection);
 }
@@ -100,12 +95,12 @@ void	ConnectionManager::_checkOpenConnections()
 
 	for (size_t i = 0; i < _masterSockets.size(); i++)
 	{
-		while (_connections.size() < _maxConnections)
+		while (_connections.size() < _maxConnections && _pollfds[i].revents == POLLIN)
 		{
 			newSocket = accept(_masterSockets[i], 0, 0);
 			if (newSocket < 0)
 				break ;
-			fcntl(newSocket, F_SETFL, O_NONBLOCK);
+			Fcntl(newSocket, F_SETFL, O_NONBLOCK);
 			_openConnection(newSocket, _servers[i], i);
 			std::cerr << RED << "DEBUG: opening connection on fd " << newSocket << END << "\n";
 		}
@@ -124,8 +119,8 @@ void	ConnectionManager::_processConnections()
 	{
 		Connection	&currentConnection = *it;
 
-		std::cout << "revent is : " << _pollfds[i].revents << "\n";
-		currentConnection.processTmp(_pollfds[i].revents);
+		// std::cout << "revent is : " << _pollfds[i].revents << "\n";
+		currentConnection.process(_pollfds[i].revents);
 		if (currentConnection.getState() == CS_CLOSE)
 		{
 			_to_close.push(it);
@@ -159,7 +154,7 @@ void	ConnectionManager::loop()
 
 void	ConnectionManager::_reserve(size_t n)
 {
-	std::cerr << "DEBUG: reserved_connections for " << n << " possibles connections" << std::endl;
+	// std::cerr << "DEBUG: reserved_connections for " << n << " possibles connections" << std::endl;
 	_connections.reserve(n);
 }
 
@@ -176,6 +171,16 @@ ConnectionManager::ConnectionManager(const WebServerConfig &config) : _servers(c
 
 ConnectionManager::~ConnectionManager()
 {
+	SessionManager::clean();
+	if (!_connections.empty())
+	{
+		for (std::vector<Connection>::iterator it = _connections.begin(); it != _connections.end(); it++)
+		{
+			if (it->getFd() > 0)
+				close(it->getFd());
+		}
+	}
+		
 	// std::cerr << "DEBUG: Destructor called for class ConnectionManager\n";
 }
 

@@ -56,6 +56,9 @@ class Response
 		multimap			_header;
 		std::string 		_body;
 
+		/* If empty, the GET request wasnt a directory*/
+		std::string			_directoryPath; 
+
 		std::string			_rawResponse;
 		size_t				_bytesSent;
 		int					_headerLength;
@@ -66,7 +69,6 @@ class Response
 		// const Request 		&_request;
 		// Session				&_session;
 
-		
 		static const 		std::map<int, std::string> _statusMap;
 		static const 		std::string methods[METHODS_COUNT];
 		static const 		std::string mimeTable[MIME_SIZE];
@@ -79,13 +81,11 @@ class Response
 
 		void 				appendIndexToDirectory(std::string &, const Location &);
 		void				appendCookieIndexToDirectory(std::string &, const std::string &);
-		void 				insertCookieHeader(std::string);
 		void				buildLocalPathFromCookie(std::string &localPath, const Location & location, const Request &_req);
 
 		void 				checkFileAccess(std::string &, int);
 		bool 				readFileContent(const std::string &, size_t);
-		void 				parseFormData(std::map<std::string, std::string> &, const Request &_req);
-		// void 				handleResponsesError();
+		void 				parseFormData(std::map<std::string, std::string> &, const Request &_req, Session &session);
 		void				allowedMethodsHeader();
 
 	public:
@@ -98,14 +98,16 @@ class Response
 		void				setStatusCode(const int);
 		void				appendRawResponse(const char *, size_t);
 		void 				addHeader(std::string, std::string);
+		void 				insertCookieHeader(std::string);
 
+		void 				pickMethod(const Request &_req, Session &session);
+		
+		void				handleHead(const Request &_req, Session &session);
+		void			 	handleGet(const Request &_req, Session &session);
+		void			 	handlePost(const Request &_req, Session &session);
+		void			 	handleDelete(const Request &_req, Session &session);
 		void 				handleResponsesError();
-		void 				pickMethod(const Request &_req);
-
-		void				handleHead(const Request &_req);
-		void			 	handleGet(const Request &_req);
-		void			 	handlePost(const Request &_req);
-		void			 	handleDelete(const Request &_req);
+		void				handleAutoIndex();
 
 		void 				buildRawResponse(const Request &_req);
 		std::string 		getChunckResp(int);
@@ -113,6 +115,9 @@ class Response
 		bool				isSent();
 		bool 				isCgi(const Request &_req);
 		// bool				checkRequestValidity(const Request &_req);
+
+		void				setDirectoryPath(const std::string &);
+		const std::string	getDirectoryPath() const;
 
 		const std::string&	getRawResponse() const;
 		int					getHeaderLength() const;

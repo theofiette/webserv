@@ -7,8 +7,6 @@
 #include <algorithm>
 #include <fstream>
 
-typedef std::map<std::string, std::string>::const_iterator mc_ss_it;
-
 UploadHandler::UploadHandler(const Request &request, const std::string &uploadDirectory) :
 _request(request), _uploadDirectory(uploadDirectory), _statusCode(CREATED) {}
 
@@ -62,11 +60,14 @@ std::string	UploadHandler::_extractFilename() const // faire juste size_t Cursor
 	return (filename);
 }
 
-bool	UploadHandler::_writeFile(const std::string & filename, std::vector<char> &content) const
+bool	UploadHandler::_writeFile(const std::string & filename, std::vector<char> &content)
 {
 	std::ofstream outfile(filename.c_str());
 	if (!outfile.is_open())
-		;
+	{
+		_statusCode = 500;
+		return (false);
+	}
 	std::string bodyStr;
 	bodyStr.reserve(content.size());
 	for (std::vector<char>::iterator it = content.begin(); it != content.end(); it++)
@@ -113,36 +114,47 @@ std::vector<char> UploadHandler::_trimBody(const std::string &boundary)
 	return (body);
 }
 
-int	UploadHandler::processUpload()
+
+std::string UploadHandler::_finalizePath(const std::string filename)
 {
-	const std::string filename = _extractFilename();
-	
-	const string contentType = findCorrespondingValueFromKey("Content-Type");
-	if (_statusCode == BAD_REQUEST)
-		return (_statusCode);
-
-	const std::string boundary = _extractBoundary(contentType);
-
-	if (filename.empty())
-	{
-		_statusCode = BAD_REQUEST; // 400 ?
-		return (_statusCode);
-	}
-	std::cout << "CHECK PASSED \n\n";
-
-	std::vector<char> fileContent = _trimBody(boundary);
-	if (fileContent.empty())
-	{
-		_statusCode = BAD_REQUEST;
-		return (_statusCode);
-	}
-
-	if (_writeFile(filename,fileContent) == false)
-		return (_statusCode);
-
-	_statusCode = CREATED;
-	return (_statusCode);
+	std::cout << "UPLOAD DIR  : "<<  _uploadDirectory << "\n";
+    if (_uploadDirectory[_uploadDirectory.size() - 1] == '/')
+        return (_uploadDirectory + filename);
+    return (_uploadDirectory + "/" + filename);
 }
+
+int    UploadHandler::processUpload()
+{
+    const std::string filename = _extractFilename();
+    
+    const string contentType = findCorrespondingValueFromKey("Content-Type");
+    if (_statusCode == BAD_REQUEST)
+        return (_statusCode);
+
+    const std::string boundary = _extractBoundary(contentType);
+
+    if (filename.empty())
+    {
+        _statusCode = BAD_REQUEST; // 400 ?
+        return (_statusCode);
+    }
+    std::cout << "CHECK PASSED \n\n";
+
+    std::vector<char> fileContent = _trimBody(boundary);
+    if (fileContent.empty())
+    {
+        _statusCode = BAD_REQUEST;
+        return (_statusCode);
+    }
+    std::string finalPath = _finalizePath(filename);
+	std::cout << "FINALPATH : "<< finalPath << "\n";
+    if (_writeFile(finalPath, fileContent) == false)
+        return (_statusCode);
+
+    _statusCode = CREATED;
+    return (_statusCode);
+}
+
 
 // int UploadHandler::getUploadStatus() const
 // {
