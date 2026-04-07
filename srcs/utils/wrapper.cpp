@@ -26,7 +26,7 @@ void	Getaddrinfo(const std::string name, const std::string service,
 	const char	*name_;
 	const char	*service_;
 
-	std::cout << name << " | " << service << "\n";
+	// std::cout << name << " | " << service << "\n";
 
 	name_ = name.c_str();
 	service_ = service.c_str();

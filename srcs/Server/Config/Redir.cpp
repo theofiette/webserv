@@ -39,7 +39,6 @@ string	Redir::getRedirPath()
 	return (_redirPath);
 }
 
-
 void	Redir::set_df_errorCode(int value)
 {
 	Redir::_df_errorCode = value;
@@ -63,15 +62,8 @@ void	Redir::clear()
 
 void	Redir::display() const
 {
-	if (_valid == false)
-	{
-		std::cout << "not valid\n";
-		return ;
-	}
-	std::cout << "valid : " << _errorCode << " | " << _redirPath << std::endl;
+	return ;
 }
-
-// CONSTRUCTORS
 
 Redir::Redir() : 
 _valid(_df_valid), _errorCode(_df_errorCode), _redirPath(_df_redirPath)
@@ -79,8 +71,6 @@ _valid(_df_valid), _errorCode(_df_errorCode), _redirPath(_df_redirPath)
 	// std::cout
 	// 	<< "Default constructor called for class Redir" << std::endl;
 }
-
-// DESTRUCTOR
 
 Redir::~Redir()
 {

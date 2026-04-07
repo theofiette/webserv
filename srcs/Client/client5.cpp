@@ -83,7 +83,7 @@ int main()
     while ((bytesRead = recv(clientSocket, recvBuffer, sizeof(recvBuffer) - 1, 0)) > 0)
     {
         recvBuffer[bytesRead] = '\0';
-        std::cout << recvBuffer;
+        // std::cout << recvBuffer;
     }
 
     if (bytesRead < 0)

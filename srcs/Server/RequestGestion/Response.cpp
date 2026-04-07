@@ -130,7 +130,7 @@ std::map<string, Location>::const_reverse_iterator Response::findBestLocation(co
 void Response::validateMethodAllowed(const Location &location, const Request &_req)
 {
 	if (_req.getMap().find("Method") == _req.getMap().end())
-			std::cerr << "map::at error 7\n";
+			;
 	std::string method = _req.getMap().at("Method");
 	const std::vector<bool>& acceptedMethods = location.getMethods();
 	
@@ -146,7 +146,6 @@ void Response::validateMethodAllowed(const Location &location, const Request &_r
 	
 	if (methodIndex == -1 || !acceptedMethods[methodIndex])
 	{
-		std::cout << "Method not accepted\n";
 		_statusCode = METHOD_NOT_ALLOWED;
 	}
 }
@@ -257,7 +256,6 @@ bool Response::readFileContent(const std::string &filePath, size_t fileSize)
 	std::ifstream infile(filePath.c_str(), std::ios::binary);
 	if (fileSize > 0)
 		infile.read(&_body[0], fileSize);
-	std::cout << _body << "\n";
 	return (true);
 }
 
@@ -322,9 +320,6 @@ void Response::handleResponsesError()
 		else
 			localPath = _currServ->getServerErrors().find(0)->second;
 	}
-	for (std::multimap<std::string, std::string>::iterator it = _header.begin(); it != _header.end(); it++)
-		std::cout << it->first << " - " << it->second << "\n";
-	std::cout << localPath << "\n";
 	if (stat(localPath.c_str(), &s) != -1 && access(localPath.c_str(), R_OK) != -1)
 		readFileContent(localPath, s.st_size);
 	else
@@ -358,7 +353,7 @@ void Response::handleAutoIndex()
 		_body += "<a href=\"" + std::string(fileInfo->d_name) + "\">" + std::string(fileInfo->d_name) + "</a><br>\n";
 	}
 	_body += "</body></html>";
-	free(dir);
+	closedir(dir);
 
 	addHeader("Content-Type", "text/html");
 	addHeader("Content-Length", intToString(_body.length()));
@@ -419,7 +414,6 @@ void Response::handlePost(const Request &_req, Session &session)
 		if ((stat(localPath.c_str(), &s) == -1) || _statusCode != OK)
 			return ;
 		std::string uploadDirectory = _currLocation.getUploadDir();
-		std::cout << ORANGE << uploadDirectory << END << std::endl;
 
 		UploadHandler handler(_req, uploadDirectory);
 
@@ -470,7 +464,7 @@ void Response::handleDelete(const Request &_req, Session &session)
 bool Response::isCgi(const Request &_req)
 {
 	if (_req.getMap().find("Path") == _req.getMap().end())
-		std::cerr << "map::at error 3\n";
+		;
 
 	std::string uriPath = _req.getMap().at("Path");
 	std::map<string, Location>::const_reverse_iterator loc = findBestLocation(uriPath);

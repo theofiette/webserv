@@ -15,7 +15,7 @@ void exceptionManager(std::exception *e, int &returnValue)
 		std::cerr << "\n";
 		returnValue = g_sig;
 	}
-	std::cerr << BOLD << e->what() << END << std::endl;
+	std::cerr << BOLD RED << e->what() << END << std::endl;
 }
 
 #define CONFIG_PATH "./config/default.conf"

@@ -4,19 +4,6 @@
 #include <map>
 #include <sstream>
 
-void Request::display() const
-{
-	std::cout << getHeader();
-	std::vector<char>::const_iterator it, ite;
-	it	= _body.begin();
-	ite	= _body.end();
-	for (; it != ite; it++)
-	{
-		std::cout << *it;
-	}
-	std::cout << std::endl;
-}
-
 void	Request::clear()
 {
 	_totalBytes = 0;
@@ -148,9 +135,9 @@ void 	Request::_insertChunkedBody(const char *begin, const char *end)
 				return ;
 		if (_chunkExpectSize == 0){
 			handleLastChunk(_chunkBuffer, _chunkDone, _requestComplete, _requestCode);
-			for (std::vector<char>::iterator it = _body.begin(); it != _body.end(); it++)
-				std::cout << *it;
-			std::cout << "\n" << _body.size() << "\n";
+			// for (std::vector<char>::iterator it = _body.begin(); it != _body.end(); it++)
+			// 	std::cout << *it;
+			// std::cout << "\n" << _body.size() << "\n";
 			return ;
 		}
 		if (_insertInBody() == false)
@@ -290,16 +277,6 @@ void Request::receiveRequestChunk(int socketFd)
 	}
 }
 
-void Request::displayInfos() const
-{
-	std::map<std::string, std::string>::const_iterator it = _requestHeader.begin();
-	if (it == _requestHeader.end())
-		std::cerr << "empty request header\n" << std::endl;
-	for (; it != _requestHeader.end(); it++)
-		std::cerr << it->first << " : " << it->second << "\n";
-	std::cerr << std::endl;
-}
-
 void	Request::_extractQueryString(std::string &path)
 {
 	size_t querySeparator = path.find('?');
@@ -404,18 +381,18 @@ void Request::parseRequest(std::string request)
 	std::string buffer;
 	std::stringstream requestStream(request, std::ios_base::in);
 
-	// if (request.empty())
-	// {
-	// 	_requestComplete = true;
-	// 	return ;
-	// }
 	std::getline(requestStream, buffer, '\n');
 	setFirstLine(buffer);
 	fillHeader(requestStream, buffer);
 	checkHeader();
 	if (_requestCode != OK)
 		return ;
+	// std::cout << _header << std::endl;
 	stateRequestValidity();
+}
+void				Request::setErrorCode(int errorCode)
+{
+	_requestCode = errorCode;
 }
 
 const std::string Request::getCookieValue(const std::string & cookie_name) const

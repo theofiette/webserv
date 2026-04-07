@@ -35,7 +35,7 @@ Session *SessionManager::accessSession(const std::string &id, unsigned int serve
 			{
 				_idCount++;
 				it = _sessions[serverId].begin();
-				std::cerr << ORANGE BOLD << "found corresponding session in server " << serverId << std::endl << END;
+				// std::cerr << ORANGE BOLD << "found corresponding session in server " << serverId << std::endl << END;
 			}
 		}
 		// std::cerr << ORANGE BOLD << "No cookie found, creating new one -> " << _idCount << END << std::endl;

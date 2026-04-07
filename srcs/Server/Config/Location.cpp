@@ -152,7 +152,6 @@ bool	Location::checkErrorsValidity()
 	for (; it != ite; it++)
 	{
 		path = it->second;
-		std::cout << "Checking error file: " << path << "\n";
 		if (access(path.c_str(), R_OK))
 			return (false);
 	}
@@ -161,40 +160,7 @@ bool	Location::checkErrorsValidity()
 
 void	Location::display() const
 {
-	std::cout << "methods : H | G | P | D \n          ";
-	for (int i = 0; i < METHODS_COUNT; i++)
-	{
-		std::cout << std::noboolalpha << _methods[i];
-		if (i != METHODS_COUNT - 1)
-			std::cout << " | ";
-	}
-	std::cout << "\n";
-	std::cout << "root is " << _root << "\n";
-	std::cout << "index is " << _index << "\n";
-	std::cout << "autoindex option is set as: " << std::boolalpha << _autoIndex << "\n";
-	std::cout << "cookie option is set as : " << std::boolalpha << _cookie << "\n";
-	if (_cgi.size())
-	{
-		std::cout << "cgi: " << "\n";
-		for (unsigned int i = 0; i < _cgi.size(); i++)
-			std::cout << "	" << _cgi[i] << "\n";
-	}
-	if (_errors.size())
-	{
-		std::map<int, std::string>::const_iterator it, ite;
-		it = _errors.begin();
-		ite = _errors.end();
-		std::cout <<"errors: " << "\n";
-		for (; it!= ite; it++)
-			std::cout << "	" << it->first << " : " << it->second << "\n";
-	}
-	if (!_upload)
-		std::cout << "Upload is set as false\n";
-	else
-		std::cout << "Upload is set as true, -> " << _uploadDir << "\n";
-	std::cout << "redir: ";
-	_redir.display();
-	std::cout << std::endl;
+	return ;
 }
 
 // CONSTRUCTORS

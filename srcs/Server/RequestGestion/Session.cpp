@@ -3,16 +3,7 @@
 
 void Session::display()
 {
-	std::cout << "Displaying infos for session " << _id << "\n";
-
-	std::map<string, string>::iterator it, ite;
-	it	= _cookies.begin();
-	ite	= _cookies.end();
-	for (; it != ite; it++)
-	{
-		std::cout << "Cookie: " << it->first << " | " << it->second << "\n";
-	}
-	std::cout << std::endl;
+	return ;
 }
 
 void Session::setConnected(bool value)

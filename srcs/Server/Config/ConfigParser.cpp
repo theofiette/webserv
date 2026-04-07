@@ -239,6 +239,7 @@ WebServerConfig ConfigParser::parseFile(const std::string &filePath)
 	}
 	if (!_config.servers.size())
 		_parseError("Config ended without setting a server");
+	_file.close();
 	return (_config);
 }
 

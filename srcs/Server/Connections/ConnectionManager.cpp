@@ -84,7 +84,7 @@ void	ConnectionManager::_checkCloseConnections()
 */
 void	ConnectionManager::_closeConnection(std::vector<Connection>::iterator it)
 {
-	std::cerr << RED << "closing connection on fd " << it->getFd() << END << std::endl;
+	// std::cerr << RED << "closing connection on fd " << it->getFd() << END << std::endl;
 	close(it->getFd());
 	_connections.erase(it);
 }
@@ -102,7 +102,7 @@ void	ConnectionManager::_checkOpenConnections()
 				break ;
 			Fcntl(newSocket, F_SETFL, O_NONBLOCK);
 			_openConnection(newSocket, _servers[i], i);
-			std::cerr << RED << "DEBUG: opening connection on fd " << newSocket << END << "\n";
+			// std::cerr << RED << "DEBUG: opening connection on fd " << newSocket << END << "\n";
 		}
 	}
 }
@@ -123,7 +123,7 @@ void	ConnectionManager::_processConnections()
 		currentConnection.process(_pollfds[i].revents);
 		if (currentConnection.getState() == CS_LAUNCH_CGI)
 		{
-			//close FDS
+			_clean();
 			currentConnection.process(0);
 		}
 		if (currentConnection.getState() == CS_CLOSE)
@@ -172,9 +172,14 @@ ConnectionManager::ConnectionManager(const WebServerConfig &config) : _servers(c
 {
 }
 
-ConnectionManager::~ConnectionManager()
+void	ConnectionManager::_clean()
 {
-	SessionManager::clean();
+	std::vector<int>::iterator it, ite;
+	it	= _masterSockets.begin();
+	ite	= _masterSockets.end();
+
+	for (; it != ite; it++)
+		close(*it);
 	if (!_connections.empty())
 	{
 		for (std::vector<Connection>::iterator it = _connections.begin(); it != _connections.end(); it++)
@@ -183,7 +188,13 @@ ConnectionManager::~ConnectionManager()
 				close(it->getFd());
 		}
 	}
-	// std::cerr << "DEBUG: Destructor called for class ConnectionManager\n";
+}
+
+ConnectionManager::~ConnectionManager()
+{
+	_clean();
+	SessionManager::clean();
+	std::cerr << "DEBUG: Destructor called for class ConnectionManager\n";
 }
 
 ///////////////////////////////////////////////////////////////////////////////

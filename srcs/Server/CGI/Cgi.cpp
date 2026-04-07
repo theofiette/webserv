@@ -9,7 +9,7 @@
 #include <fcntl.h>
 #include <signal.h>
 
-void	Cgi::setupMetavariables(const Request &request, const Session &session)
+void	Cgi::_setupMetavariables(const Request &request, const Session &session)
 {
 	std::map<std::string, std::string> rm = request.getMap();
 
@@ -41,9 +41,10 @@ void	Cgi::setupMetavariables(const Request &request, const Session &session)
 	{
 		_metaVariables[it->first] = it->second;
 	}
+	// SessionManager::clean();
 }
 
-void	Cgi::setupEnv()
+void	Cgi::_setupEnv()
 {
 	_cgiEnv = new char*[_metaVariables.size() + 1];
 	size_t i = 0;
@@ -56,10 +57,27 @@ void	Cgi::setupEnv()
 	_cgiEnv[i] = NULL;
 }
 
-Cgi::Cgi() //TODO: function INIT METAVARIABLES
+Cgi::Cgi()
 {}
 
-void Cgi::cgiChildProcess(int pipe_in[2], int pipe_out[2])
+void	Cgi::_failureCgi(std::string errCode, char **argv)
+{
+	if (argv)
+	{
+		free(argv[0]);
+		delete[] argv;
+	}
+	// _metaVariables.clear();
+	if (_cgiEnv)
+	{
+		for (int i = 0; _cgiEnv[i] != NULL; i++)
+			free(_cgiEnv[i]);
+		delete[] _cgiEnv;
+	}
+	throw ExceptionRuntime(errCode);
+}
+
+void Cgi::_cgiChildProcess(int pipe_in[2], int pipe_out[2])
 {
 	safeClose(pipe_in[1]);
 	safeClose(pipe_out[0]);
@@ -77,19 +95,19 @@ void Cgi::cgiChildProcess(int pipe_in[2], int pipe_out[2])
 
 void Cgi::launchCgi(const Request &request, const Session &session)
 {
-	setupMetavariables(request, session);
-	setupEnv();
-	std::string file = "./cgi/" + (getMetaVars().find("SCRIPT_NAME")->second); // TODO chdir ?
-	
-	char **tmp = new char*[2];
-	tmp[0] = strdup(file.c_str()); //TODO : FIND A WAY TO CLOSE ALL SOCKET + FREE EVERYTHING
-	// tmp[0] = strdup((std::string("cgi_tester")).c_str());
-	tmp[1] = NULL;
-	execve(tmp[0], tmp, getEnv());
-	perror("execve");
+	_setupMetavariables(request, session);
+	_setupEnv();
+	std::string file = "./" + getMetaVars().find("SCRIPT_NAME")->second;
+	if (chdir("./cgi") == -1)
+		_failureCgi("Children process malfunction : directory not found.", NULL);
+	char **argv = new char*[2];
+	argv[0] = strdup(file.c_str()); //TODO : FIND A WAY TO CLOSE ALL SOCKET + FREE EVERYTHING
+	argv[1] = NULL;
+	execve(argv[0], argv, getEnv());
+	_failureCgi("Children process malfunction : execve failure", argv);
 }
 
-void Cgi::cgiMainProcess(int pipe_in[2], int pipe_out[2], const Request &request, int &readFd)
+void Cgi::_cgiMainProcess(int pipe_in[2], int pipe_out[2], const Request &request, int &readFd)
 {
 	safeClose(pipe_in[0]);
 	safeClose(pipe_out[1]);
@@ -126,9 +144,9 @@ pid_t Cgi::run(const Request &request, pid_t &pid, int &readFd)
 		throw ExceptionCgiPipeError();
 	}
 	if (!pid)
-		cgiChildProcess(pipe_in, pipe_out);
+		_cgiChildProcess(pipe_in, pipe_out);
 	else
-		cgiMainProcess(pipe_in, pipe_out, request, readFd);
+		_cgiMainProcess(pipe_in, pipe_out, request, readFd);
 	return (pid);
 }
 
@@ -149,13 +167,15 @@ bool Cgi::readFromCGI(pid_t &pid, int &readFd, Response &response)
 		safeClose(readFd);
 		if (pid > 0)
 		{
-			waitpid(pid, NULL, 0);
+			waitpid(pid, NULL, 0);				
 			pid = -1;
 		}
 		return (true);
 	}
 	if (bytesRead < 0)
+	{
 		return (false); // TODO: on peut rester stuck ici non ?
+	}
 	return (true); 
 }
 
@@ -164,7 +184,7 @@ void Cgi::killProcess(pid_t &pid, int &readFd)
 	safeClose(readFd);
 	if (pid > 0)
 	{
-		std::cerr << RED BOLD "KILLING PID CGI \n";
+		// std::cerr << RED BOLD "KILLING PID CGI \n";
 		kill(pid, SIGKILL); // TODO: if (kill == -1? syscall)
 		waitpid(pid, NULL, 0);
 		pid = -1;

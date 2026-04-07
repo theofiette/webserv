@@ -57,23 +57,25 @@ class Request
 		void 	_checkEncoding(std::string);
 
 	public:
-		Request();
+		// Request();
 		Request(const Server &);
 		~Request();
 
-		void 				stateRequestValidity();
-		void 				fillHeader(std::stringstream &, std::string &);
-		void				checkHeader();
-		void				parseRequest(std::string);
-		void				receiveRequestChunk(int);		
+		void 						stateRequestValidity();
+		void 						fillHeader(std::stringstream &, std::string &);
+		void						checkHeader();
+		void						parseRequest(std::string);
+		void						receiveRequestChunk(int);		
 		// // TEMPORAIRE
-		void				display() const;
-		void 				displayInfos() const;
-		void				displayHeader() const;
+		// void				display() const;
+		// void 				displayInfos() const;
+		// void				displayHeader() const;
 
-		bool				isKeepAlive() const;
-		const bool &		isRequestComplete();
-		void				setAsTimeout(int);
+		bool						isKeepAlive() const;
+		const bool &				isRequestComplete();
+		void						setAsTimeout(int);
+
+		void						setErrorCode(int);
 
 		const std::string& 			getHeader() const;
 		const std::string&			getQueryString() const;
@@ -84,7 +86,6 @@ class Request
 		
 		const std::map<std::string, std::string>&	getMap() const;
 		const std::string							getCookieValue(const std::string &) const;
-		// unsigned int								getServerIndex() const;
 
 		void	clear();
 	

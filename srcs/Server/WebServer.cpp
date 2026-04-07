@@ -63,12 +63,7 @@ size_t	WebServer::_initGetPollSize()
 		if (_config.servers.size() > FD_SETSIZE)
 			throw (ExceptionBadInit("Server number is exceeding FD_SETSIZE"));
 		fds = FD_SETSIZE - _config.servers.size();
-		std::cerr << "Max clients + number of servers exceeds FD_SETSIZE (" << FD_SETSIZE << ").\n";
-		std::cerr << "Max client number set to " << fds << "\n";
 	}
-
-	std::cerr << "The program is initialized with " << _masterSockets.size() << " servers." << "\n";
-	std::cerr << "It can listen to " << fds << " clients" << std::endl;
 
 	//TODO: this is false, needs to be corrected
 	return (static_cast<int>(fds));
@@ -161,6 +156,5 @@ WebServer::~WebServer()
 	delete [] _pollfds ;
 	if (_gaiPtr)
 		freeaddrinfo(_gaiPtr);
-	std::cout << "Destructor called for class WebServer" << std::endl;
 }
 

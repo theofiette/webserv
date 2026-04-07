@@ -80,7 +80,7 @@ void	Connection::_startCgi()
 	if (cgi.run(_request, _cgiPid, _cgiReadFd) == 0)
 	{
 		setState(CS_LAUNCH_CGI);
-		std::cerr << RED << "Connection is CS_LAUNCH_CGI\n" << END;
+		// std::cerr << RED << "Connection is CS_LAUNCH_CGI\n" << END;
 	}
 	else
 		setState(CS_WAIT_CGI);
@@ -106,7 +106,13 @@ void	Connection::_processCgi(short revent)
 
 	if(!Cgi::readFromCGI(_cgiPid, _cgiReadFd, _response))
 		return ;
-	setState(CS_SENDING);
+	if (_response.getRawResponse().empty())
+	{
+		_request.setErrorCode(INTERNAL_SERVER_ERROR);
+		setState(CS_WRITING);
+	}
+	else
+		setState(CS_SENDING);
 }
 
 void	Connection::_checkTimeout()

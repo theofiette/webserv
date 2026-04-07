@@ -30,29 +30,7 @@ bool	Server::registerLocation(string &name, Location &loc)
 
 void	Server::display() const
 {
-	std::cout << "\n___DISPLAYING SERVER INFOS___\n\n";
-	std::cout << "Listening to port: " << _listen << "\n";
-	std::cout << "Server name is: " << _serverName << "\n";
-	std::cout << "The max client body size is: " << _clientBodyMax << "\n";
-
-	{
-		std::cout << "\n___Errors: \n\n";
-		mc_is_ite it = _errors.begin();
-		mc_is_ite ite = _errors.end();
-		for (; it != ite; it++)
-			std::cout << "Error " << it->first << " -> " << it->second << "\n";
-	}
-	{
-		std::cout << "\n___Locations: \n\n";
-		mc_sL_ite it = _locations.begin();
-		mc_sL_ite ite = _locations.end();
-		for (; it != ite; it++)
-		{
-			std::cout << "Location " << it->first << ": \n";
-			it->second.display();
-		}
-	}
-	std::cout << "____________________________\n" << std::endl;
+	return ;
 }
 
 // METHODS
@@ -69,7 +47,6 @@ bool	Server::checkErrorsValidity()
 	for (; it != ite; it++)
 	{
 		path = it->second;
-		std::cout << "Checking error file: " << path << "\n";
 		if (access(path.c_str(), R_OK))
 			return (false);
 	}

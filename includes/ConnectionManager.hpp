@@ -39,6 +39,8 @@ class ConnectionManager
 		void	_checkCloseConnections();
 		void	_closeConnection(std::vector<Connection>::iterator it);
 
+		void	_clean();
+
 		ConnectionManager();
 
 	public:

@@ -136,7 +136,7 @@ int	UploadHandler::processUpload()
 		_statusCode = BAD_REQUEST; // 400 ?
 		return (_statusCode);
 	}
-	std::cout << "CHECK PASSED \n\n";
+	// std::cout << "CHECK PASSED \n\n";
 
 	std::vector<char> fileContent = _trimBody(boundary);
 	if (fileContent.empty())
