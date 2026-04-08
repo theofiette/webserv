@@ -145,7 +145,7 @@ void	Cgi::_setupMainProcess(int pipeIn[2], int pipeOut[2], const Request &reques
 	}
 }
 
-pid_t	Cgi::run(const Request &request, const Session &session)
+pid_t	Cgi::run(const Request &request)
 {
 	int pipeIn[2];
 	int pipeOut[2];
@@ -162,12 +162,16 @@ pid_t	Cgi::run(const Request &request, const Session &session)
 	if (!_pid)
 	{
 		_setupChildProcess(pipeIn, pipeOut);
-		_launchCgi(request, session);
-		exit(1);
+		return (_pid);
 	}
 	else
 		_setupMainProcess(pipeIn, pipeOut, request);
 	return (_pid);
+}
+
+void	Cgi::launchCgi(const Request &request, const Session &session)
+{
+	_launchCgi(request, session);
 }
 
 bool	Cgi::_writeBodyForScript()

@@ -46,7 +46,8 @@ class Cgi
 		~Cgi();
 
 
-		pid_t				run(const Request &, const Session &);
+		pid_t				run(const Request &);
+		void				launchCgi(const Request &, const Session &);
 		bool				process(short, const Request &, Response &);
 
 		void				clear();

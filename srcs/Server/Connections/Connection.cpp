@@ -77,8 +77,10 @@ void	Connection::_clearCgi()
 
 void	Connection::_startCgi()
 {
-	_cgi.run(_request, *_session);
-	setState(CS_WAIT_CGI);
+	if (_cgi.run(_request) == 0)
+		setState(CS_LAUNCH_CGI);
+	else
+		setState(CS_WAIT_CGI);
 }
 
 void	Connection::_retrieveSession()
@@ -220,6 +222,9 @@ void	Connection::process(short revent)
 			_processWriting();
 			if (getState() == CS_WRITING)
 				setState(CS_SENDING);
+			break ;
+		case (CS_LAUNCH_CGI):
+			_cgi.launchCgi(_request, *_session);
 			break ;
 		case (CS_WAIT_CGI):
 			_processCgi(revent); // reads CGI output and sets to SENDING when CGI is done
