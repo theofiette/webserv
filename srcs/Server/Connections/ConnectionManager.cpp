@@ -121,8 +121,11 @@ void	ConnectionManager::_processConnections()
 
 		// std::cout << "revent is : " << _pollfds[i].revents << "\n";
 		currentConnection.process(_pollfds[i].revents);
-		if (currentConnection.getState() == CS_LAUNCHING_CGI)
+		if (currentConnection.getState() == CS_LAUNCH_CGI)
+		{
 			_clean();
+			currentConnection.process(0);
+		}
 		if (currentConnection.getState() == CS_CLOSE)
 			_to_close.push(it);
 		i++;
