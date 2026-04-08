@@ -55,5 +55,4 @@ class Cgi
 		int					getPollFd() const;
 		short				getWantedEvent() const;
 		pid_t				getPid() const;
-		bool				isActive() const;
 };

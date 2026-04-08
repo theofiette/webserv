@@ -270,11 +270,6 @@ pid_t	Cgi::getPid() const
 	return (_pid);
 }
 
-bool	Cgi::isActive() const
-{
-	return (_state != CGI_IDLE);
-}
-
 void	Cgi::killProcess()
 {
 	safeClose(_readFd);
