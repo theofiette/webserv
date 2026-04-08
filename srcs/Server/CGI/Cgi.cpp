@@ -2,17 +2,42 @@
 #include "Request.hpp"
 #include "Response.hpp"
 #include "wrapper.hpp"
+#include "macros.hpp"
 
-#include <cerrno>
 #include <unistd.h>
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <signal.h>
 
+Cgi::Cgi()
+: _cgiEnv(NULL), _state(CGI_IDLE), _pid(-1), _readFd(-1), _writeFd(-1), _bodyOffset(0)
+{}
+
+Cgi::~Cgi()
+{}
+
+void	Cgi::_failureCgi(std::string errCode, char **argv)
+{
+	if (argv)
+	{
+		free(argv[0]);
+		delete[] argv;
+	}
+	if (_cgiEnv)
+	{
+		for (int i = 0; _cgiEnv[i] != NULL; i++)
+			free(_cgiEnv[i]);
+		delete[] _cgiEnv;
+		_cgiEnv = NULL;
+	}
+	throw ExceptionRuntime(errCode);
+}
+
 void	Cgi::_setupMetavariables(const Request &request, const Session &session)
 {
 	std::map<std::string, std::string> rm = request.getMap();
 
+	_metaVariables.clear();
 	_metaVariables["AUTH_TYPE"] = "";
 	_metaVariables["CONTENT_LENGTH"] = (rm.find("Content-Length") != rm.end() ? rm.find("Content-Length")->second : "");
 	_metaVariables["CONTENT_TYPE"] = (rm.find("Content-Type") != rm.end() ? rm.find("Content-Type")->second : "");
@@ -25,7 +50,7 @@ void	Cgi::_setupMetavariables(const Request &request, const Session &session)
 	_metaVariables["REMOTE_IDENT"] = "";
 	_metaVariables["REMOTE_USER"] = "";
 	_metaVariables["REQUEST_METHOD"] = (rm.find("Method") != rm.end() ? rm.find("Method")->second : "");
-	_metaVariables["SCRIPT_NAME"] = (rm.find("Path") != rm.end() ? rm.find("Path")->second.substr(1) : ""); // TODO:substr
+	_metaVariables["SCRIPT_NAME"] = (rm.find("Path") != rm.end() ? rm.find("Path")->second.substr(1) : "");
 	_metaVariables["SERVER_NAME"] = request.getServer()->getServerName();
 	_metaVariables["SERVER_PORT"] = request.getServer()->getListen();
 	_metaVariables["SERVER_PROTOCOL"] = (rm.find("Protocol") != rm.end() ? rm.find("Protocol")->second : "");
@@ -34,191 +59,238 @@ void	Cgi::_setupMetavariables(const Request &request, const Session &session)
 	_metaVariables["protocol-var-name"] = "";
 	_metaVariables["extension-var-name"] = "";
 
-	std::map<string, string>::const_iterator it, ite;
-	it	= session.getCookies().begin();
-	ite	= session.getCookies().end();
-	for (; it != ite; it++)
-	{
+	std::map<std::string, std::string>::const_iterator it = session.getCookies().begin();
+	std::map<std::string, std::string>::const_iterator ite = session.getCookies().end();
+	for (; it != ite; ++it)
 		_metaVariables[it->first] = it->second;
-	}
-	// SessionManager::clean();
 }
 
 void	Cgi::_setupEnv()
 {
+	if (_cgiEnv)
+	{
+		for (int i = 0; _cgiEnv[i] != NULL; ++i)
+			free(_cgiEnv[i]);
+		delete[] _cgiEnv;
+		_cgiEnv = NULL;
+	}
+
 	_cgiEnv = new char*[_metaVariables.size() + 1];
 	size_t i = 0;
-	for (std::map<std::string, std::string>::iterator it = _metaVariables.begin(); it != _metaVariables.end(); it++)
+	for (std::map<std::string, std::string>::iterator it = _metaVariables.begin(); it != _metaVariables.end(); ++it)
 	{
 		std::string metaVar = it->first + "=" + it->second;
 		_cgiEnv[i] = strdup(metaVar.c_str());
-		i++;
+		++i;
 	}
 	_cgiEnv[i] = NULL;
 }
 
-Cgi::Cgi()
-{}
-
-void	Cgi::_failureCgi(std::string errCode, char **argv)
+void	Cgi::_setupChildProcess(int pipeIn[2], int pipeOut[2])
 {
-	if (argv)
-	{
-		free(argv[0]);
-		delete[] argv;
-	}
-	// _metaVariables.clear();
-	if (_cgiEnv)
-	{
-		for (int i = 0; _cgiEnv[i] != NULL; i++)
-			free(_cgiEnv[i]);
-		delete[] _cgiEnv;
-	}
-	throw ExceptionRuntime(errCode);
-}
+	safeClose(pipeIn[1]);
+	safeClose(pipeOut[0]);
 
-void Cgi::_cgiChildProcess(int pipe_in[2], int pipe_out[2])
-{
-	safeClose(pipe_in[1]);
-	safeClose(pipe_out[0]);
-
-	dup2(pipe_in[0], STDIN_FILENO); // pour lire le contenu du POST
-	if (dup2(pipe_out[1], STDOUT_FILENO) == -1)
+	dup2(pipeIn[0], STDIN_FILENO);
+	if (dup2(pipeOut[1], STDOUT_FILENO) == -1)
 	{
-		safeClose(pipe_in[0]);
-		safeClose(pipe_out[1]);
+		safeClose(pipeIn[0]);
+		safeClose(pipeOut[1]);
 		exit(1);
 	}
-	safeClose(pipe_in[0]);
-	safeClose(pipe_out[1]);
+	safeClose(pipeIn[0]);
+	safeClose(pipeOut[1]);
 }
 
-void Cgi::launchCgi(const Request &request, const Session &session)
+void	Cgi::_launchCgi(const Request &request, const Session &session)
 {
 	_setupMetavariables(request, session);
 	_setupEnv();
-	std::string file = "./" + getMetaVars().find("SCRIPT_NAME")->second;
+
+	std::string file = "./" + _metaVariables.find("SCRIPT_NAME")->second;
 	if (chdir("./cgi") == -1)
 		_failureCgi("Children process malfunction : directory not found.", NULL);
+
 	char **argv = new char*[2];
-	argv[0] = strdup(file.c_str()); //TODO : FIND A WAY TO CLOSE ALL SOCKET + FREE EVERYTHING
+	argv[0] = strdup(file.c_str());
 	argv[1] = NULL;
-	execve(argv[0], argv, getEnv());
+	execve(argv[0], argv, _cgiEnv);
 	_failureCgi("Children process malfunction : execve failure", argv);
 }
 
-void Cgi::_cgiMainProcess(int pipe_in[2], int pipe_out[2], const Request &request, int &readFd)
+void	Cgi::_setupMainProcess(int pipeIn[2], int pipeOut[2], const Request &request)
 {
-	safeClose(pipe_in[0]);
-	safeClose(pipe_out[1]);
+	safeClose(pipeIn[0]);
+	safeClose(pipeOut[1]);
+
+	_readFd = pipeOut[0];
+	_writeFd = pipeIn[1];
+
+	Fcntl(_readFd, F_SETFL, O_NONBLOCK);
+	Fcntl(_writeFd, F_SETFL, O_NONBLOCK);
+
+	_bodyOffset = 0;
+	_bodyMessage.clear();
 
 	if (request.getMap().find("Method") != request.getMap().end() && request.getMap().find("Method")->second == "POST")
 	{
-		const std::vector<char>& bodyVec = request.getBody();
-		std::string bodyStr(bodyVec.begin(), bodyVec.end());
-		setBodyMessage(bodyStr);
-		if (write(pipe_in[1], getBodyMessage().c_str(), getBodyMessage().size()) == -1)
-		{
-			safeClose(pipe_in[1]);
-			safeClose(pipe_out[0]);
-			throw ExceptionWriteError();
-		}
+		const std::vector<char> &bodyVec = request.getBody();
+		_bodyMessage.assign(bodyVec.begin(), bodyVec.end()); // Je stocke le body plutot que faire des calls a request.getBody()
+		_state = CGI_WRITING_BODY;
 	}
-	safeClose(pipe_in[1]);
-	readFd = pipe_out[0];
-}
-
-pid_t Cgi::run(const Request &request, pid_t &pid, int &readFd)
-{
-	int pipe_in[2];
-	int pipe_out[2];
-
-	if (pipe(pipe_in) == -1 || pipe(pipe_out) == -1)
-		throw ExceptionCgiPipeError();
-
-	pid = fork();
-	if (pid < 0)
-	{
-		closePipe(pipe_in);
-		closePipe(pipe_out);
-		throw ExceptionCgiPipeError();
-	}
-	if (!pid)
-		_cgiChildProcess(pipe_in, pipe_out);
 	else
-		_cgiMainProcess(pipe_in, pipe_out, request, readFd);
-	return (pid);
+	{
+		_state = CGI_READING_OUTPUT;
+		safeClose(_writeFd);
+	}
 }
 
-bool Cgi::readFromCGI(pid_t &pid, int &readFd, Response &response)
+pid_t	Cgi::run(const Request &request, const Session &session)
 {
-	if (readFd < 0)
-		return (true);
-	char buffer[4096];
+	int pipeIn[2];
+	int pipeOut[2];
 
-	ssize_t bytesRead = read(readFd, buffer, sizeof(buffer));
+	if (pipe(pipeIn) == -1 || pipe(pipeOut) == -1)
+		throw ExceptionCgiPipeError();
+	_pid = fork();
+	if (_pid < 0)
+	{
+		closePipe(pipeIn);
+		closePipe(pipeOut);
+		throw ExceptionCgiPipeError();
+	}
+	if (!_pid)
+	{
+		_setupChildProcess(pipeIn, pipeOut);
+		_launchCgi(request, session);
+		exit(1);
+	}
+	else
+		_setupMainProcess(pipeIn, pipeOut, request);
+	return (_pid);
+}
+
+bool	Cgi::_writeBodyForScript()
+{
+	if (_writeFd < 0 || _bodyMessage.empty())
+	{
+		safeClose(_writeFd);
+		_state = CGI_READING_OUTPUT;
+		return (true);
+	}
+
+	ssize_t bytesWrote = write(_writeFd, _bodyMessage.data() + _bodyOffset,
+			_bodyMessage.size() - _bodyOffset);
+	if (bytesWrote > 0)
+		_bodyOffset += static_cast<size_t>(bytesWrote);
+	else if (bytesWrote < 0)
+		return (false);
+	else if (bytesWrote == 0)
+	{
+		safeClose(_writeFd);
+		throw ExceptionWriteError();
+	}
+
+	if (_bodyOffset < _bodyMessage.size())
+		return (false);
+
+	safeClose(_writeFd);
+	_state = CGI_READING_OUTPUT;
+	return (true);
+}
+
+bool	Cgi::_readFromCGI(Response &response)
+{
+	if (_readFd < 0)
+		return (true);
+
+	char buffer[READ_SIZE];
+	ssize_t bytesRead = read(_readFd, buffer, sizeof(buffer));
 	if (bytesRead > 0)
 	{
 		response.appendRawResponse(buffer, bytesRead);
 		return (false);
 	}
-	if (bytesRead == 0) // EOF reached, we close the readFd -> eof -> POLLHUP 
+	if (bytesRead == 0)
 	{
-		safeClose(readFd);
-		if (pid > 0)
+		if (_pid > 0)
 		{
-			int childPid = waitpid(pid, 0, WNOHANG);
-			if (childPid == 0) // child process not finished
+			int childPid = waitpid(_pid, 0, WNOHANG);
+			if (childPid == 0)
 				return (false);
-			pid = -1;
 		}
+		safeClose(_readFd);
+		_pid = -1;
+		_state = CGI_IDLE;
 		return (true);
 	}
 	if (bytesRead < 0)
+		return (false);
+	return (false);
+}
+
+bool	Cgi::process(short revent, const Request &, Response &response)
+{
+	if (_state == CGI_IDLE)
+		return (true);
+	if (_state == CGI_WRITING_BODY)
 	{
-		return (false); // TODO: on peut rester stuck ici non ?
+		if (!(revent & POLLOUT))
+			return (false);
+		if (!_writeBodyForScript())
+			return (false);
 	}
-	return (true); 
-}
-
-void Cgi::killProcess(pid_t &pid, int &readFd)
-{
-	safeClose(readFd);
-	if (pid > 0)
+	if (_state == CGI_READING_OUTPUT)
 	{
-		// std::cerr << RED BOLD "KILLING PID CGI \n";
-		kill(pid, SIGKILL); // TODO: if (kill == -1? syscall)
-		waitpid(pid, NULL, 0);
-		pid = -1;
+		if (!(revent & (POLLIN | POLLHUP)))
+			return (false);
+		return (_readFromCGI(response));
 	}
+	return (false);
 }
 
-Cgi::~Cgi()
+int	Cgi::getPollFd() const
 {
-	// if (_cgiEnv)
-	// {
-	// 	for (int i = 0; _cgiEnv[i] != NULL; i++)
-	// 		free(_cgiEnv[i]);
-	// 	delete[] _cgiEnv;
-	// }
+	if (_state == CGI_WRITING_BODY)
+		return (_writeFd);
+	if (_state == CGI_READING_OUTPUT)
+		return (_readFd);
+	return (-1);
 }
 
-const std::map<std::string, std::string>& Cgi::getMetaVars() const
+short	Cgi::getWantedEvent() const
 {
-	return (_metaVariables);
+	if (_state == CGI_WRITING_BODY)
+		return (POLLOUT);
+	return (POLLIN);
 }
 
-char* const* Cgi::getEnv() const
+pid_t	Cgi::getPid() const
 {
-	return (_cgiEnv);
+	return (_pid);
 }
 
-const std::string& Cgi::getBodyMessage() const
+bool	Cgi::isActive() const
 {
-	return (_bodyMessage);
+	return (_state != CGI_IDLE);
 }
 
-void Cgi::setBodyMessage(const std::string &body)
+void	Cgi::killProcess()
 {
-	_bodyMessage = body;
+	safeClose(_readFd);
+	safeClose(_writeFd);
+	if (_pid > 0)
+	{
+		kill(_pid, SIGKILL);
+		waitpid(_pid, NULL, 0);
+		_pid = -1;
+	}
+	_state = CGI_IDLE;
+	_bodyOffset = 0;
+	_bodyMessage.clear();
+}
+
+void	Cgi::clear()
+{
+	killProcess();
 }

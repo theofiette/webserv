@@ -9,6 +9,8 @@
 # include "Request.hpp"
 // # include <Session.hpp>
 
+# include "Cgi.hpp"
+
 class Request;
 
 # include "Response.hpp"
@@ -21,7 +23,7 @@ enum ConnectionState {
 	CS_BUFFERING,
 	CS_PARSING,
 	CS_WRITING,
-	CS_LAUNCH_CGI,
+	CS_SEND_CGI_BODY,
 	CS_WAIT_CGI,
 	CS_SENDING,
 	CS_KEEP,
@@ -40,9 +42,7 @@ class Connection {
 		Request				_request;
 		Response			_response;
 		TimeoutTracker 		_timer;
-
-		pid_t				_cgiPid;
-		int					_cgiReadFd;
+		Cgi					_cgi;
 
 		const Server &		_server;
 		const unsigned int	_serverId;
@@ -53,7 +53,6 @@ class Connection {
 		void	_processWriting();
 		void	_processCgi(short revent);
 		void	_processSending();
-		void	_processLaunchCgi(const Request &, const Session &);
 
 
 		void	_clear();
