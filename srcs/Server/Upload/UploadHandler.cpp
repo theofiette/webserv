@@ -96,21 +96,22 @@ std::vector<char> UploadHandler::_trimBody(const std::string &boundary)
 {
 	std::vector<char> body = _request.getBody();
 	std::string crlf = CRLFCRLF;
-	std::vector<char>::iterator subHeaderEnd = std::search(body.begin(), body.end(), crlf.begin(), crlf.end());
 
-	if (subHeaderEnd == body.end()){
+	std::vector<char>::iterator subHeaderEnd = std::search(body.begin(), body.end(), crlf.begin(), crlf.end());
+	if (subHeaderEnd == body.end())
+	{
 		_statusCode = BAD_REQUEST;
 		return (std::vector<char>(0));
 	}
-	subHeaderEnd += CRLF_SIZE;
-	body.erase(body.begin(), subHeaderEnd);
+	size_t offset = std::distance(body.begin(), subHeaderEnd) + CRLF_SIZE;
+	body.erase(body.begin(), body.begin() + offset);
 
-	std::vector<char>::iterator lastBoundaryPos = std::search(subHeaderEnd, body.end(), boundary.begin(), boundary.end());
+	std::vector<char>::iterator lastBoundaryPos = std::search(body.begin(), body.end(), boundary.begin(), boundary.end());
 	if (lastBoundaryPos == body.end()){
 		_statusCode = BAD_REQUEST;
 		return (std::vector<char>(0));
 	}
-	body.erase(lastBoundaryPos - 3, body.end()); // -3 ??
+	body.erase(lastBoundaryPos - 3, body.end());
 	return (body);
 }
 

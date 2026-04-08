@@ -395,10 +395,46 @@ void Response::handleGet(const Request &_req, Session &session)
 	addHeader("Content-Length", intToString(_body.length()));
 }
 
-void Response::handlePost(const Request &_req, Session &session)
+bool Response::handleUploadPost(const Request &_req)
 {
 	struct stat	s;
+	std::string localPath = buildLocalPath(_req);
+
+	checkFileAccess(localPath, R_OK);
+	if ((stat(localPath.c_str(), &s) == -1) || _statusCode != OK)
+		return (false);
+
+	UploadHandler handler(_req, _currLocation.getUploadDir());
+
+	_statusCode = handler.processUpload();
+	if (_statusCode != CREATED)
+	{
+		handleResponsesError();
+		return (false);
+	}
+	return (true);
+}
+
+bool Response::handleRegularPost(const Request &_req, Session &session)
+{
+	struct stat	s;
+	std::string localPath = "html/success.html";
+
+	if (stat(localPath.c_str(), &s) == -1)
+	{
+		handleResponsesError();
+		return (false);
+	}
+
+	std::map<std::string, std::string> formData;
+	parseFormData(formData, _req, session);
+	return (true);
+}
+
+void Response::handlePost(const Request &_req, Session &session)
+{
 	std::map<std::string, std::string>::const_iterator contentTypePos = _req.getMap().find("Content-Type");
+	bool isUploadPost;
 
 	if (contentTypePos == _req.getMap().end())
 	{
@@ -407,38 +443,14 @@ void Response::handlePost(const Request &_req, Session &session)
 		return ;
 	}
 
-	if ((_currLocation.getUpload() == true) && UploadHandler::_isMultipart(contentTypePos->second))
+	isUploadPost = _currLocation.getUpload() && UploadHandler::_isMultipart(contentTypePos->second);
+	if (isUploadPost)
 	{
-		std::string localPath = buildLocalPath(_req);
-		checkFileAccess(localPath, R_OK);
-		if ((stat(localPath.c_str(), &s) == -1) || _statusCode != OK)
+		if (!handleUploadPost(_req))
 			return ;
-		std::string uploadDirectory = _currLocation.getUploadDir();
-
-		UploadHandler handler(_req, uploadDirectory);
-
-		int uploadStatus = handler.processUpload();
-		_statusCode = uploadStatus;
-		if (uploadStatus != CREATED)
-		{
-			handleResponsesError();
-			return ;
-		}
 	}
-	else
-	{
-		std::string localPath = "html/success.html"; // SUCCES PAGE IN CONFIG
-		if (stat(localPath.c_str(), &s) == -1)
-		{
-			handleResponsesError();
-			return ;
-		}
-		//TODO: RECUPER DYNAMIQUEMENT SUCCESS HTML via GLOBALSERVER ou REDIR (build full path...)
-		// std::string localPath = getSuccessPath();
-		std::map<std::string, std::string> formData; // TODO: utiliser cette data
-
-		parseFormData(formData, _req, session);
-	}
+	else if (!handleRegularPost(_req, session))
+		return ;
 
 	_statusCode = SEE_OTHER;
 	addHeader("Location", "/success.html");

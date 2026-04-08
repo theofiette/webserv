@@ -86,6 +86,8 @@ class Response
 		void 				checkFileAccess(std::string &, int);
 		bool 				readFileContent(const std::string &, size_t);
 		void 				parseFormData(std::map<std::string, std::string> &, const Request &_req, Session &session);
+		bool				handleUploadPost(const Request &_req);
+		bool				handleRegularPost(const Request &_req, Session &session);
 		void				allowedMethodsHeader();
 
 	public:

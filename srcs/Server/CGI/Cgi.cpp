@@ -167,7 +167,9 @@ bool Cgi::readFromCGI(pid_t &pid, int &readFd, Response &response)
 		safeClose(readFd);
 		if (pid > 0)
 		{
-			waitpid(pid, NULL, 0);				
+			int childPid = waitpid(pid, 0, WNOHANG);
+			if (childPid == 0) // child process not finished
+				return (false);
 			pid = -1;
 		}
 		return (true);

@@ -17,7 +17,7 @@ Session	*SessionManager::_createNewSession(unsigned int serverId, unsigned int s
 Session *SessionManager::accessSession(const std::string &id, unsigned int serverId)
 {
 	// std::cerr << GREEN ITALIC << "Looking for session from id : " << id << END << std::endl;
-	if (serverId > _serverCount)
+	if (serverId >= _serverCount)
 		throw (ExceptionRuntime("Session manager tried to access a non existing server"));
 
 	sessions_it it 	= _sessions[serverId].begin();
