@@ -135,9 +135,6 @@ void 	Request::_insertChunkedBody(const char *begin, const char *end)
 				return ;
 		if (_chunkExpectSize == 0){
 			handleLastChunk(_chunkBuffer, _chunkDone, _requestComplete, _requestCode);
-			// for (std::vector<char>::iterator it = _body.begin(); it != _body.end(); it++)
-			// 	std::cout << *it;
-			// std::cout << "\n" << _body.size() << "\n";
 			return ;
 		}
 		if (_insertInBody() == false)
@@ -155,7 +152,7 @@ void Request::readSocketChunk(int socketFd, char *buffer, size_t bufferSize, siz
 	ssize_t bytesRead = recv(socketFd, buffer, bufferSize, 0);
 	if (bytesRead < 0)
 	{
-		_requestCode = BAD_REQUEST;
+		_requestCode = INTERNAL_SERVER_ERROR;
 		_requestComplete = true;
 		return ;
 	}
@@ -312,6 +309,11 @@ void Request::setFirstLine(std::string buffer)
 	if (!protocol.empty() && protocol[protocol.size() - 1] == '\r')
 		protocol[protocol.size() - 1] = 0;
 	_extractQueryString(path);
+	if (path.empty() || path[0] != '/')
+	{
+		_requestCode = BAD_REQUEST;
+		return ;
+	}
     _requestHeader["Method"] = method;
     _requestHeader["Path"] = path;
     _requestHeader["Protocol"] = protocol;

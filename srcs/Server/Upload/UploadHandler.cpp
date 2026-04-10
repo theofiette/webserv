@@ -57,12 +57,17 @@ std::string	UploadHandler::_extractFilename() const // faire juste size_t Cursor
 	if (filename.empty())
 		return ("");
 
+	size_t pos = 0;
+	while ((pos = (filename.find(".."))) != string::npos)
+		filename.erase(pos, 2);
+	while ((pos = (filename.find("//"))) != string::npos)
+		filename.erase(pos, 1);
 	return (filename);
 }
 
 bool	UploadHandler::_writeFile(const std::string &filename, std::vector<char> &content)
 {
-	std::ofstream outfile(filename.c_str());
+	std::ofstream outfile(filename.c_str(), std::ios::binary);
 	if (!outfile.is_open())
 	{
 		_statusCode = INTERNAL_SERVER_ERROR;

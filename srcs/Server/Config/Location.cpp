@@ -56,11 +56,8 @@ Redir & Location::getRedir()
 	return (_redir);
 }
 
-//TODO int check ?
 void	Location::setMethod(bool value, int index)
 {
-	// std::cout << BLUE << value << " | " << index << END << std::endl;
-	// std::cout << "method size is " << _methods.size() << std::endl;
 	_methods[index] = value;
 }
 

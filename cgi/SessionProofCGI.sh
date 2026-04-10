@@ -8,7 +8,7 @@ fi
 
 BODY="<html>
 		<head>
-			<link rel="stylesheet" href="css/style/style.css">
+			<link rel="stylesheet" href="style/">
 		</head>
 		<body>
 			<div class="container">

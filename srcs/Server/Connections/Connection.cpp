@@ -77,8 +77,14 @@ void	Connection::_clearCgi()
 
 void	Connection::_startCgi()
 {
-	if (_cgi.run(_request) == 0)
+	pid_t cgiReturnCode = _cgi.run(_request);
+	if (cgiReturnCode == 0)
 		setState(CS_LAUNCH_CGI);
+	else if (cgiReturnCode < 0)
+	{
+		_request.setErrorCode(INTERNAL_SERVER_ERROR);
+		setState(CS_WRITING);
+	}
 	else
 		setState(CS_WAIT_CGI);
 }
@@ -144,9 +150,10 @@ void	Connection::_processParsing()
 void	Connection::_processWriting()
 {
 	_retrieveSession();
+	_response.setLocalPath(_request);
 	if (_request.getRequestCode() == OK)
 	{
-		if (_response.isCgi(_request))
+		if (_response.isCgi())
 		{
 			_startCgi(); // executes CGI script and sets CS_WAIT_CGI
 			return ;
@@ -224,7 +231,7 @@ void	Connection::process(short revent)
 				setState(CS_SENDING);
 			break ;
 		case (CS_LAUNCH_CGI):
-			_cgi.launchCgi(_request, *_session);
+			_cgi.launchCgi(_response, _request, *_session);
 			break ;
 		case (CS_WAIT_CGI):
 			_processCgi(revent); // reads CGI output and sets to SENDING when CGI is done

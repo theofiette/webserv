@@ -10,9 +10,10 @@
 #include <dirent.h>
 
 #include <sys/stat.h>
+#include <ctime>
 
 const std::string Response::methods[METHODS_COUNT] = {"HEAD", "GET", "POST", "DELETE"};
-const std::string Response::mimeTable[MIME_SIZE] = {"html", "css", "png", "ico", "gif", "plain", "jpeg"};
+const std::string Response::mimeTable[MIME_SIZE] = {"html", "css", "png", "ico", "gif", "jpeg", "plain"};
 
 static std::map<int, std::string> initStatusMap() 
 {
@@ -59,13 +60,33 @@ void	Response::clear()
 Response::Response(const Server &server) : 
 _statusCode(200), _bytesSent(0), _currServ(&server)
 {
+	// addHeader("Server", );
 	// std::cerr << "DEBUG: Constructor called for class Response\n";
-	// TODO : ERROR_CODE dans flux connection
 }
 
 Response::~Response()
 {
 	// std::cerr << "DEBUG: Destructor called for class Response\n";
+}
+
+void Response::addTimeHeader()
+{
+	time_t now = time(NULL);
+	struct tm gmtTime;
+	char date[64];
+
+	_header.erase("Date");
+	if (gmtime_r(&now, &gmtTime) == NULL)
+	{
+		addHeader("Date", "Thu, 01 Jan 1970 00:00:00 GMT");
+		return ;
+	}
+	if (std::strftime(date, sizeof(date), "%a, %d %b %Y %H:%M:%S GMT", &gmtTime) == 0)
+	{
+		addHeader("Date", "Thu, 01 Jan 1970 00:00:00 GMT");
+		return ;
+	}
+	addHeader("Date", date);
 }
 
 //*********************************************************************************************/
@@ -74,6 +95,9 @@ Response::~Response()
 
 void Response::pickMethod(const Request &_req, Session &session)
 {
+	if (_statusCode != OK)
+		return ;
+
 	static void (Response::*methods[])(const Request &_req, Session &session) = 
 	{
 		&Response::handleHead,
@@ -96,7 +120,7 @@ std::string Response::MIMEtable(std::string localPath)
 			if ((mimePos + mimeTable[i].size() + 1) == localPath.size())
 				break ;
 	}
-	return ("text/" + mimeTable[i]);
+	return ("text/" + mimeTable[i - (i == MIME_SIZE)]);
 }
 
 
@@ -112,15 +136,24 @@ void Response::addHeader(std::string key, std::string value)
 /*										BUILDERS											  */
 //*********************************************************************************************/
 
-std::map<string, Location>::const_reverse_iterator Response::findBestLocation(const std::string &uriPath)
+std::map<string, Location>::const_reverse_iterator Response::findBestLocation(std::string &uriPath)
 {
 	const std::map<std::string, Location>& loc = _currServ->getLocations();
 	
 	for (std::map<string, Location>::const_reverse_iterator it = loc.rbegin(); it != loc.rend(); it++)
 	{
-		if (uriPath.find(it->first) == 0)
+		const std::string &locationPath = it->first;
+		if (uriPath.find(locationPath) == 0
+			&& (locationPath == "/"
+				|| locationPath.size() == uriPath.size()
+				|| (uriPath.size() > locationPath.size() && uriPath[locationPath.size()] == '/')))
 		{
 			setCurrLocation(it->second);
+			uriPath = uriPath.substr(locationPath.size());
+			if (uriPath.empty())
+				uriPath = "/";
+			else if (uriPath[0] != '/')
+				uriPath.insert(0, "/");
 			return (it);
 		}
 	}
@@ -129,8 +162,6 @@ std::map<string, Location>::const_reverse_iterator Response::findBestLocation(co
 
 void Response::validateMethodAllowed(const Location &location, const Request &_req)
 {
-	if (_req.getMap().find("Method") == _req.getMap().end())
-			;
 	std::string method = _req.getMap().at("Method");
 	const std::vector<bool>& acceptedMethods = location.getMethods();
 	
@@ -150,7 +181,6 @@ void Response::validateMethodAllowed(const Location &location, const Request &_r
 	}
 }
 
-//TODO: Envoyer directement la string plutot que la location, pour ne pas faire une fonction speciale cookies
 void Response::appendIndexToDirectory(std::string &localPath, const Location &location)
 {
 	struct stat s;
@@ -199,20 +229,29 @@ void	Response::buildLocalPathFromCookie(std::string &localPath, const Location &
 std::string Response::buildLocalPath(const Request &_req)
 {
 	std::string uriPath = _req.getMap().at("Path");
+	size_t			pos;
+
+	while ((pos = (uriPath.find(".."))) != string::npos)
+		uriPath.erase(pos, 2);
+	while ((pos = (uriPath.find("//"))) != string::npos)
+		uriPath.erase(pos, 1);
 
 	findBestLocation(uriPath);
-	
-	size_t			pos;
-	
+
+	if (_currLocation.getRedir().getValid()
+		&& uriPath == "/"
+		&& _currLocation.getRedir().getRedirPath() != uriPath)
+	{
+		_statusCode = _currLocation.getRedir().getErrorCode();
+		addHeader("Location", _currLocation.getRedir().getRedirPath());
+		addHeader("Content-Length", "0");
+		return ("");
+	}
+
 	validateMethodAllowed(_currLocation, _req);
-	
+
 	std::string localPath = _currLocation.getRoot() + uriPath;
-
-	while ((pos = (localPath.find(".."))) != string::npos)
-		localPath.erase(pos, 2);
-	while ((pos = (localPath.find("//"))) != string::npos)
-		localPath.erase(pos, 1);
-
+	
 	if (_currLocation.isCookie())
 		buildLocalPathFromCookie(localPath, _currLocation, _req);
 	else
@@ -289,11 +328,21 @@ void Response::allowedMethodsHeader()
 	{
 		const std::vector<bool>&acceptedMethods = _currLocation.getMethods();
 		std::string allowedMethods;
-
+		int allowedMethodsCount = 0;
 		for (int i = 0; i < METHODS_COUNT; i++)
 		{
 			if (acceptedMethods[i] == true)
-				allowedMethods += methods[i] + ((i < METHODS_COUNT - 1) ? ", " : "");				
+				allowedMethodsCount++;
+		}
+		int comma = 0;
+		for (int i = 0; i < METHODS_COUNT; i++)
+		{
+			if (acceptedMethods[i] == true)
+			{
+				allowedMethods += methods[i];
+				if (comma++ < allowedMethodsCount - 1)
+					allowedMethods += ", ";
+			}
 		}
 		addHeader("Allow", allowedMethods);
 		addHeader("Content-Length", "0");	
@@ -367,15 +416,16 @@ void Response::handleAutoIndex()
 void	Response::handleHead(const Request &_req, Session &session)
 {
 	(void)session;
-	std::string localPath;
+	(void)_req;
+	// std::string localPath;
 	struct stat	s;
 
-	localPath = buildLocalPath(_req);
-	checkFileAccess(localPath, R_OK);
-	if ((stat(localPath.c_str(), &s) == -1))
+	// localPath = buildLocalPath(_req);
+	checkFileAccess(_localPath, R_OK);
+	if ((stat(_localPath.c_str(), &s) == -1))
 		return ;
-	readFileContent(localPath, s.st_size);
-	addHeader("Content-Type", MIMEtable(localPath));
+	readFileContent(_localPath, s.st_size);
+	addHeader("Content-Type", MIMEtable(_localPath));
 	addHeader("Content-Length", intToString(_body.length()));
 	_body.clear();
 }
@@ -383,25 +433,26 @@ void	Response::handleHead(const Request &_req, Session &session)
 void Response::handleGet(const Request &_req, Session &session)
 {
 	(void)session;
-	std::string localPath;
+	(void)_req;
+	// std::string localPath;
 	struct stat s;
 
-	localPath = buildLocalPath(_req);
-	checkFileAccess(localPath, R_OK);
-	if ((stat(localPath.c_str(), &s) == -1) || _statusCode != OK)
+	// localPath = buildLocalPath(_req);
+	checkFileAccess(_localPath, R_OK);
+	if ((stat(_localPath.c_str(), &s) == -1) || _statusCode != OK)
 		return ;
-	readFileContent(localPath, s.st_size);
-	addHeader("Content-Type", MIMEtable(localPath));
+	readFileContent(_localPath, s.st_size);
+	addHeader("Content-Type", MIMEtable(_localPath));
 	addHeader("Content-Length", intToString(_body.length()));
 }
 
 bool Response::handleUploadPost(const Request &_req)
 {
 	struct stat	s;
-	std::string localPath = buildLocalPath(_req);
+	// std::string localPath = buildLocalPath(_req);
 
-	checkFileAccess(localPath, R_OK);
-	if ((stat(localPath.c_str(), &s) == -1) || _statusCode != OK)
+	checkFileAccess(_localPath, R_OK);
+	if ((stat(_localPath.c_str(), &s) == -1) || _statusCode != OK)
 		return (false);
 
 	UploadHandler handler(_req, _currLocation.getUploadDir());
@@ -460,37 +511,32 @@ void Response::handlePost(const Request &_req, Session &session)
 void Response::handleDelete(const Request &_req, Session &session)
 {
 	(void)session;
-	std::string localPath = buildLocalPath(_req);
+	(void)_req;
+	// std::string localPath = buildLocalPath(_req);
 
-    checkFileAccess(localPath, W_OK);
+    checkFileAccess(_localPath, W_OK);
 	
 	if (_statusCode == OK)
 	{
-		if (remove(localPath.c_str()) != -1)
+		if (remove(_localPath.c_str()) != -1)
 			_statusCode = NO_CONTENT;
 		else
 			_statusCode = INTERNAL_SERVER_ERROR;
 	}
 }
 
-bool Response::isCgi(const Request &_req)
+bool Response::isCgi()
 {
-	if (_req.getMap().find("Path") == _req.getMap().end())
-		;
-
-	std::string uriPath = _req.getMap().at("Path");
-	std::map<string, Location>::const_reverse_iterator loc = findBestLocation(uriPath);
-	Location location = loc->second;
-
-	size_t suffixPos = uriPath.find(".");
+	size_t suffixPos = _localPath.rfind(".");
 	if (suffixPos == std::string::npos)
 		return (false);
 
-	std::string suffix = uriPath.substr(suffixPos);
-	std::vector<std::string>::const_iterator it = location.getCgi().begin();
-	for (; it != location.getCgi().end(); it++){
-		if (*it == suffix)
+	std::string suffix = _localPath.substr(suffixPos);
+	std::vector<std::string>::const_iterator it = _currLocation.getCgi().begin();
+	for (; it != _currLocation.getCgi().end(); it++){
+		if (*it == suffix){
 			return (true);
+		}
 	}
 	return (false);
 }
@@ -515,6 +561,8 @@ bool	Response::isSent()
 
 void Response::buildRawResponse(const Request &_req)
 {
+	addTimeHeader();
+	addHeader("Server", "webserv/1.0");
 
 	if (_req.getMap().find("Protocol") == _req.getMap().end())
 		_rawResponse += "HTTP/1.1 ";
@@ -564,6 +612,10 @@ void Response::setCurrLocation(const Location &loc)
 {
 	_currLocation = loc;
 }
+void Response::setLocalPath(const Request &_req)
+{
+	_localPath = buildLocalPath(_req);
+}
 
 const std::string& Response::getRawResponse() const
 {
@@ -578,4 +630,8 @@ int Response::getBytesSent() const
 int Response::getHeaderLength() const
 {
 	return (_headerLength);
+}
+
+const std::string& Response::getLocalPath() const{
+	return (_localPath);
 }

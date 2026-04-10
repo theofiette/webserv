@@ -31,12 +31,12 @@ class Cgi
 		void				_failureCgi(std::string, char **);
 
 		void				_setupEnv();
-		void				_setupMetavariables(const Request&, const Session &);
+		void				_setupMetavariables(const Response &, const Request &, const Session &);
 
 		void				_setupChildProcess(int[2], int[2]);
-		void				_launchCgi(const Request &, const Session &);
+		void				_launchCgi(const Response &, const Request &, const Session &);
 	
-		void				_setupMainProcess(int[2], int[2], const Request &request);
+		void				_setupMainProcess(int[2], int[2], const Request &);
 		bool				_writeBodyForScript();
 		bool				_readFromCGI(Response &);
 
@@ -47,7 +47,7 @@ class Cgi
 
 
 		pid_t				run(const Request &);
-		void				launchCgi(const Request &, const Session &);
+		void				launchCgi(const Response &, const Request &, const Session &);
 		bool				process(short, const Request &, Response &);
 
 		void				clear();

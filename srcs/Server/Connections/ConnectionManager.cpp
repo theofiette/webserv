@@ -69,8 +69,6 @@ void	ConnectionManager::_openConnection(int fd, const Server &server, const unsi
 
 void	ConnectionManager::_checkCloseConnections()
 {
-	// if (!_to_close.empty())
-	// 	std::cerr << RED << "DEBUG: starting closing process on stack of size " << _to_close.size() << END << std::endl;
 	while (!_to_close.empty())
 	{
 		_closeConnection(_to_close.top());

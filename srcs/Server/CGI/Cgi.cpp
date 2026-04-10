@@ -33,7 +33,7 @@ void	Cgi::_failureCgi(std::string errCode, char **argv)
 	throw ExceptionRuntime(errCode);
 }
 
-void	Cgi::_setupMetavariables(const Request &request, const Session &session)
+void	Cgi::_setupMetavariables(const Response &response, const Request &request, const Session &session)
 {
 	std::map<std::string, std::string> rm = request.getMap();
 
@@ -43,14 +43,20 @@ void	Cgi::_setupMetavariables(const Request &request, const Session &session)
 	_metaVariables["CONTENT_TYPE"] = (rm.find("Content-Type") != rm.end() ? rm.find("Content-Type")->second : "");
 	_metaVariables["GATEWAY_INTERFACE"] = "CGI/1.1";
 	_metaVariables["PATH_INFO"] = "";
-	_metaVariables["PATH_TRANSLATED"] = "";
 	_metaVariables["QUERY_STRING"] = request.getQueryString();
 	_metaVariables["REMOTE_ADDR"] = "";
 	_metaVariables["REMOTE_HOST"] = "";
 	_metaVariables["REMOTE_IDENT"] = "";
 	_metaVariables["REMOTE_USER"] = "";
 	_metaVariables["REQUEST_METHOD"] = (rm.find("Method") != rm.end() ? rm.find("Method")->second : "");
-	_metaVariables["SCRIPT_NAME"] = (rm.find("Path") != rm.end() ? rm.find("Path")->second.substr(1) : "");
+	size_t trimPos = response.getLocalPath().find("/");
+	std::string scriptName;
+	if (trimPos != std::string::npos)
+		scriptName = response.getLocalPath().substr(trimPos + 1);
+	else
+		scriptName = response.getLocalPath();
+	_metaVariables["SCRIPT_NAME"] = (scriptName);
+	_metaVariables["PATH_TRANSLATED"] = "";
 	_metaVariables["SERVER_NAME"] = request.getServer()->getServerName();
 	_metaVariables["SERVER_PORT"] = request.getServer()->getListen();
 	_metaVariables["SERVER_PROTOCOL"] = (rm.find("Protocol") != rm.end() ? rm.find("Protocol")->second : "");
@@ -102,14 +108,29 @@ void	Cgi::_setupChildProcess(int pipeIn[2], int pipeOut[2])
 	safeClose(pipeOut[1]);
 }
 
-void	Cgi::_launchCgi(const Request &request, const Session &session)
+void	Cgi::_launchCgi(const Response &response, const Request &request, const Session &session)
 {
-	_setupMetavariables(request, session);
+	_setupMetavariables(response, request, session);
 	_setupEnv();
 
-	std::string file = "./" + _metaVariables.find("SCRIPT_NAME")->second;
-	if (chdir("./cgi") == -1)
-		_failureCgi("Children process malfunction : directory not found.", NULL);
+	std::string scriptPath = response.getLocalPath();
+	if (scriptPath.empty())
+		_failureCgi("Children process malfunction : empty script path.", NULL);
+
+	size_t slashPos = scriptPath.find_last_of('/');
+	std::string scriptDir = ".";
+	std::string scriptFile = scriptPath;
+	if (slashPos != std::string::npos)
+	{
+		scriptDir = (slashPos == 0 ? "/" : scriptPath.substr(0, slashPos));
+		scriptFile = scriptPath.substr(slashPos + 1);
+	}
+	if (scriptFile.empty())
+		_failureCgi("Children process malfunction : invalid script filename.", NULL);
+	if (chdir(scriptDir.c_str()) == -1)
+		_failureCgi("Children process malfunction : script directory not found.", NULL);
+
+	std::string file = "./" + scriptFile;
 
 	char **argv = new char*[2];
 	argv[0] = strdup(file.c_str());
@@ -151,13 +172,13 @@ pid_t	Cgi::run(const Request &request)
 	int pipeOut[2];
 
 	if (pipe(pipeIn) == -1 || pipe(pipeOut) == -1)
-		throw ExceptionCgiPipeError();
+		return (-1);
 	_pid = fork();
 	if (_pid < 0)
 	{
 		closePipe(pipeIn);
 		closePipe(pipeOut);
-		throw ExceptionCgiPipeError();
+		return (_pid);
 	}
 	if (!_pid)
 	{
@@ -169,9 +190,9 @@ pid_t	Cgi::run(const Request &request)
 	return (_pid);
 }
 
-void	Cgi::launchCgi(const Request &request, const Session &session)
+void	Cgi::launchCgi(const Response &response, const Request &request, const Session &session)
 {
-	_launchCgi(request, session);
+	_launchCgi(response, request, session);
 }
 
 bool	Cgi::_writeBodyForScript()
@@ -192,7 +213,7 @@ bool	Cgi::_writeBodyForScript()
 	else if (bytesWrote == 0)
 	{
 		safeClose(_writeFd);
-		throw ExceptionWriteError();
+		return (false);
 	}
 
 	if (_bodyOffset < _bodyMessage.size())

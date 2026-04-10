@@ -425,11 +425,15 @@ void	ConfigParser::_PARAM_methods()
 
 void	ConfigParser::_PARAM_root()
 {
+	if (_token.find("..") != std::string::npos)
+		_parseError("Invalid pattern [..].");
 	_Location.second.setRoot(_token);
 }
 
 void	ConfigParser::_PARAM_index()
 {
+	if (_token.find("..") != std::string::npos)
+		_parseError("Invalid pattern [..].");
 	_Location.second.setIndex(_token);
 }
 

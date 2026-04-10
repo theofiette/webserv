@@ -20,9 +20,7 @@ class ConnectionManager
 		std::vector<Connection>								_connections;
 		std::stack< std::vector<Connection>::iterator >		_to_close;
 
-		// TODO : outside  ////////////////////////////////////////////////////
 		const std::vector<Server>	&_servers;
-		///////////////////////////////////////////////////////////////////////
 
 		void	_reserve(size_t n);
 
@@ -30,10 +28,7 @@ class ConnectionManager
 		size_t	_setupPollfds();
 		void	_checkOpenConnections();
 
-		// void	_openConnection(int fd);
-		// TMP ////////////////////////////////////////////////////////////////
 		void	_openConnection(int fd, const Server &tmp_serv, const unsigned int serverId);
-		///////////////////////////////////////////////////////////////////////
 
 		void	_processConnections();
 		void	_checkCloseConnections();
@@ -45,7 +40,6 @@ class ConnectionManager
 
 	public:
 
-	// Variables const a set dans un constructeur ??
 		void init(
 			size_t maxConnections, const std::vector<int> masterSockets, pollfd *pollfds);
 

@@ -55,6 +55,7 @@ class Response
 		int 				_statusCode;
 		multimap			_header;
 		std::string 		_body;
+		std::string			_localPath;
 
 		/* If empty, the GET request wasnt a directory*/
 		std::string			_directoryPath; 
@@ -76,7 +77,7 @@ class Response
 		std::string			MIMEtable(std::string);
 		std::string			buildLocalPath(const Request &_req);
 
-		mc_sL_rite			findBestLocation(const std::string &);
+		mc_sL_rite			findBestLocation(std::string &);
 		void 				validateMethodAllowed(const Location &, const Request &_req);
 
 		void 				appendIndexToDirectory(std::string &, const Location &);
@@ -89,6 +90,7 @@ class Response
 		bool				handleUploadPost(const Request &_req);
 		bool				handleRegularPost(const Request &_req, Session &session);
 		void				allowedMethodsHeader();
+		void 				addTimeHeader();
 
 	public:
 		// Response(const Request &, const Server &, Session &);
@@ -115,15 +117,16 @@ class Response
 		std::string 		getChunckResp(int);
 		void				updateBytesSent(int);
 		bool				isSent();
-		bool 				isCgi(const Request &_req);
-		// bool				checkRequestValidity(const Request &_req);
+		bool 				isCgi();
 
 		void				setDirectoryPath(const std::string &);
 		const std::string	getDirectoryPath() const;
+		void				setLocalPath(const Request &_req);
 
 		const std::string&	getRawResponse() const;
 		int					getHeaderLength() const;
 		int					getBytesSent() const;
+		const std::string&	getLocalPath() const;
 
 		void				clear();
 };
