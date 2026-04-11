@@ -27,7 +27,6 @@ class Request
 		bool								_requestTimedOut;
 		bool								_discardBody;
 
-
 		bool								_isChunked;
 		bool								_encodingCheck;
 		bool								_chunkDone;
@@ -57,7 +56,6 @@ class Request
 		void 	_checkEncoding(std::string);
 
 	public:
-		// Request();
 		Request(const Server &);
 		~Request();
 
@@ -66,10 +64,6 @@ class Request
 		void						checkHeader();
 		void						parseRequest(std::string);
 		void						receiveRequestChunk(int);		
-		// // TEMPORAIRE
-		// void				display() const;
-		// void 				displayInfos() const;
-		// void				displayHeader() const;
 
 		bool						isKeepAlive() const;
 		const bool &				isRequestComplete();

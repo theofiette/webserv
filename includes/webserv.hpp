@@ -14,11 +14,6 @@
 # include <vector>
 # include <map>
 
-// # include "WebServer.hpp"
-
 # include "macros.hpp"
-
-// #include "Request.hpp"
-// #include "Response.hpp"
 
 # include "../srcs/utils/memory.tpp"

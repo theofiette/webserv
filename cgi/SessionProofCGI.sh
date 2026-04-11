@@ -8,12 +8,12 @@ fi
 
 BODY="<html>
 		<head>
-			<link rel="stylesheet" href="style/">
+			<link rel="stylesheet" href="/style/">
 		</head>
 		<body>
 			<div class="container">
 				<h1>
-				 	$TXT
+					$TXT
 				</h1>
 			</div>
 

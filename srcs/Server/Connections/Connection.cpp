@@ -11,7 +11,6 @@ void	Connection::setState(ConnectionState state)
 	else
 		_wantedEvent = POLLIN;
 	_state = state;
-	// std::cerr << BLUE << "state is now : " << getStateInterpreted() << "\n" END;
 }
  // CGI CASE je surveille le pipe du CGI et pas le socket de la connection
 int	Connection::getPollFd() const
@@ -77,12 +76,14 @@ void	Connection::_clearCgi()
 
 void	Connection::_startCgi()
 {
-	pid_t cgiReturnCode = _cgi.run(_request);
+	pid_t cgiReturnCode = _cgi.run(_request, _response);
 	if (cgiReturnCode == 0)
 		setState(CS_LAUNCH_CGI);
 	else if (cgiReturnCode < 0)
 	{
-		_request.setErrorCode(INTERNAL_SERVER_ERROR);
+		if (_response.getStatusCode() == OK)
+			_response.setStatusCode(INTERNAL_SERVER_ERROR);
+		_request.setErrorCode(_response.getStatusCode());
 		setState(CS_WRITING);
 	}
 	else
@@ -91,7 +92,7 @@ void	Connection::_startCgi()
 
 void	Connection::_retrieveSession()
 {
-	std::string	sessionStr;;
+	std::string	sessionStr;
 
 	if (_session == NULL)
 	{
@@ -156,6 +157,11 @@ void	Connection::_processWriting()
 		if (_response.isCgi())
 		{
 			_startCgi(); // executes CGI script and sets CS_WAIT_CGI
+			if (_request.getRequestCode() != OK)
+			{
+				_response.handleResponsesError();
+				_response.buildRawResponse(_request);
+			}
 			return ;
 		}
 		_response.pickMethod(_request, *_session);
@@ -271,13 +277,6 @@ Connection &Connection::operator=(const Connection &other)
 
 //	CONSTRUCTOR & DESTRUCTOR //////////////////////////////////////////////////
 
-// Connection::Connection(int fd) :
-// {
-// 	_socketFd = fd;
-// 	_state = CS_NONE;
-// 	std::cerr << "DEBUG: Constructor called for class Connection\n";
-// }
-
 Connection::Connection(int fd, const Server &server, unsigned int serverId): 
 _socketFd(fd), _wantedEvent(POLLIN), _state(CS_NONE), _request(server), _response(server), _cgi(),
 _server(server),  _serverId(serverId), _session(NULL)
@@ -285,16 +284,9 @@ _server(server),  _serverId(serverId), _session(NULL)
 	// std::cerr << "DEBUG: TMP Constructor called for class Connection\n";
 }
 
-// Connection::Connection(const Connection &other)
-// {
-// 	std::cerr << "DEBUG: Copy constructor called for class Connection\n";
-// 	*this = other;
-// }
-
 Connection::~Connection()
 {
 	// std::cerr << "DEBUG: Destructor called for class Connection\n";
-	// close(_socketFd);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -349,7 +349,6 @@ void Request::stateRequestValidity()
 {
 	if (_requestCode != OK)
 		return ;
-	//TODO: if POST and no content length its invalid? 
 	if (_requestHeader["Protocol"] != "HTTP/1.1")
 	{
 		_requestCode = HTTP_VERSION_NOT_SUPPORTED;

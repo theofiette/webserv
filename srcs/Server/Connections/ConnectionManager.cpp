@@ -82,7 +82,6 @@ void	ConnectionManager::_checkCloseConnections()
 */
 void	ConnectionManager::_closeConnection(std::vector<Connection>::iterator it)
 {
-	// std::cerr << RED << "closing connection on fd " << it->getFd() << END << std::endl;
 	close(it->getFd());
 	_connections.erase(it);
 }
@@ -100,7 +99,6 @@ void	ConnectionManager::_checkOpenConnections()
 				break ;
 			Fcntl(newSocket, F_SETFL, O_NONBLOCK);
 			_openConnection(newSocket, _servers[i], i);
-			// std::cerr << RED << "DEBUG: opening connection on fd " << newSocket << END << "\n";
 		}
 	}
 }
@@ -117,7 +115,6 @@ void	ConnectionManager::_processConnections()
 	{
 		Connection	&currentConnection = *it;
 
-		// std::cout << "revent is : " << _pollfds[i].revents << "\n";
 		currentConnection.process(_pollfds[i].revents);
 		if (currentConnection.getState() == CS_LAUNCH_CGI)
 		{
@@ -155,7 +152,6 @@ void	ConnectionManager::loop()
 
 void	ConnectionManager::_reserve(size_t n)
 {
-	// std::cerr << "DEBUG: reserved_connections for " << n << " possibles connections" << std::endl;
 	_connections.reserve(n);
 }
 

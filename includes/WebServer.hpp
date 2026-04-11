@@ -30,12 +30,8 @@ class WebServer
 
 		ConnectionManager			_connectionManager;
 
-
-		// size_t						_connectionsCount;
 		pollfd 						*_pollfds;
 		size_t						_pollSize;
-
-		// SessionManager				_sessionManager;
 
 		void	_initMasterSocket();
 		void	_initReferenceSocket(struct addrinfo &hints);
@@ -44,11 +40,6 @@ class WebServer
 		void	_initPollFds();
 		size_t	_initGetPollSize();
 
-		//TODO : REFACTO //////////////////////////////////////////////////////
-		// Move dans connection manager
-		void	_checkTimedOutConnections();
-		void	_processTimedOutConnections(pollfd&, const Request &);
-
 		WebServer();
 
 	public:
@@ -56,9 +47,6 @@ class WebServer
 		void	init();
 		void	run();
 		void	display();
-
-		// void	display_connection();
-		// void	display_pollfds();
 
 		WebServer(const WebServerConfig &config);
 		~WebServer();

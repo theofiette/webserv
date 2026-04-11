@@ -13,5 +13,3 @@ void	Listen(int fd, int n);
 void	Poll(pollfd *pollfds, nfds_t socketCount, int timeout);
 void	safeClose(int &fd);
 void	closePipe(int pipefd[2]);
-
-// int		Send(int &fd, std::string const& chunckedStr);

@@ -39,14 +39,13 @@ class Cgi
 		void				_setupMainProcess(int[2], int[2], const Request &);
 		bool				_writeBodyForScript();
 		bool				_readFromCGI(Response &);
+		bool				_checkCgiAccess(const std::string &);
 
 	public:
-		// Cgi(const Request &, const Session &);
 		Cgi();
 		~Cgi();
 
-
-		pid_t				run(const Request &);
+		pid_t				run(Request &, Response &);
 		void				launchCgi(const Response &, const Request &, const Session &);
 		bool				process(short, const Request &, Response &);
 

@@ -34,8 +34,6 @@ class Server
 		void		display() const;
 		void		clear();
 
-		// std::map<string, Location> &getLocations();
-
 		static void	set_df_listen(string value);
 		static void	set_df_serverName(string value);
 		static void	set_df_clientBodyMax(int value);

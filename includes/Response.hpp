@@ -67,8 +67,6 @@ class Response
 		Location 			_currLocation;
 
 		const Server 		*_currServ;
-		// const Request 		&_request;
-		// Session				&_session;
 
 		static const 		std::map<int, std::string> _statusMap;
 		static const 		std::string methods[METHODS_COUNT];
@@ -93,8 +91,6 @@ class Response
 		void 				addTimeHeader();
 
 	public:
-		// Response(const Request &, const Server &, Session &);
-		// Response();
 		Response(const Server &);
 		~Response();
 
@@ -124,6 +120,7 @@ class Response
 		void				setLocalPath(const Request &_req);
 
 		const std::string&	getRawResponse() const;
+		int					getStatusCode() const;
 		int					getHeaderLength() const;
 		int					getBytesSent() const;
 		const std::string&	getLocalPath() const;

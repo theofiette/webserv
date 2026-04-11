@@ -166,11 +166,27 @@ void	Cgi::_setupMainProcess(int pipeIn[2], int pipeOut[2], const Request &reques
 	}
 }
 
-pid_t	Cgi::run(const Request &request)
+bool	Cgi::_checkCgiAccess(const std::string &scriptPath)
+{
+	if (access(scriptPath.c_str(), F_OK | X_OK) == -1)
+	{
+		std::cout << RED << "CGI access check failed for script : " << scriptPath << END << std::endl;
+		_state = CGI_IDLE;
+		return (false);
+	}
+	return (true);
+}
+
+pid_t	Cgi::run(Request &request, Response &response)
 {
 	int pipeIn[2];
 	int pipeOut[2];
 
+	if (_checkCgiAccess(response.getLocalPath()) == false)
+	{
+		response.setStatusCode(FORBIDDEN);
+		return (-1);
+	}
 	if (pipe(pipeIn) == -1 || pipe(pipeOut) == -1)
 		return (-1);
 	_pid = fork();

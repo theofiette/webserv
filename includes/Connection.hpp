@@ -3,20 +3,12 @@
 # include "poll.h"
 # include "../srcs/utils/memory.tpp"
 
-// TODO - SHOULD REFACTO //////////////////////////////////////////////////////
-
-// # include "Server.hpp"
 # include "Request.hpp"
-// # include <Session.hpp>
-
 # include "Cgi.hpp"
 
 class Request;
 
 # include "Response.hpp"
-// class Session;
-
-///////////////////////////////////////////////////////////////////////////////
 
 enum ConnectionState {
 	CS_NONE,
@@ -68,8 +60,7 @@ class Connection {
 
 	public:
 	
-		void	process(short revent);
-		// short			getEvent() const;
+		void			process(short revent);
 		int				getFd() const;
 		int				getPollFd() const;
 		ConnectionState	getState() const;
@@ -78,9 +69,6 @@ class Connection {
 		short			getWantedEvent();
 
 		Connection &operator=(const Connection &other);
-		// Connection(const Connection &other);
-		// Connection(int fd);
 		Connection(int fd, const Server &server, const unsigned int serverId);
 		~Connection();
-
 };

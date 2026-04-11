@@ -308,7 +308,7 @@ void Response::parseFormData(std::map<std::string, std::string> &data, const Req
 		size_t endPos = body.find("&", i);
 		if (endPos == std::string::npos)
 			endPos = body.find("\r\n\r\n");
-		std::string key = body.substr((lastPos == 0 ? lastPos : lastPos + 1), i - (lastPos + (lastPos != 0))); // 🤮🤮🤮
+		std::string key = body.substr((lastPos == 0 ? lastPos : lastPos + 1), i - (lastPos + (lastPos != 0)));
 		std::string val = body.substr(i + 1, endPos - (i + 1));
 
 		if (key.find(SESSION_PREFIXE) != std::string::npos)
@@ -373,7 +373,7 @@ void Response::handleResponsesError()
 		readFileContent(localPath, s.st_size);
 	else
 	{
-		_body = "<html><head><link rel=\"stylesheet\" href=\"css/style/\"><title>Error " + intToString(_statusCode) + "</title></head>";
+		_body = "<html><head><link rel=\"stylesheet\" href=\"style/\"><title>Error " + intToString(_statusCode) + "</title></head>";
 		_body += "<body><h1>Error " + intToString(_statusCode);
 		_body += _statusMap.at(_statusCode) + "</h1>";
 		_body += "<p>An error occurred while processing your request.</p></body></html>";
@@ -449,7 +449,6 @@ void Response::handleGet(const Request &_req, Session &session)
 bool Response::handleUploadPost(const Request &_req)
 {
 	struct stat	s;
-	// std::string localPath = buildLocalPath(_req);
 
 	checkFileAccess(_localPath, R_OK);
 	if ((stat(_localPath.c_str(), &s) == -1) || _statusCode != OK)
@@ -476,7 +475,6 @@ bool Response::handleRegularPost(const Request &_req, Session &session)
 		handleResponsesError();
 		return (false);
 	}
-
 	std::map<std::string, std::string> formData;
 	parseFormData(formData, _req, session);
 	return (true);
@@ -485,18 +483,23 @@ bool Response::handleRegularPost(const Request &_req, Session &session)
 void Response::handlePost(const Request &_req, Session &session)
 {
 	std::map<std::string, std::string>::const_iterator contentTypePos = _req.getMap().find("Content-Type");
-	bool isUploadPost;
 
 	if (contentTypePos == _req.getMap().end())
 	{
-		_statusCode = UNSUPPORTED_MEDIA_TYPE; // TODO: a confirmer
+
+		_statusCode = UNSUPPORTED_MEDIA_TYPE;
 		handleResponsesError();
 		return ;
 	}
 
-	isUploadPost = _currLocation.getUpload() && UploadHandler::_isMultipart(contentTypePos->second);
-	if (isUploadPost)
+	if (UploadHandler::_isMultipart(contentTypePos->second))
 	{
+		if (!_currLocation.getUpload())
+		{
+			_statusCode = INTERNAL_SERVER_ERROR;
+			handleResponsesError();
+			return ;
+		}
 		if (!handleUploadPost(_req))
 			return ;
 	}
@@ -505,7 +508,7 @@ void Response::handlePost(const Request &_req, Session &session)
 
 	_statusCode = SEE_OTHER;
 	addHeader("Location", "/success.html");
-	addHeader("Content-Length", "0"); // TODO: 0 ou body size si upload ?
+	addHeader("Content-Length", "0");
 }
 
 void Response::handleDelete(const Request &_req, Session &session)
@@ -620,6 +623,11 @@ void Response::setLocalPath(const Request &_req)
 const std::string& Response::getRawResponse() const
 {
 	return (_rawResponse);
+}
+
+int Response::getStatusCode() const
+{
+	return (_statusCode);
 }
 
 int Response::getBytesSent() const
