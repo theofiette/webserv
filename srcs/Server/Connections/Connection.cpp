@@ -151,9 +151,9 @@ void	Connection::_processParsing()
 void	Connection::_processWriting()
 {
 	_retrieveSession();
-	_response.setLocalPath(_request);
 	if (_request.getRequestCode() == OK)
 	{
+		_response.setLocalPath(_request);
 		if (_response.isCgi())
 		{
 			_startCgi(); // executes CGI script and sets CS_WAIT_CGI

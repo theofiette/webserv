@@ -32,7 +32,6 @@ size_t	ConnectionManager::_setupPollfds()
 
 	i = 0;
 	j = 0;
-	// std::cout << "Setup Pollfd -- " << std::endl;
 	while (i + j < _maxConnections)
 	{
 		if (i < _masterSockets.size())
@@ -66,7 +65,6 @@ void	ConnectionManager::_openConnection(int fd, const Server &server, const unsi
 /*
 *	TODO: IMPORTANT
 */
-
 void	ConnectionManager::_checkCloseConnections()
 {
 	while (!_to_close.empty())
@@ -122,7 +120,9 @@ void	ConnectionManager::_processConnections()
 			currentConnection.process(0);
 		}
 		if (currentConnection.getState() == CS_CLOSE)
+		{
 			_to_close.push(it);
+		}
 		i++;
 	}
 }
@@ -160,8 +160,7 @@ size_t	ConnectionManager::size()
 	return (_connections.size());
 }
 
-//	CONSTRUCTOR & DESTRUCTOR //////////////////////////////////////////////////
-
+//	CONSTRUCTOR & DESTRUCTOR
 ConnectionManager::ConnectionManager(const WebServerConfig &config) : _servers(config.servers)
 {
 }
@@ -190,5 +189,3 @@ ConnectionManager::~ConnectionManager()
 	SessionManager::clean();
 	std::cerr << "DEBUG: Destructor called for class ConnectionManager\n";
 }
-
-///////////////////////////////////////////////////////////////////////////////

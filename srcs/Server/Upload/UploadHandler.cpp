@@ -29,7 +29,7 @@ std::string	UploadHandler::_extractBoundary(const std::string &contentType)
 	return (contentType.substr(pos));
 }
 
-std::string	UploadHandler::_extractFilename() const // faire juste size_t CursorStart, CursorEnd, et reutilsier les memes? 
+std::string	UploadHandler::_extractFilename() const
 {
 	const std::vector<char> &bodyVec = _request.getBody();
 	if (bodyVec.empty())
@@ -92,11 +92,6 @@ const std::string UploadHandler::findCorrespondingValueFromKey(const string &Key
 	return (it->second);
 }
 
-
-// ------geckoformboundaryec4d5957babb5756bf6c14779693ebba
-// Content-Disposition: form-data; name="file"; filename="nsmail.jpg"
-// Content-Type: image/jpeg
-
 std::vector<char> UploadHandler::_trimBody(const std::string &boundary)
 {
 	std::vector<char> body = _request.getBody();
@@ -112,7 +107,8 @@ std::vector<char> UploadHandler::_trimBody(const std::string &boundary)
 	body.erase(body.begin(), body.begin() + offset);
 
 	std::vector<char>::iterator lastBoundaryPos = std::search(body.begin(), body.end(), boundary.begin(), boundary.end());
-	if (lastBoundaryPos == body.end()){
+	if (lastBoundaryPos == body.end())
+	{
 		_statusCode = BAD_REQUEST;
 		return (std::vector<char>(0));
 	}

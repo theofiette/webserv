@@ -64,8 +64,6 @@ size_t	WebServer::_initGetPollSize()
 			throw (ExceptionBadInit("Server number is exceeding FD_SETSIZE"));
 		fds = FD_SETSIZE - _config.servers.size();
 	}
-
-	//TODO: this is false, needs to be corrected
 	return (static_cast<int>(fds));
 }
 
@@ -89,38 +87,6 @@ void	WebServer::display()
 	for (; it != ite; it++)
 		it->display();
 }
-
-// void	WebServer::_processRequest(pollfd &request)
-// {
-// 	if (_requestsMap.find(request.fd) == _requestsMap.end())
-// 		throw (ExceptionRuntime("Can't find corresponding request."));
-// 	Request &currRequest = _requestsMap.at(request.fd);
-
-// 	currRequest.receiveRequestChunk(request.fd);
-// 	if (currRequest.isRequestComplete() == false)
-// 		return ;
-
-// 	std::cout << GREEN << currRequest.getRawRequest() << std::endl << END;
-// 	currRequest.parseRequest(currRequest.getRawRequest());
-	// std::cout << currRequest.getHeader() << std::endl;
-	// for (std::vector<char>::const_iterator it = currRequest.getBody().begin(); it != currRequest.getBody().end(); it++)
-	// 	std::cout <<  *it;
-
-
-// 	Session &currSession = _sessionManager.accessSession(currRequest.getCookieValue("SessionId"), currRequest.getServerIndex());
-
-// 	currSession.display();
-
-
-// 	Response resp(currRequest, currRequest.getServer(), currSession);
-
-// 	std::pair<int, Response> r = std::make_pair(request.fd, resp); // TODO: choose an other way or keep
-	
-// 	_responsesMap.insert(r);
-
-// 	request.events = POLLOUT; // on set le fd ready to send
-// }
-
 
 void	WebServer::run()
 {
