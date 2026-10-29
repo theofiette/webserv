@@ -1,0 +1,5 @@
+.build/
+webserv
+__pycache__/
+upload/pictures/*
+!upload/pictures/.gitkeep

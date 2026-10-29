@@ -228,9 +228,11 @@ void	Connection::process(short revent)
 				setState(CS_PARSING);
 			else
 				break ;
+			//fall through
 		case (CS_PARSING):
 			_processParsing();
 			setState(CS_WRITING);
+			//fall through
 		case (CS_WRITING):
 			_processWriting();
 			if (getState() == CS_WRITING)
